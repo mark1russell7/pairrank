@@ -42,5 +42,7 @@ jobs:
     steps:
       - uses: mark1russell7/template/.github/actions/security-scan@6f9092e1d10a16562c70c2bdeef469cb42a4a808 # main
         with:
-          # A private repository has no GitHub Advanced Security, and the dependency review needs it
+          # A private repository has no GitHub Advanced Security. The dependency review and code scanning
+          # (CodeQL) need it, so only the OSV scan runs here.
           dependency-review: "false"
+          codeql: "false"
