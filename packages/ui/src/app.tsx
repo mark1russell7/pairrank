@@ -1,21 +1,26 @@
 /**
- * The interface of pairrank: a list of the sites, and a look at one site at a time. The tag run and the duel use the
- * same frame and the same slot.
+ * The interface of pairrank: a list of the sites, the tags, and a look at one site at a time. On the Look screen, the
+ * key of a tag puts the tag on the site or removes it. The duel uses the same frame and the same slot.
  */
+import type { Draft } from "@pairrank/core";
 import type { SiteView, StateView, TagView } from "@pairrank/host/views";
 import { type Surface, trackSlots } from "@pairrank/surfaces";
-import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { PairrankApi } from "./api.ts";
 import { Slot } from "./slot.tsx";
+import { createDraft, tagProblem, toggleDraft } from "./tagging.ts";
+import { Swatch, TagsScreen, type Write } from "./tags.tsx";
 
 /** The screens of the interface. */
-export type Screen = "sites" | "look";
+export type Screen = "sites" | "tags" | "look";
 
 /** The properties of the interface. */
 export interface AppProps {
   readonly api: PairrankApi;
   readonly surface: Surface;
+  /** This function gives the id of a new tag. The default is `crypto.randomUUID`. */
+  readonly newId?: () => string;
 }
 
 /** This function gives the sites that are not hidden, in the order of the state. */
@@ -40,7 +45,53 @@ function messageOf(error: unknown): string {
 }
 
 /** The interface of pairrank. */
-export function App({ api, surface }: AppProps): ReactElement {
+/** The strip of the tags of the site on the Look screen, with a field that makes a tag and puts it on the site. */
+function TagStrip(props: { readonly site: SiteView; readonly tags: readonly TagView[]; readonly write: Write; readonly newId: () => string }): ReactElement {
+  const { site, tags, write } = props;
+  const [name, setName] = useState("");
+  const [problem, setProblem] = useState<string | undefined>(undefined);
+  const make = async (event: FormEvent): Promise<void> => {
+    event.preventDefault();
+    if (name.trim() === "") return;
+    const fields = { name, key: "", color: undefined };
+    const id = props.newId();
+    const found = tagProblem(fields, tags) ?? (await write([createDraft(id, fields), { type: "site.tagged", site: site.id, tag: id }]));
+    setProblem(found);
+    if (found === undefined) setName("");
+  };
+  return (
+    <div className="strip tag-strip" role="group" aria-label="Tags of the site">
+      {tags.map((tag) => (
+        <button type="button" key={tag.id} className="tag-toggle" aria-pressed={site.tags.includes(tag.id)} onClick={() => void write([toggleDraft(site, tag.id)]).then(setProblem)}>
+          <Swatch color={tag.color} />
+          {tag.name}
+          {tag.key !== undefined && <kbd>{tag.key}</kbd>}
+        </button>
+      ))}
+      <form className="quick-tag" onSubmit={(event) => void make(event)}>
+        <input
+          value={name}
+          placeholder="New tag"
+          aria-label="New tag for this site"
+          maxLength={80}
+          onChange={(event) => {
+            setName(event.target.value);
+            setProblem(undefined);
+          }}
+        />
+      </form>
+      {problem !== undefined && (
+        <span className="problem" role="alert">
+          {problem}
+        </span>
+      )}
+    </div>
+  );
+}
+
+const editable = (target: EventTarget | null): boolean => target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
+
+export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProps): ReactElement {
   const tracker = useMemo(() => trackSlots(surface), [surface]);
   useEffect(() => () => tracker.stop(), [tracker]);
   const [view, setView] = useState<StateView | undefined>(undefined);
@@ -59,8 +110,22 @@ export function App({ api, surface }: AppProps): ReactElement {
   }, [api]);
   useEffect(() => void reload(), [reload]);
 
+  const write = useCallback<Write>(
+    async (drafts: readonly Draft[]) => {
+      try {
+        const result = await api.apply(drafts);
+        await reload();
+        return result.problems[0]?.message;
+      } catch (failure) {
+        return messageOf(failure);
+      }
+    },
+    [api, reload],
+  );
+
   const sites = useMemo(() => (view === undefined ? [] : visibleSites(view)), [view]);
   const tags = useMemo(() => new Map<string, TagView>(view?.tags.map((tag) => [tag.id, tag]) ?? []), [view]);
+  const named = useMemo(() => [...(view?.tags ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [view]);
   const current = sites.length === 0 ? undefined : sites[Math.min(index, sites.length - 1)];
   const position = current === undefined ? 0 : sites.indexOf(current);
 
@@ -69,16 +134,18 @@ export function App({ api, surface }: AppProps): ReactElement {
   useEffect(() => {
     if (screen !== "look") return;
     const onKey = (event: KeyboardEvent): void => {
-      if (event.target instanceof HTMLInputElement) return;
+      if (editable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+      const keyed = named.find((tag) => tag.key !== undefined && tag.key === event.key.toLowerCase());
       if (event.key === "ArrowRight" || event.key === "j") step(1);
       else if (event.key === "ArrowLeft" || event.key === "k") step(-1);
       else if (event.key === "Escape") setScreen("sites");
+      else if (keyed !== undefined && current !== undefined) void write([toggleDraft(current, keyed.id)]);
       else return;
       event.preventDefault();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [screen, step]);
+  }, [screen, step, named, current, write]);
 
   const found = useMemo(() => sites.filter((site) => matches(site, query)), [sites, query]);
 
@@ -89,6 +156,9 @@ export function App({ api, surface }: AppProps): ReactElement {
         <nav aria-label="Screens">
           <button type="button" aria-pressed={screen === "sites"} onClick={() => setScreen("sites")}>
             Sites
+          </button>
+          <button type="button" aria-pressed={screen === "tags"} disabled={view === undefined} onClick={() => setScreen("tags")}>
+            Tags
           </button>
           <button type="button" aria-pressed={screen === "look"} disabled={sites.length === 0} onClick={() => setScreen("look")}>
             Look
@@ -143,9 +213,12 @@ export function App({ api, surface }: AppProps): ReactElement {
         </main>
       )}
 
+      {screen === "tags" && view !== undefined && <TagsScreen view={view} write={write} newId={newId} />}
+
       {screen === "look" && current !== undefined && (
         <main className="look">
           <Slot surface={surface} tracker={tracker} slot="main" url={current.url} />
+          <TagStrip site={current} tags={named} write={write} newId={newId} />
           <footer className="strip caption">
             <button type="button" aria-label="Previous site" onClick={() => step(-1)}>
               ‹
