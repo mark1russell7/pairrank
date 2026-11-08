@@ -40,9 +40,13 @@ jobs:
       security-events: write
       actions: read
     steps:
-      - uses: mark1russell7/template/.github/actions/security-scan@6f9092e1d10a16562c70c2bdeef469cb42a4a808 # main
+      # The template runs the action of this commit, so it checks out the folder of the actions first. A
+      # repository that pins the action to a commit needs no such step: the action checks out the repository.
+      # The stamp copies this file, so the step runs only in the template. In a private repository, its partial
+      # clone makes the later checkout of the base fail: the fetch from the promisor remote has no credentials.
+      - if: github.repository == 'mark1russell7/template'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # A private repository has no GitHub Advanced Security. The dependency review and code scanning
-          # (CodeQL) need it, so only the OSV scan runs here.
-          dependency-review: "false"
-          codeql: "false"
+          sparse-checkout: .github/actions
+          persist-credentials: false
+      - uses: mark1russell7/template/.github/actions/security-scan@c9c22db0b0aeda287e785c8ab4d514e841384289 # main
