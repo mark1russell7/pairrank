@@ -12,14 +12,15 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 - The rating math is in `@mark1russell7/rigor-statistics`. The seeded random order of the viewer is in `@mark1russell7/rigor-generators`.
 - The desktop app with Electron is first. The same interface also works in a browser with an `iframe`, for the sites that permit it.
 - The import uses one standard format. An adapter changes each source into that format. The first adapter reads Chrome bookmarks.
-- Bookmark folders never become tags. The import wizard includes or excludes folders.
+- Bookmark folders do not become tags. The import wizard includes or excludes folders.
+- The template gets a preset for an Electron app, in a pull request of the template at the start of R10. The preset joins a React interface, a service host and a Node main process.
 
 ## Items
 
 | ID | Item | Status | Needs | Summary |
 | --- | --- | --- | --- | --- |
 | R1 | Rating math | in progress | | Add Elo, Glicko-2 and Bradley-Terry with ties to `@mark1russell7/rigor-statistics`, in a pull request of that repository. |
-| R2 | The repository | in progress | | Make the repository from the template, with CI. |
+| R2 | The repository | done | | Make the repository from the template, with CI. |
 | R3 | The log of events | open | R2 | Define sites, tags, tag events, picks (A, B, tie, skip), hidden sites and scopes as pure data, with tests. |
 | R4 | The store | open | R3 | Keep the log in SQLite (`node:sqlite`). Add only, and replay the log to get the state. |
 | R5 | Ratings from the log | open | R1, R3 | Calculate one ladder for each scope, with an uncertainty. Select the model by the log-loss on held-out picks. |
@@ -27,7 +28,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R7 | The Chrome bookmarks adapter | open | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. |
 | R8 | The host | open | R4 | A local service gives the procedures of the app. |
 | R9 | The surfaces | open | R2 | One interface shows a site. The first adapter is an Electron view, and the second adapter is an `iframe`. |
-| R10 | The app shell | open | R8, R9 | The React interface and the Electron desktop shell. |
+| R10 | The app shell | open | R8, R9 | Add the Electron preset to the template. Then make the React interface and the Electron desktop shell with it. |
 | R11 | The tag run | open | R10, R12 | Show one site at a time. Keys set and clear tags. |
 | R12 | Tags | open | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. |
 | R13 | The duel | open | R10, R5 | Show two sites side by side. Pick A, B, tie or skip, or hide a site. Pick under one tag or overall. |
