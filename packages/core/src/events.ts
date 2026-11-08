@@ -136,6 +136,39 @@ export type Event =
 /** The type words of the events. */
 export type EventType = Event["type"];
 
+/** Each type word of the events, in the order of the union. */
+export const EVENT_TYPES: readonly EventType[] = [
+  "site.added",
+  "site.edited",
+  "site.hidden",
+  "site.restored",
+  "tag.created",
+  "tag.edited",
+  "tag.merged",
+  "tag.deleted",
+  "site.tagged",
+  "site.untagged",
+  "pick",
+  "pick.undone",
+];
+
+const TYPES = new Set<string>(EVENT_TYPES);
+
+/**
+ * This function changes a stored value into an event. It examines the id, the time and the type word. The rules of the
+ * state examine the other fields.
+ *
+ * @throws Error when the value is not an object with a text `id`, a text `at` and a known `type`
+ */
+export function parseEvent(value: unknown): Event {
+  if (typeof value !== "object" || value === null) throw new Error("An event must be an object.");
+  const record = value as { readonly id?: unknown; readonly at?: unknown; readonly type?: unknown };
+  if (typeof record.id !== "string" || record.id === "") throw new Error("An event must have a text id.");
+  if (typeof record.at !== "string" || Number.isNaN(Date.parse(record.at))) throw new Error(`The event ${record.id} must have an ISO time at.`);
+  if (typeof record.type !== "string" || !TYPES.has(record.type)) throw new Error(`The event ${record.id} has an unknown type ${String(record.type)}.`);
+  return value as Event;
+}
+
 /** This function gives the key of a scope: `overall`, or `tag:<id>`. */
 export function scopeKey(scope: Scope): string {
   return scope.kind === "overall" ? "overall" : `tag:${scope.tag}`;

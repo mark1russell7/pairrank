@@ -138,3 +138,15 @@ describe("hidden sites and picks", () => {
     expect(picksIn(state, overall).map((each) => each.outcome)).toEqual(["tie"]);
   });
 });
+
+describe("parseEvent", () => {
+  it("gives back a valid event, and refuses a value that is not an event", async () => {
+    const { parseEvent } = await import("./events.ts");
+    const good = { id: "e1", at: "2026-11-08T10:00:00Z", type: "site.added", site: "a", url: "https://a.example/" };
+    expect(parseEvent(good)).toBe(good);
+    expect(() => parseEvent(null)).toThrow(/object/);
+    expect(() => parseEvent({ ...good, id: "" })).toThrow(/id/);
+    expect(() => parseEvent({ ...good, at: "yesterday" })).toThrow(/time/);
+    expect(() => parseEvent({ ...good, type: "site.exploded" })).toThrow(/unknown type/);
+  });
+});

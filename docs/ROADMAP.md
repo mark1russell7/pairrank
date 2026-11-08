@@ -22,7 +22,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R1 | Rating math | done | | Add Elo, Glicko-2 and Bradley-Terry with ties to `@mark1russell7/rigor-statistics`, in a pull request of that repository. |
 | R2 | The repository | done | | Make the repository from the template, with CI. |
 | R3 | The log of events | done | R2 | Define sites, tags, tag events, picks (A, B, tie, skip), hidden sites and scopes as pure data, with tests. |
-| R4 | The store | open | R3 | Keep the log in SQLite (`node:sqlite`). Add only, and replay the log to get the state. |
+| R4 | The store | done | R3 | Keep the log in SQLite (`node:sqlite`). Add only, and replay the log to get the state. |
 | R5 | Ratings from the log | open | R1, R3 | Calculate one ladder for each scope, with an uncertainty. Select the model by the log-loss on held-out picks. |
 | R6 | The standard input format | open | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
 | R7 | The Chrome bookmarks adapter | open | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. |
@@ -38,3 +38,4 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
 | R18 | Hidden sites | open | R13 | Show the hidden sites, and restore a site. |
 | R19 | The screenshot surface | later | R9 | Show a screenshot of a site when a live view is not possible. |
+| R20 | Security scans in a private repository | in progress | | The template security scan fails in a private repository. A pull request of the template corrects it. |
