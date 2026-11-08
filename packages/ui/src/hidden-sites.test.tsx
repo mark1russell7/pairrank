@@ -3,7 +3,7 @@ import { pairrankModule } from "@pairrank/host";
 import { openStore } from "@pairrank/store";
 import { memorySurface } from "@pairrank/surfaces";
 import { callerOf } from "@procedures/client";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Call, type PairrankApi, apiOf } from "./api.ts";
 import { App } from "./app.tsx";
@@ -29,7 +29,8 @@ async function setup(prepare?: (api: PairrankApi) => Promise<unknown>): Promise<
   return api;
 }
 
-const hide = (site: string, reason?: string) => async (api: PairrankApi) => api.apply([{ type: "site.hidden", site, reason }]);
+const hide = (site: string, reason?: string) => async (api: PairrankApi) =>
+  api.apply([reason === undefined ? { type: "site.hidden", site } : { type: "site.hidden", site, reason }]);
 
 describe("the hidden sites", () => {
   it("shows no choice of the hidden sites when no site is hidden", async () => {
