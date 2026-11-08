@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
     "build": "tsdown",
     "start": "tsdown && electron build/main/main.js",
-    "smoke": "tsdown && electron build/main/main.js --smoke"
+    "smoke": "tsdown && electron build/main/main.js --smoke",
+    "e2e": "tsdown && tsx src/e2e/layout.e2e.ts"
   },
   "devDependencies": {
     "@mark1russell7/cue": "^2.0.0",

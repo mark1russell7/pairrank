@@ -34,10 +34,18 @@ async function open(sites = list.sites) {
   render(<App api={api} surface={memory.surface} newId={() => `duel${++d}`} />);
   const duel = await screen.findByRole("button", { name: "Duel" });
   const urls = new Map((await api.view()).sites.map((site) => [site.url, site.id]));
-  /** This function gives the ids of the sites on the screen, when the next pair is ready. */
+  /**
+   * This function gives the ids of the sites on the screen, when the next pair is ready. After the buttons go on, a
+   * second wait lets the two slots get their sites.
+   */
   const shown = async (): Promise<[string, string]> => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Left is better/ }).hasAttribute("disabled")).toBe(false));
-    return [urls.get(memory.loads.get("left")!.url)!, urls.get(memory.loads.get("right")!.url)!];
+    return waitFor(() => {
+      const left = memory.loads.get("left");
+      const right = memory.loads.get("right");
+      if (left === undefined || right === undefined) throw new Error("A slot has no site.");
+      return [urls.get(left.url)!, urls.get(right.url)!];
+    });
   };
   return { api, memory, duel, shown };
 }

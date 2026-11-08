@@ -129,7 +129,7 @@ jobs:
         run: node packages/site-pages/src/check/main.ts --out "$DEMO/packages/site/dist" --repo mark1russell7/stamp-demo --pages /,/releases/,/status/ --shots "$RUNNER_TEMP/site-check"
 
   # The desktop app starts once: its window opens on a virtual display, and the app stops with 0 after the first call
-  # of its page. Ubuntu 24.04 refuses the user namespaces of the sandbox of Chromium to a binary with no AppArmor
+  # of its page. Then the layout check starts the app again with two sites. Ubuntu 24.04 refuses the user namespaces of the sandbox of Chromium to a binary with no AppArmor
   # profile, so the step allows them. The app keeps its sandbox. The steps are the smoke of the preset electron.
   desktop:
     runs-on: ubuntu-latest
@@ -150,6 +150,10 @@ jobs:
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           xvfb-run --auto-servernum pnpm --filter @pairrank/desktop smoke
+      # The page tests have no layout. This check opens the Look screen and the duel with two local sites, and fails
+      # when a slot is short (B1: each slot had no height).
+      - name: layout
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24" pnpm --filter @pairrank/desktop e2e
 
   # The one check of the ruleset of main (CI.md, "The check of the ruleset"). It passes only when
   # each job of needs passed, or was skipped by its own if and ALLOW_SKIP names it. A new job of this

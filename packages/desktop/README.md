@@ -30,3 +30,4 @@ The command builds the app to `build/`, and then starts it with Electron.
 - Each site shows in its own view, in the session `persist:sites`. A site gets no permission, no preload script and no new window.
 - A click on a site gives the keys to the site. `Escape` gives the keys back to the app.
 - The rules of the app are pure functions in `src/index.ts`. The tests examine them with no Electron process.
+- `pnpm e2e` starts the built app with two local sites. It opens the Look screen and the duel, and examines the height of each slot.

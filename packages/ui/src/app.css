@@ -58,10 +58,27 @@ button:disabled {
   outline-offset: 1px;
 }
 
+/*
+ * The frame has three rows: the header, the error line and the screen. The error line is often absent, so each child
+ * names its row. Without the names, the screen goes into the row of the error line and gets no height.
+ */
 .app {
   display: grid;
-  grid-template-rows: var(--strip) auto 1fr;
+  grid-template-rows: var(--strip) auto minmax(0, 1fr);
   height: 100%;
+}
+
+.app > header {
+  grid-row: 1;
+}
+
+.app > .error {
+  grid-row: 2;
+}
+
+.app > main {
+  grid-row: 3;
+  min-height: 0;
 }
 
 /* The strips at the edges of the frame, as the edge of a film strip. */
