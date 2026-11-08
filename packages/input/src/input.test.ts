@@ -1,6 +1,6 @@
 import { type Event, replay } from "@pairrank/core";
 import { describe, expect, it } from "vitest";
-import { type Entry, parseSiteList, siteList } from "./format.ts";
+import { type Entry, isWebUrl, parseSiteList, siteList } from "./format.ts";
 import { planImport } from "./plan.ts";
 
 /** A key for the tests only: no fragment, no final slash, a lowercase host. The app uses the key of the crawler. */
@@ -108,5 +108,15 @@ describe("planImport", () => {
     });
     expect(report.added).toBe(1);
     expect(report.merged).toBe(1);
+  });
+});
+
+describe("isWebUrl", () => {
+  it("accepts http and https with a host, and refuses the rest", () => {
+    expect(isWebUrl("https://example.com/a?b#c")).toBe(true);
+    expect(isWebUrl("HTTP://example.com")).toBe(true);
+    for (const url of ["chrome://settings", "file:///C:/a.html", "https://", "https:///path", "https://a b.com", "javascript:alert(1)"]) {
+      expect(isWebUrl(url), url).toBe(false);
+    }
   });
 });

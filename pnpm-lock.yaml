@@ -330,6 +330,28 @@ importers:
         specifier: ^5.0.3
         version: 5.1.0(@types/node@26.6.6)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
+  packages/surfaces:
+    dependencies:
+      '@mark1russell7/layout-contract':
+        specifier: ^0.6.2
+        version: 0.6.2
+      '@pairrank/input':
+        specifier: workspace:*
+        version: link:../input
+    devDependencies:
+      '@mark1russell7/cue':
+        specifier: ^2.0.0
+        version: 2.1.1
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.6
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.3
+        version: 5.1.0(@types/node@26.6.6)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+
 packages:
 
   '@clack/core@1.5.1':
@@ -543,6 +565,10 @@ packages:
     resolution: {integrity: sha512-C5lHeQXAHtwgsdjK1rktRwaGvssMoEiBK5Wx2XBJkejhrjvaK7qATjumlp8EGNNVjkHNfIBw15UevBO7wyKj5g==}
     engines: {node: '>=22.12'}
 
+  '@mark1russell7/collections@0.9.10':
+    resolution: {integrity: sha512-OXr3aDXRILylhKMBbXTrknMb83TJI7ITmD1AaDuUap9bXsPm8kTRYhRU821V2MN/71YzhLrALcQi4xky1cvP6A==}
+    engines: {node: '>=22.12'}
+
   '@mark1russell7/conventions@0.38.1':
     resolution: {integrity: sha512-dwx/vii02hjaGvB96IrgvXZjM/Ri46FAhNZQoCgoOSbeXYHVD1A1YPG/eXvZJ5geehJwf0WM05aUPAzggntnOA==}
     engines: {node: '>=22'}
@@ -552,6 +578,10 @@ packages:
     resolution: {integrity: sha512-0/L9nQwGqUTCLTnUPtYKJ/cvXTr/gJWFWASUzGUjKyj3LxNpYgAplLuTPNQe0g4kjcM+9JAb/D/IfYwBGvM/mA==}
     engines: {node: '>=22'}
     hasBin: true
+
+  '@mark1russell7/layout-contract@0.6.2':
+    resolution: {integrity: sha512-LMXWQ5C/pKR8EFTm3gPkGzaMEfPM9AhePff4hcHyoQQZv1TdiUhFDaJ/fCVis8syuP7aVlDhj44LUd29gu2UEw==}
+    engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
     resolution: {integrity: sha512-vS5jF21WC/VApRv4p8afRZahcMl9cuNp03LxbVngY9nYkzq+S7Oit6ksySt2baML+tp46UF60sxnHxn1jlwtTg==}
@@ -627,6 +657,10 @@ packages:
     resolution: {integrity: sha512-OenwEgVEkrt6HjUtIsTgplkJJTBIZLwb0mxiPow533++mbrrJ8BvHK+MsMLFm6X5A8EJZlLgd6IXJspZy3L2og==}
     engines: {node: '>=22.12'}
     hasBin: true
+
+  '@mark1russell7/typeset@0.1.9':
+    resolution: {integrity: sha512-tTdsEWkMOtEUl6rAy9KMs9UOi4c1F5stqDvWMP/xY+/iR+ib85K6a7sGQOnO37mST0s53NCs5MBkI+VvEtCbGA==}
+    engines: {node: '>=22.12'}
 
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
@@ -1590,11 +1624,20 @@ snapshots:
     dependencies:
       '@mark1russell7/optional': 1.2.0
 
+  '@mark1russell7/collections@0.9.10':
+    dependencies:
+      '@mark1russell7/optional': 1.2.0
+
   '@mark1russell7/conventions@0.38.1':
     dependencies:
       yaml: 2.9.1
 
   '@mark1russell7/cue@2.1.1': {}
+
+  '@mark1russell7/layout-contract@0.6.2':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.7
+      '@mark1russell7/typeset': 0.1.9
 
   '@mark1russell7/optional@1.2.0': {}
 
@@ -1639,6 +1682,11 @@ snapshots:
   '@mark1russell7/template-cli@0.1.5':
     dependencies:
       '@clack/prompts': 1.8.1
+
+  '@mark1russell7/typeset@0.1.9':
+    dependencies:
+      '@mark1russell7/collections': 0.9.10
+      '@mark1russell7/rigor-generators': 0.1.7
 
   '@oxc-project/types@0.156.0': {}
 

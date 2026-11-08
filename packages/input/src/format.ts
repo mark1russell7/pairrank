@@ -59,6 +59,11 @@ const SCHEME = /^[a-z][a-z0-9+.-]*:\S*$/i;
 /** A web URL has the scheme `http` or `https`, a host, and no spaces. */
 const WEB = /^https?:\/\/[^\s/?#]+\S*$/i;
 
+/** This function tells if a text is a web URL: the scheme `http` or `https`, a host, and no spaces. */
+export function isWebUrl(url: string): boolean {
+  return WEB.test(url);
+}
+
 function isStrings(value: unknown): value is readonly string[] {
   return Array.isArray(value) && value.every((each) => typeof each === "string");
 }
@@ -67,7 +72,7 @@ function entryProblem(value: unknown): [EntryProblemCode, string] | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return ["not-an-object", "An entry must be an object."];
   const entry = value as { url?: unknown; title?: unknown; tags?: unknown; dated?: unknown; path?: unknown };
   if (typeof entry.url !== "string" || !SCHEME.test(entry.url)) return ["bad-url", `The URL ${String(entry.url)} is not valid.`];
-  if (!WEB.test(entry.url)) return ["not-a-web-url", `The URL ${entry.url} is not an http or https URL with a host.`];
+  if (!isWebUrl(entry.url)) return ["not-a-web-url", `The URL ${entry.url} is not an http or https URL with a host.`];
   if (entry.title !== undefined && typeof entry.title !== "string") return ["bad-title", "The title must be a text."];
   if (entry.tags !== undefined && !isStrings(entry.tags)) return ["bad-tags", "The tags must be a list of texts."];
   if (entry.dated !== undefined && (typeof entry.dated !== "string" || Number.isNaN(Date.parse(entry.dated)))) {

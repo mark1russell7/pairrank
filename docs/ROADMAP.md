@@ -27,7 +27,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R6 | The standard input format | done | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
 | R7 | The Chrome bookmarks adapter | open | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. |
 | R8 | The host | done | R4 | The procedures of the app over the store. The main process serves them to the interface through a message port. |
-| R9 | The surfaces | open | R2 | One interface shows a site. The first adapter is an Electron view, and the second adapter is an `iframe`. |
+| R9 | The surfaces | in progress | R2 | One interface shows a site. The interface lays out the slots, and each adapter follows that layout. The contract is in `@pairrank/surfaces`. The first adapter is an Electron view (with R10), and the second adapter is an `iframe`. |
 | R10 | The app shell | open | R8, R9 | Add the Electron preset to the template. Then make the React interface and the Electron desktop shell with it. |
 | R11 | The tag run | open | R10, R12 | Show one site at a time. Keys set and clear tags. |
 | R12 | Tags | open | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. |
@@ -38,4 +38,4 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
 | R18 | Hidden sites | open | R13 | Show the hidden sites, and restore a site. |
 | R19 | The screenshot surface | later | R9 | Show a screenshot of a site when a live view is not possible. |
-| R20 | Security scans in a private repository | in progress | | The template security scan fails in a private repository. A pull request of the template corrects it. |
+| R20 | Security scans in a private repository | done | | The template security scan fails in a private repository. A pull request of the template corrects it. |
