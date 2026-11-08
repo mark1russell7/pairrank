@@ -147,6 +147,32 @@ describe("parseEvent", () => {
     expect(() => parseEvent(null)).toThrow(/object/);
     expect(() => parseEvent({ ...good, id: "" })).toThrow(/id/);
     expect(() => parseEvent({ ...good, at: "yesterday" })).toThrow(/time/);
-    expect(() => parseEvent({ ...good, type: "site.exploded" })).toThrow(/unknown type/);
+    expect(() => parseEvent({ ...good, type: "site.exploded" })).toThrow(/not known/);
+  });
+
+  it("examines each field of the type", async () => {
+    const { parseEvent } = await import("./events.ts");
+    const base = { id: "e1", at: "2026-11-08T10:00:00Z" };
+    const pick = { ...base, type: "pick", a: "a", b: "b", scope: { kind: "tag", tag: "t" }, outcome: "tie" };
+    expect(parseEvent(pick)).toBe(pick);
+    expect(() => parseEvent({ ...pick, a: 3 })).toThrow(/field a/);
+    expect(() => parseEvent({ ...pick, outcome: "draw" })).toThrow(/field outcome/);
+    expect(() => parseEvent({ ...pick, scope: { kind: "tag" } })).toThrow(/field scope/);
+    expect(() => parseEvent({ ...pick, scope: { kind: "overall", tag: "t" } })).toThrow(/field scope/);
+    expect(() => parseEvent({ ...pick, extra: 1 })).toThrow(/no field extra/);
+    expect(() => parseEvent({ ...base, type: "site.added", site: "s", url: "u", dated: "soon" })).toThrow(/field dated/);
+    expect(() => parseEvent({ ...base, type: "tag.edited", tag: "t", color: null })).not.toThrow();
+    expect(() => parseEvent({ ...base, type: "tag.created", tag: "t", name: "" })).toThrow(/field name/);
+  });
+});
+
+describe("parseDraft and stamp", () => {
+  it("accept a draft with no id and no time, and make an event of it", async () => {
+    const { parseDraft, stamp } = await import("./events.ts");
+    const draft = parseDraft({ type: "site.tagged", site: "s", tag: "t" });
+    expect(stamp(draft, "e9", "2026-11-08T10:00:00Z")).toEqual({ type: "site.tagged", site: "s", tag: "t", id: "e9", at: "2026-11-08T10:00:00Z" });
+    expect(() => parseDraft({ type: "site.tagged", site: "s", tag: "t", id: "x" })).toThrow(/no id/);
+    expect(() => parseDraft({ type: "site.tagged", site: "s" })).toThrow(/field tag/);
+    expect(() => parseDraft([])).toThrow(/object/);
   });
 });

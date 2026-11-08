@@ -154,21 +154,105 @@ export const EVENT_TYPES: readonly EventType[] = [
   "pick.undone",
 ];
 
-const TYPES = new Set<string>(EVENT_TYPES);
+/** The kind of one field: a text that is not empty, an optional text, a text or `null`, a scope, or an outcome. */
+type FieldKind = "id" | "text?" | "time?" | "nullable?" | "scope" | "outcome";
+
+/** The fields of each type, other than `id`, `at` and `type`. An event can have no other fields. */
+const FIELDS: { readonly [T in EventType]: Readonly<Record<string, FieldKind>> } = {
+  "site.added": { site: "id", url: "id", title: "text?", source: "text?", dated: "time?" },
+  "site.edited": { site: "id", url: "text?", title: "text?" },
+  "site.hidden": { site: "id", reason: "text?" },
+  "site.restored": { site: "id" },
+  "tag.created": { tag: "id", name: "id", color: "text?", key: "text?" },
+  "tag.edited": { tag: "id", name: "text?", color: "nullable?", key: "nullable?" },
+  "tag.merged": { tag: "id", into: "id" },
+  "tag.deleted": { tag: "id" },
+  "site.tagged": { site: "id", tag: "id" },
+  "site.untagged": { site: "id", tag: "id" },
+  pick: { a: "id", b: "id", scope: "scope", outcome: "outcome", duel: "text?" },
+  "pick.undone": { pick: "id" },
+};
+
+const OUTCOMES = new Set<unknown>(["a", "b", "tie", "skip"]);
+
+const isTime = (value: unknown): boolean => typeof value === "string" && !Number.isNaN(Date.parse(value));
+
+function fieldIsValid(kind: FieldKind, value: unknown): boolean {
+  switch (kind) {
+    case "id":
+      return typeof value === "string" && value !== "";
+    case "text?":
+      return value === undefined || typeof value === "string";
+    case "time?":
+      return value === undefined || isTime(value);
+    case "nullable?":
+      return value === undefined || value === null || typeof value === "string";
+    case "outcome":
+      return OUTCOMES.has(value);
+    case "scope": {
+      if (typeof value !== "object" || value === null) return false;
+      const scope = value as { kind?: unknown; tag?: unknown };
+      const keys = Object.keys(scope);
+      if (scope.kind === "overall") return keys.length === 1;
+      return scope.kind === "tag" && typeof scope.tag === "string" && scope.tag !== "" && keys.length === 2;
+    }
+  }
+}
+
+/** This function gives the problem of the fields of a draft (an event with no `id` and no `at`), or `undefined`. */
+function draftProblem(record: Readonly<Record<string, unknown>>): string | undefined {
+  const type = record["type"];
+  if (typeof type !== "string" || !Object.hasOwn(FIELDS, type)) return `The type ${String(type)} is not known.`;
+  const fields = FIELDS[type as EventType];
+  for (const [name, kind] of Object.entries(fields)) {
+    if (!fieldIsValid(kind, record[name])) return `The field ${name} of a ${type} event is not valid.`;
+  }
+  for (const name of Object.keys(record)) {
+    if (name !== "type" && name !== "id" && name !== "at" && !Object.hasOwn(fields, name)) return `A ${type} event has no field ${name}.`;
+  }
+  return undefined;
+}
+
+function recordOf(value: unknown, what: string): Readonly<Record<string, unknown>> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error(`${what} must be an object.`);
+  return value as Readonly<Record<string, unknown>>;
+}
 
 /**
- * This function changes a stored value into an event. It examines the id, the time and the type word. The rules of the
- * state examine the other fields.
+ * This function changes a stored value into an event. It examines the id, the time, the type word and each field of the
+ * type. The rules of the state examine the relations between events.
  *
- * @throws Error when the value is not an object with a text `id`, a text `at` and a known `type`
+ * @throws Error when the value is not a valid event
  */
 export function parseEvent(value: unknown): Event {
-  if (typeof value !== "object" || value === null) throw new Error("An event must be an object.");
-  const record = value as { readonly id?: unknown; readonly at?: unknown; readonly type?: unknown };
-  if (typeof record.id !== "string" || record.id === "") throw new Error("An event must have a text id.");
-  if (typeof record.at !== "string" || Number.isNaN(Date.parse(record.at))) throw new Error(`The event ${record.id} must have an ISO time at.`);
-  if (typeof record.type !== "string" || !TYPES.has(record.type)) throw new Error(`The event ${record.id} has an unknown type ${String(record.type)}.`);
+  const record = recordOf(value, "An event");
+  const id = record["id"];
+  if (typeof id !== "string" || id === "") throw new Error("An event must have a text id.");
+  if (!isTime(record["at"])) throw new Error(`The event ${id} must have an ISO time at.`);
+  const problem = draftProblem(record);
+  if (problem !== undefined) throw new Error(`The event ${id} is not valid. ${problem}`);
   return value as Event;
+}
+
+/** An event with no `id` and no `at`. The host gives them when it writes the event. */
+export type Draft = Event extends infer E ? (E extends Event ? Omit<E, "id" | "at"> : never) : never;
+
+/**
+ * This function changes a value from a caller into a draft. It examines the type word and each field of the type.
+ *
+ * @throws Error when the value is not a valid draft
+ */
+export function parseDraft(value: unknown): Draft {
+  const record = recordOf(value, "A draft");
+  if (record["id"] !== undefined || record["at"] !== undefined) throw new Error("A draft has no id and no at. The host gives them.");
+  const problem = draftProblem(record);
+  if (problem !== undefined) throw new Error(problem);
+  return value as Draft;
+}
+
+/** This function makes an event from a draft, an id and a time. */
+export function stamp(draft: Draft, id: EventId, at: string): Event {
+  return { ...draft, id, at } as Event;
 }
 
 /** This function gives the key of a scope: `overall`, or `tag:<id>`. */
