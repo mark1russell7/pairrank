@@ -217,3 +217,44 @@ export function choose(roots: readonly BookmarkFolder[], selection: FolderSelect
   });
   return found ? { otherwise: selection.otherwise, folders } : selection;
 }
+
+/** This function gives the choice of each folder, by its key. The wizard shows a folder with no sites by its choice. */
+export function choicesOf(roots: readonly BookmarkFolder[], selection: FolderSelection): Map<string, FolderChoice> {
+  const choices = new Map<string, FolderChoice>();
+  walk(roots, selection, (folder, choice) => choices.set(folder.key, choice));
+  return choices;
+}
+
+/** A bookmarks file that the app can read. The host finds the files of the Chrome profiles. */
+export interface BookmarkSource {
+  /** The id of the file for the host. The host reads only the files that it found or that the user chose. */
+  readonly id: string;
+  /** The name of the profile, as Chrome shows it, or the name of the file that the user chose. */
+  readonly name: string;
+  /**
+   * The kind of the file. `profile` is the file `Bookmarks` of a profile. `account` is the file `AccountBookmarks`: the
+   * bookmarks of a Google account with no sync. `file` is a file that the user chose.
+   */
+  readonly kind: "profile" | "account" | "file";
+}
+
+/** The largest bookmarks file that the app reads, in bytes. A larger file is not a bookmarks file. */
+export const MAX_BOOKMARKS_BYTES: number = 64 * 1024 * 1024;
+
+/** The bookmarks files of a Chrome profile, with their kinds. */
+export const BOOKMARK_FILES: Readonly<Record<string, BookmarkSource["kind"]>> = { Bookmarks: "profile", AccountBookmarks: "account" };
+
+/**
+ * This function gives the name of each profile from the JSON of the file `Local State` of Chrome, by the folder of the
+ * profile. A value that it cannot read gives no names.
+ */
+export function profileNames(localState: unknown): Map<string, string> {
+  const names = new Map<string, string>();
+  const cache = (localState as { profile?: { info_cache?: unknown } } | null)?.profile?.info_cache;
+  if (typeof cache !== "object" || cache === null) return names;
+  for (const [folder, info] of Object.entries(cache)) {
+    const name = (info as { name?: unknown } | null)?.name;
+    if (typeof name === "string" && name.trim() !== "") names.set(folder, name);
+  }
+  return names;
+}

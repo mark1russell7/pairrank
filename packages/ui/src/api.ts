@@ -3,6 +3,7 @@
  * `Client` on a `PortTransport` gives it. In a test, `callerOf` of the host module gives it.
  */
 import type { Draft, Scope } from "@pairrank/core";
+import type { BookmarkSource, ChromeBookmarks } from "@pairrank/input";
 import type { ApplyResult, ImportPreview, ImportResult, StateView } from "@pairrank/host/views";
 import type { Ladder, ModelChoice, ModelName, PairChoice } from "@pairrank/ratings";
 
@@ -37,5 +38,24 @@ export function apiOf(call: Call): PairrankApi {
     ladder: (scope, model) => call<Ladder>(["pairrank", "ladder"], model === undefined ? { scope } : { scope, model }),
     model: (scope) => call<ModelChoice>(["pairrank", "model"], { scope }),
     pair: (scope, seed, recent = []) => call<PairChoice | null>(["pairrank", "pair"], { scope, seed, recent }),
+  };
+}
+
+/**
+ * The procedures of the bookmarks files of the host. Only the desktop host has them. In another host, the interface
+ * reads only a file that the user chooses.
+ */
+export interface BookmarksApi {
+  /** This function finds the bookmarks files of the Chrome profiles of the computer. */
+  sources(): Promise<BookmarkSource[]>;
+  /** This function reads the folders and the sites of a file that `sources` found. */
+  read(source: string): Promise<ChromeBookmarks>;
+}
+
+/** This function gives the procedures of the bookmarks files over one function `call`. */
+export function bookmarksApiOf(call: Call): BookmarksApi {
+  return {
+    sources: () => call<BookmarkSource[]>(["bookmarks", "sources"], {}),
+    read: (source) => call<ChromeBookmarks>(["bookmarks", "read"], { source }),
   };
 }

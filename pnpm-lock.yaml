@@ -226,6 +226,9 @@ importers:
       '@pairrank/host':
         specifier: workspace:*
         version: link:../host
+      '@pairrank/input':
+        specifier: workspace:*
+        version: link:../input
       '@pairrank/store':
         specifier: workspace:*
         version: link:../store
@@ -412,6 +415,9 @@ importers:
       '@pairrank/host':
         specifier: workspace:*
         version: link:../host
+      '@pairrank/input':
+        specifier: workspace:*
+        version: link:../input
       '@pairrank/ratings':
         specifier: workspace:*
         version: link:../ratings

@@ -28,6 +28,7 @@
     "@mark1russell7/layout-contract": "^0.6.2",
     "@pairrank/core": "workspace:*",
     "@pairrank/host": "workspace:*",
+    "@pairrank/input": "workspace:*",
     "@pairrank/ratings": "workspace:*",
     "@pairrank/surfaces": "workspace:*",
     "react": "^19.3.1",

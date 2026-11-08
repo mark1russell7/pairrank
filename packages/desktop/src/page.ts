@@ -4,7 +4,7 @@
  */
 /// <reference lib="dom" />
 import { type SurfaceEvent, remoteSurface, withLoadTimeout } from "@pairrank/surfaces";
-import { apiOf, mount } from "@pairrank/ui";
+import { type Call, apiOf, bookmarksApiOf, mount } from "@pairrank/ui";
 import { Client, PortTransport, pathToMethod } from "@procedures/client/browser";
 import { LOAD_TIMEOUT_MS } from "./constants.ts";
 
@@ -16,7 +16,7 @@ window.addEventListener("message", function onPorts(event: MessageEvent<unknown>
   window.removeEventListener("message", onPorts);
 
   const client = new Client(new PortTransport(procedures));
-  const api = apiOf(<T>(path: string[], input: unknown) => client.call<unknown, T>(pathToMethod(path), input));
+  const call: Call = <T>(path: string[], input: unknown) => client.call<unknown, T>(pathToMethod(path), input);
 
   const remote = remoteSurface((command) => surfacePort.postMessage(command), "electron");
   surfacePort.onmessage = (message: MessageEvent<SurfaceEvent>) => remote.receive(message.data);
@@ -24,5 +24,5 @@ window.addEventListener("message", function onPorts(event: MessageEvent<unknown>
   const surface = withLoadTimeout(remote.surface, { ms: LOAD_TIMEOUT_MS, timers });
 
   const root = document.getElementById("root");
-  if (root !== null) mount(root, { api, surface });
+  if (root !== null) mount(root, { api: apiOf(call), bookmarks: bookmarksApiOf(call), surface });
 });
