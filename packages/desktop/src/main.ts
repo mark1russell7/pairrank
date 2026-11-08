@@ -8,8 +8,8 @@
  *   it, the app shows the files of `build/page/` under `app://page/`.
  * - The environment variable `PAIRRANK_STORE` gives the file of the log. The default is `pairrank.sqlite` in the folder
  *   of the user data. A smoke run uses a log in memory.
- * - With the argument `--smoke`, the app stops with the exit code 0 after the page sends its first call. It stops with
- *   1 after a fault, or after 30 seconds with no call. CI uses it.
+ * - With the argument `--smoke`, the app stops with the exit code 0 after the first message of the page. It stops with
+ *   1 after a fault, or after 30 seconds with no message. CI uses it.
  */
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -87,7 +87,7 @@ async function start(): Promise<void> {
     const procedures = new MessageChannelMain();
     const surface = new MessageChannelMain();
     new PortTransport(portOf(procedures.port1), { serve: server });
-    if (smoke) procedures.port1.once("message", () => stop(0, "the page sent its first call"));
+    if (smoke) procedures.port1.once("message", () => stop(0, "the page sent its first message"));
 
     const views = siteViews(window, (event) => surface.port1.postMessage(event), () => window.webContents.focus());
     surface.port1.on("message", ({ data }) => {
@@ -108,7 +108,7 @@ async function start(): Promise<void> {
   });
   // The window closes its views before it goes, because a view does not close with its window
   window.on("close", () => disconnect());
-  if (smoke) setTimeout(() => stop(1, "no call from the page in 30 seconds"), 30_000).unref();
+  if (smoke) setTimeout(() => stop(1, "no message from the page in 30 seconds"), 30_000).unref();
   await window.loadURL(page);
 }
 

@@ -15,7 +15,7 @@ The command builds the app to `build/`, and then starts it with Electron.
 
 - The log of events is the file `pairrank.sqlite` in the folder of the user data of the app. On Windows, this folder is `%APPDATA%\pairrank`.
 - To use a different log, set the variable `PAIRRANK_STORE` to the path of a file.
-- `pnpm --filter @pairrank/desktop smoke` starts the app with a log in memory. It stops after the first call of the page.
+- `pnpm --filter @pairrank/desktop smoke` starts the app with a log in memory. It stops after the first message of the page.
 
 ## The processes
 

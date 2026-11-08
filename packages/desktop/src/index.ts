@@ -159,8 +159,8 @@ export interface MainPort {
 }
 
 /**
- * This function gives a port of the main process in the form that `PortTransport` reads: the Node form, which gives
- * the message itself to the listener. TEMP: this adapter moves to `@procedures/client`, the home of the ports.
+ * This function gives a port of the main process in the form that `PortTransport` reads. In this Node form, the
+ * listener gets the message itself. TEMP: this adapter moves to `@procedures/client`, the home of the ports.
  */
 export function portOf(port: MainPort): { postMessage(message: unknown): void; on(type: "message", listener: (data: unknown) => void): unknown; start(): void } {
   return {
@@ -171,8 +171,8 @@ export function portOf(port: MainPort): { postMessage(message: unknown): void; o
 }
 
 /**
- * This function gives the file of a request to the page scheme, or `undefined` when the request is not for a file in
- * the folder of the page. A path that goes out of the folder, also with an encoded `..`, gives `undefined`. A
+ * This function gives the file of a request to the page scheme. It gives `undefined` when the request is not for a
+ * file in the folder of the page. A path that goes out of the folder, also with an encoded `..`, gives `undefined`. A
  * backslash also gives `undefined`, so the rule is the same on Windows and on Linux.
  */
 export function pageFile(root: string, address: string): string | undefined {
