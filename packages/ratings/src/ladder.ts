@@ -53,14 +53,20 @@ export interface LadderOptions {
   readonly k?: number;
 }
 
-/** The sites of a ladder: each site that can be in a pair of the scope, and each site of a pick of the scope. */
-export function sitesOf(state: State, scope: Scope, picks: readonly Pick[]): SiteId[] {
-  const sites = new Set<SiteId>();
+/** This function gives the sites that can be in a pair of a scope. A site must not be hidden, and in a tag scope it must have the tag. */
+export function pairableOf(state: State, scope: Scope): SiteId[] {
+  const sites: SiteId[] = [];
   for (const site of state.sites.values()) {
     if (site.hidden) continue;
     if (scope.kind === "tag" && !site.tags.has(scope.tag)) continue;
-    sites.add(site.id);
+    sites.push(site.id);
   }
+  return sites;
+}
+
+/** The sites of a ladder: each site that can be in a pair of the scope, and each site of a pick of the scope. */
+export function sitesOf(state: State, scope: Scope, picks: readonly Pick[]): SiteId[] {
+  const sites = new Set<SiteId>(pairableOf(state, scope));
   for (const pick of picks) {
     sites.add(pick.a);
     sites.add(pick.b);
@@ -89,6 +95,8 @@ const score = (outcome: PairComparison["outcome"]): number => (outcome === "a" ?
 
 /** This function fits a model to the comparisons of `items` sites, in the order of the comparisons. */
 export function fit(model: ModelName, items: number, comparisons: readonly PairComparison[], options: LadderOptions = {}): Fit {
+  // A scope with no site has an empty ladder. The Bradley-Terry fit refuses 0 items
+  if (items === 0) return { strengths: [], se: [], tie: 0 };
   switch (model) {
     case "bradley-terry": {
       const result = bradleyTerry(items, comparisons, { priorSd: options.priorSd ?? 1 });

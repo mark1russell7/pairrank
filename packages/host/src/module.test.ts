@@ -1,6 +1,6 @@
 import { openStore } from "@pairrank/store";
 import { Client, PortTransport, ProcedureServer, callerOf, createRegistry, pathToMethod } from "@procedures/client";
-import type { Ladder, ModelChoice } from "@pairrank/ratings";
+import type { Ladder, ModelChoice, PairChoice } from "@pairrank/ratings";
 import { describe, expect, it } from "vitest";
 import { pairrankModule } from "./module.ts";
 import type { ApplyResult, ImportPreview, ImportResult, StateView } from "./views.ts";
@@ -92,6 +92,22 @@ describe("pairrankModule", () => {
     channel.port1.close();
     channel.port2.close();
     void serving;
+    store.close();
+  });
+  it("chooses the next pair of a duel in a scope, with a seed", async () => {
+    const { store, call } = setup();
+    await call(["pairrank", "import", "apply"], { list });
+    const view = await call<StateView>(["pairrank", "view"], {});
+    const ids = view.sites.map((site) => site.id).sort();
+    const pair = await call<PairChoice | null>(["pairrank", "pair"], { scope: { kind: "overall" }, seed: "one" });
+    expect([pair?.a, pair?.b].sort()).toEqual(ids);
+    expect(await call(["pairrank", "pair"], { scope: { kind: "overall" }, seed: "one" })).toEqual(pair);
+    // The tag News has one site, so it has no pair
+    const news = view.tags.find((tag) => tag.name === "News")!.id;
+    expect(await call(["pairrank", "pair"], { scope: { kind: "tag", tag: news }, seed: 1, recent: [[ids[0], ids[1]]], model: "elo" })).toBeNull();
+    for (const bad of [{ scope: { kind: "overall" } }, { scope: { kind: "overall" }, seed: "" }, { scope: { kind: "overall" }, seed: 1, recent: [["a"]] }, { scope: { kind: "overall" }, seed: 1, model: "best" }]) {
+      await expect(call(["pairrank", "pair"], bad), JSON.stringify(bad)).rejects.toThrow();
+    }
     store.close();
   });
 });
