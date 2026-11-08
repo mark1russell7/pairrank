@@ -179,8 +179,81 @@ nav button[aria-pressed="true"] {
 
 .look {
   display: grid;
-  grid-template-rows: 1fr auto var(--strip);
+  grid-template-rows: auto 1fr auto var(--strip);
   min-height: 0;
+}
+
+.run-bar {
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--table);
+}
+
+.run-bar select {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font-weight: 600;
+  padding: 0.15rem 0;
+}
+
+.run-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+}
+
+.run-meter {
+  display: inline-block;
+  width: 6rem;
+  height: 0.35rem;
+  background: var(--table);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.run-meter span {
+  display: block;
+  height: 100%;
+  background: var(--pencil);
+}
+
+.onward {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--quiet);
+  cursor: pointer;
+}
+
+.run-end {
+  padding: 1rem;
+  max-width: 40rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.run-end h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 2rem 0 0.25rem;
+}
+
+.run-end p {
+  color: var(--quiet);
+}
+
+.run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.run-actions button {
+  padding: 0.4rem 0.9rem;
 }
 
 .caption .site-url {
