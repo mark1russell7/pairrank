@@ -1,6 +1,6 @@
 /**
  * The interface of pairrank: a list of the sites, the tags, and a look at one site at a time. On the Look screen, the
- * key of a tag puts the tag on the site or removes it. The duel uses the same frame and the same slot.
+ * key of a tag puts the tag on the site or removes it. The duel shows two sites side by side in the same frame.
  */
 import type { Draft } from "@pairrank/core";
 import type { SiteView, StateView, TagView } from "@pairrank/host/views";
@@ -8,12 +8,13 @@ import { type Surface, trackSlots } from "@pairrank/surfaces";
 import { type FormEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { PairrankApi } from "./api.ts";
+import { DuelScreen } from "./duel-screen.tsx";
 import { Slot } from "./slot.tsx";
 import { createDraft, tagProblem, toggleDraft } from "./tagging.ts";
 import { Swatch, TagsScreen, type Write } from "./tags.tsx";
 
 /** The screens of the interface. */
-export type Screen = "sites" | "tags" | "look";
+export type Screen = "sites" | "tags" | "look" | "duel";
 
 /** The properties of the interface. */
 export interface AppProps {
@@ -163,6 +164,9 @@ export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProp
           <button type="button" aria-pressed={screen === "look"} disabled={sites.length === 0} onClick={() => setScreen("look")}>
             Look
           </button>
+          <button type="button" aria-pressed={screen === "duel"} disabled={sites.length < 2} onClick={() => setScreen("duel")}>
+            Duel
+          </button>
         </nav>
         <span className="count">{view === undefined ? "" : `${sites.length} sites, ${view.tags.length} tags`}</span>
       </header>
@@ -214,6 +218,10 @@ export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProp
       )}
 
       {screen === "tags" && view !== undefined && <TagsScreen view={view} write={write} newId={newId} />}
+
+      {screen === "duel" && view !== undefined && (
+        <DuelScreen api={api} view={view} surface={surface} tracker={tracker} reload={reload} newId={newId} leave={() => setScreen("sites")} />
+      )}
 
       {screen === "look" && current !== undefined && (
         <main className="look">
