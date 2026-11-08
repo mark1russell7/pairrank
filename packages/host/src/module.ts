@@ -6,7 +6,7 @@
  */
 import { type Draft, type Scope, parseDraft, stamp } from "@pairrank/core";
 import { parseSiteList, planImport } from "@pairrank/input";
-import { type Ladder, type ModelChoice, type ModelName, ladderOf, selectModel } from "@pairrank/ratings";
+import { type Ladder, type ModelChoice, type ModelName, type PairChoice, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
 import type { Store } from "@pairrank/store";
 import { type ApplyResult, type ImportPreview, type ImportResult, type StateView, viewOf } from "./views.ts";
 import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
@@ -63,6 +63,25 @@ const LadderInput = zodAdapter<{ scope: Scope; model?: ModelName }>({
   },
 });
 
+/** The most recent pairs that one call of `pairrank.pair` takes. */
+const MAX_RECENT = 200;
+
+const PairInput = zodAdapter<{ scope: Scope; seed: number | string; recent: [string, string][]; model?: ModelName }>({
+  parse: (value) => {
+    const input = objectOf(value);
+    const { scope, model } = LadderInput.parse({ scope: input["scope"], model: input["model"] });
+    const seed = input["seed"];
+    if (!(typeof seed === "string" && seed !== "") && !(typeof seed === "number" && Number.isFinite(seed))) throw new Error("The seed must be a text or a finite number.");
+    const recent = input["recent"] ?? [];
+    if (!Array.isArray(recent) || recent.length > MAX_RECENT) throw new Error(`The recent pairs must be a list of ${MAX_RECENT} pairs or fewer.`);
+    const pairs = recent.map((pair): [string, string] => {
+      if (!Array.isArray(pair) || pair.length !== 2 || typeof pair[0] !== "string" || typeof pair[1] !== "string") throw new Error("Each recent pair must be a list of two site ids.");
+      return [pair[0], pair[1]];
+    });
+    return { scope, seed, recent: pairs, ...(model === undefined ? {} : { model }) };
+  },
+});
+
 const reads = { reads: ["pairrank.log"], writes: [] as string[], idempotent: true, destructive: false };
 const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent: false, destructive: false };
 
@@ -75,6 +94,7 @@ const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent:
  * - `pairrank.import.apply` imports a site list.
  * - `pairrank.ladder` gives the ladder of a scope.
  * - `pairrank.model` compares the models of a scope by the log-loss on its last picks.
+ * - `pairrank.pair` chooses the next pair of a duel in a scope, with a seed.
  *
  * The log is append-only, so no procedure removes data: a delete or an undo is a new event.
  */
@@ -140,6 +160,16 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
       .output(as<ModelChoice>())
       .meta({ description: "Compare the models of a scope by the log-loss on its last picks", effects: reads })
       .handler(async ({ scope }): Promise<ModelChoice> => selectModel(store.state, scope))
+      .build(),
+    createProcedure()
+      .path(["pairrank", "pair"])
+      .input(PairInput)
+      .output(as<PairChoice | null>())
+      .meta({ description: "Choose the next pair of a duel in a scope, with a seed", effects: reads })
+      .handler(async ({ scope, seed, recent, model }): Promise<PairChoice | null> => {
+        const ladder = ladderOf(store.state, scope, model === undefined ? {} : { model });
+        return choosePair(ladder, pairableOf(store.state, scope), { seed, recent }) ?? null;
+      })
       .build(),
   ];
   return defineModule("@pairrank/host", procedures);

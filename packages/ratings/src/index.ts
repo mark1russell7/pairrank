@@ -4,4 +4,5 @@
  * @packageDocumentation
  */
 export * from "./ladder.ts";
+export * from "./pairs.ts";
 export * from "./select.ts";

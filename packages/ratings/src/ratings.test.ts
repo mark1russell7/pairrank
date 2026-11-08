@@ -22,6 +22,14 @@ function ordered(rounds: number): Event[] {
 }
 
 describe("ladderOf", () => {
+  it("gives an empty ladder for a scope with no site, with each model", () => {
+    const { state } = replay([]);
+    for (const model of ["bradley-terry", "elo", "glicko2"] as const) {
+      expect(ladderOf(state, overall, { model })).toMatchObject({ key: "overall", model, ratings: [], picks: 0, tie: 0 });
+    }
+    expect(ladderOf(state, { kind: "tag", tag: "none" }).ratings).toEqual([]);
+  });
+
   it("orders the sites by their picks, with a standard error and the counts", () => {
     const { state } = replay(ordered(10));
     const ladder = ladderOf(state, overall);

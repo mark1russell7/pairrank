@@ -55,6 +55,19 @@ describe("the pure parts", () => {
   });
 });
 
+describe("apiOf", () => {
+  it("gives the procedures of the host, with the choice of a pair", async () => {
+    const { api } = setup();
+    expect(await api.pair({ kind: "overall" }, 1)).toBeNull();
+    await api.importList(list);
+    const view = await api.view();
+    const pair = await api.pair({ kind: "overall" }, "seed", [[view.sites[0]!.id, view.sites[1]!.id]]);
+    expect(view.sites.map((site) => site.id)).toContain(pair?.a);
+    expect((await api.ladder({ kind: "overall" }, "elo")).model).toBe("elo");
+    expect((await api.model({ kind: "overall" })).model).toBe("bradley-terry");
+  });
+});
+
 describe("App", () => {
   it("tells what to do when there is no site", async () => {
     const { api, memory } = setup();

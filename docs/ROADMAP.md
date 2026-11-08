@@ -32,7 +32,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R11 | The tag run | open | R10, R12 | Show one site at a time. Keys set and clear tags. |
 | R12 | Tags | open | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. |
 | R13 | The duel | open | R10, R5 | Show two sites side by side. Pick A, B, tie or skip, or hide a site. Pick under one tag or overall. |
-| R14 | The choice of pairs | open | R5 | Select the pairs with the least sure result and the sites with the fewest picks. Use a seed. |
+| R14 | The choice of pairs | done | R5 | Select the pairs with the least sure result and the sites with the fewest picks. Use a seed. The procedure is `pairrank.pair`. |
 | R15 | Duel presets | open | R13 | Save a combined mode: a rule for the pairs, and a list of the picks that each pair asks. |
 | R16 | The viewer | open | R5, R10 | Filter the sites by an expression of tags, and sort them by a ladder or by a score over a set of tags. |
 | R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
