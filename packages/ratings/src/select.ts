@@ -33,7 +33,7 @@ export interface SelectOptions extends LadderOptions {
   readonly models?: readonly ModelName[];
 }
 
-/** The lowest probability of a forecast. An outcome with a probability of 0 would give a log-loss of Infinity. */
+/** The lowest probability of a forecast. An outcome with a probability of 0 gives a log-loss of Infinity. */
 const FLOOR = 1e-9;
 
 /**
