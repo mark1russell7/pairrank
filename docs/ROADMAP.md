@@ -27,8 +27,8 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R6 | The standard input format | done | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
 | R7 | The Chrome bookmarks adapter | open | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. |
 | R8 | The host | done | R4 | The procedures of the app over the store. The main process serves them to the interface through a message port. |
-| R9 | The surfaces | in progress | R2 | One interface shows a site. The interface lays out the slots, and each adapter follows that layout. The contract is in `@pairrank/surfaces`. The first adapter is an Electron view (with R10), and the second adapter is an `iframe`. |
-| R10 | The app shell | in progress | R8, R9 | Add the Electron preset to the template. Make the React interface (`@pairrank/ui`). Then make the desktop app (`@pairrank/desktop`): the log on disk, the procedures and one view for each site. |
+| R9 | The surfaces | in progress | R2 | One interface shows a site. The interface lays out the slots, and each adapter follows that layout. The contract is in `@pairrank/surfaces`. The first adapter, an Electron view, shipped with R10. The second adapter is an `iframe`. |
+| R10 | The app shell | done | R8, R9 | Add the Electron preset to the template. Make the React interface (`@pairrank/ui`). Then make the desktop app (`@pairrank/desktop`): the log on disk, the procedures and one view for each site. |
 | R11 | The tag run | open | R10, R12 | Show one site at a time. Keys set and clear tags. |
 | R12 | Tags | done | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. The Look screen puts a tag on a site with its key. |
 | R13 | The duel | done | R10, R5 | Show two sites side by side. Pick A, B, tie or skip, or hide a site. Pick under one tag or overall. An undo removes the last pick or hide. The desktop shell of R10 shows the screen. |
