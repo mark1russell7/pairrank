@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>pairrank</title>
+<meta name="description" content="Tag websites, pick the better of two, and rank them by ratings kept in a local database.">
+<script>
+  // The theme before the first paint: the choice of the visitor, else the theme of the system.
+  try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
+<link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./">pairrank</a>
+  <nav aria-label="Site">
+    <a href="./releases/">Releases</a>
+    <a href="./status/">Status</a>
+    <a href="https://github.com/mark1russell7/pairrank">GitHub</a>
+    <button id="theme" class="theme" type="button" aria-label="Change the theme"><span aria-hidden="true">◐</span></button>
+  </nav>
+</header>
+
+<main>
+  <h1>pairrank</h1>
+  <p class="lead">Tag websites, pick the better of two, and rank them by ratings kept in a local database.</p>
+
+  <h2>Get the code</h2>
+  <div class="command">
+    <code id="install">git clone https://github.com/mark1russell7/pairrank.git</code>
+    <button id="copy" type="button">Copy</button>
+  </div>
+  <p class="note"><a href="./releases/">Releases</a> shows each version, and <a href="./status/">Status</a> shows the open work.</p>
+</main>
+
+<script type="module" src="./src/index.ts"></script>
+</body>
+</html>

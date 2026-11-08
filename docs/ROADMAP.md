@@ -1,0 +1,39 @@
+# Roadmap
+
+This file is the plan of pairrank. The tracker of the project mirrors it.
+
+pairrank is a desktop app. It shows websites one at a time for tags. It also shows two websites side by side, and you pick the better one, under one tag or overall. The app keeps each pick in a local database and calculates the ratings from the picks.
+
+## Decisions
+
+- The log of events is the source of truth. The app calculates each rating from the log again, and does not keep a rating as the truth.
+- Each scope has its own ladder. A scope is "overall" or one tag. An overall pick is a direct pick, not a mix of the tag ratings.
+- The rating model is Bradley-Terry, on the scale of Elo (1500, and 400 points for odds of 10 to 1). Elo and Glicko-2 are also available, and a measure of the log-loss on picks that the fit did not see selects the model.
+- The rating math is in `@mark1russell7/rigor-statistics`. The seeded random order of the viewer is in `@mark1russell7/rigor-generators`.
+- The desktop app with Electron is first. The same interface also works in a browser with an `iframe`, for the sites that permit it.
+- The import uses one standard format. An adapter changes each source into that format. The first adapter reads Chrome bookmarks.
+- Bookmark folders never become tags. The import wizard includes or excludes folders.
+
+## Items
+
+| ID | Item | Status | Needs | Summary |
+| --- | --- | --- | --- | --- |
+| R1 | Rating math | in progress | | Add Elo, Glicko-2 and Bradley-Terry with ties to `@mark1russell7/rigor-statistics`, in a pull request of that repository. |
+| R2 | The repository | in progress | | Make the repository from the template, with CI. |
+| R3 | The log of events | open | R2 | Define sites, tags, tag events, picks (A, B, tie, skip), hidden sites and scopes as pure data, with tests. |
+| R4 | The store | open | R3 | Keep the log in SQLite (`node:sqlite`). Add only, and replay the log to get the state. |
+| R5 | Ratings from the log | open | R1, R3 | Calculate one ladder for each scope, with an uncertainty. Select the model by the log-loss on held-out picks. |
+| R6 | The standard input format | open | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
+| R7 | The Chrome bookmarks adapter | open | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. |
+| R8 | The host | open | R4 | A local service gives the procedures of the app. |
+| R9 | The surfaces | open | R2 | One interface shows a site. The first adapter is an Electron view, and the second adapter is an `iframe`. |
+| R10 | The app shell | open | R8, R9 | The React interface and the Electron desktop shell. |
+| R11 | The tag run | open | R10, R12 | Show one site at a time. Keys set and clear tags. |
+| R12 | Tags | open | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. |
+| R13 | The duel | open | R10, R5 | Show two sites side by side. Pick A, B, tie or skip, or hide a site. Pick under one tag or overall. |
+| R14 | The choice of pairs | open | R5 | Select the pairs with the least sure result and the sites with the fewest picks. Use a seed. |
+| R15 | Duel presets | open | R13 | Save a combined mode: a rule for the pairs, and a list of the picks that each pair asks. |
+| R16 | The viewer | open | R5, R10 | Filter the sites by an expression of tags, and sort them by a ladder or by a score over a set of tags. |
+| R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
+| R18 | Hidden sites | open | R13 | Show the hidden sites, and restore a site. |
+| R19 | The screenshot surface | later | R9 | Show a screenshot of a site when a live view is not possible. |
