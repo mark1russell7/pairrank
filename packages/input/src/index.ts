@@ -4,4 +4,5 @@
  * @packageDocumentation
  */
 export * from "./format.ts";
+export * from "./chrome.ts";
 export * from "./plan.ts";
