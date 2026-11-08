@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "@pairrank/desktop",
+  "productName": "pairrank",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "build": "tsdown",
+    "start": "tsdown && electron build/main/main.js",
+    "smoke": "tsdown && electron build/main/main.js --smoke"
+  },
+  "devDependencies": {
+    "@mark1russell7/cue": "^2.0.0",
+    "@types/node": "^26.6.5",
+    "electron": "^45.2.3",
+    "tsdown": "^0.23.7",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@mark1russell7/layout-contract": "^0.6.2",
+    "@pairrank/host": "workspace:*",
+    "@pairrank/store": "workspace:*",
+    "@pairrank/surfaces": "workspace:*",
+    "@pairrank/ui": "workspace:*",
+    "@procedures/client": "^0.52.1",
+    "polite-crawler": "^0.5.1"
+  }
+}

@@ -128,13 +128,36 @@ jobs:
       - name: The site passes the site check
         run: node packages/site-pages/src/check/main.ts --out "$DEMO/packages/site/dist" --repo mark1russell7/stamp-demo --pages /,/releases/,/status/ --shots "$RUNNER_TEMP/site-check"
 
+  # The desktop app starts once: its window opens on a virtual display, and the app stops with 0 after the first call
+  # of its page. Ubuntu 24.04 refuses the user namespaces of the sandbox of Chromium to a binary with no AppArmor
+  # profile, so the step allows them. The app keeps its sandbox. The steps are the smoke of the preset electron.
+  desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: smoke
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          xvfb-run --auto-servernum pnpm --filter @pairrank/desktop smoke
+
   # The one check of the ruleset of main (CI.md, "The check of the ruleset"). It passes only when
   # each job of needs passed, or was skipped by its own if and ALLOW_SKIP names it. A new job of this
   # file goes in needs, so the ruleset never has to change, and gh pr merge --auto waits for the whole gate.
   ci-ok:
     name: CI OK
     if: ${{ !cancelled() }}
-    needs: [ci, presets, stamp]
+    needs: [ci, presets, stamp, desktop]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions: {}

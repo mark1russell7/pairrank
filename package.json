@@ -24,7 +24,7 @@
     "@mark1russell7/conventions": "^0.38.1",
     "@mark1russell7/cue": "^2.0.0",
     "@mark1russell7/ste-lint": "^0.1.1",
-    "@mark1russell7/template-cli": "^0.1.5",
+    "@mark1russell7/template-cli": "^0.1.6",
     "@swc/core": "^1.15.0",
     "@types/node": "^26.6.5",
     "dependency-cruiser": "^18.7.0",
