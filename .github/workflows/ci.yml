@@ -151,7 +151,7 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           xvfb-run --auto-servernum pnpm --filter @pairrank/desktop smoke
       # The page tests have no layout. This check opens the Look screen and the duel with two local sites, and fails
-      # when a slot is short or the page of a site is hidden (B1: each slot had no height).
+      # when a slot is short (B1: each slot had no height).
       - name: layout
         run: xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24" pnpm --filter @pairrank/desktop e2e
 
