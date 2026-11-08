@@ -24,7 +24,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R3 | The log of events | done | R2 | Define sites, tags, tag events, picks (A, B, tie, skip), hidden sites and scopes as pure data, with tests. |
 | R4 | The store | done | R3 | Keep the log in SQLite (`node:sqlite`). Add only, and replay the log to get the state. |
 | R5 | Ratings from the log | open | R1, R3 | Calculate one ladder for each scope, with an uncertainty. Select the model by the log-loss on held-out picks. |
-| R6 | The standard input format | open | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
+| R6 | The standard input format | done | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
 | R7 | The Chrome bookmarks adapter | open | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. |
 | R8 | The host | open | R4 | A local service gives the procedures of the app. |
 | R9 | The surfaces | open | R2 | One interface shows a site. The first adapter is an Electron view, and the second adapter is an `iframe`. |

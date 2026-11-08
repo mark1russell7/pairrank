@@ -33,6 +33,8 @@ export interface SiteAdded extends Base {
   readonly title?: string;
   /** The source of the site, for example `chrome-bookmarks`. */
   readonly source?: string;
+  /** The ISO 8601 time that the source gives for the site, for example the date of a bookmark. */
+  readonly dated?: string;
 }
 
 /** This event changes the URL or the title of a site. */
