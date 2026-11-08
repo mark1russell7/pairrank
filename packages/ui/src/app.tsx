@@ -7,19 +7,22 @@ import type { SiteView, StateView, TagView } from "@pairrank/host/views";
 import { type Surface, trackSlots } from "@pairrank/surfaces";
 import { type FormEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { PairrankApi } from "./api.ts";
+import type { BookmarksApi, PairrankApi } from "./api.ts";
 import { DuelScreen } from "./duel-screen.tsx";
+import { ImportScreen } from "./import-screen.tsx";
 import { Slot } from "./slot.tsx";
 import { createDraft, tagProblem, toggleDraft } from "./tagging.ts";
 import { Swatch, TagsScreen, type Write } from "./tags.tsx";
 
 /** The screens of the interface. */
-export type Screen = "sites" | "tags" | "look" | "duel";
+export type Screen = "sites" | "tags" | "look" | "duel" | "import";
 
 /** The properties of the interface. */
 export interface AppProps {
   readonly api: PairrankApi;
   readonly surface: Surface;
+  /** The procedures of the bookmarks files of the host. With none, the import reads only a file that the user chooses. */
+  readonly bookmarks?: BookmarksApi;
   /** This function gives the id of a new tag. The default is `crypto.randomUUID`. */
   readonly newId?: () => string;
 }
@@ -45,7 +48,6 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** The interface of pairrank. */
 /** The strip of the tags of the site on the Look screen, with a field that makes a tag and puts it on the site. */
 function TagStrip(props: { readonly site: SiteView; readonly tags: readonly TagView[]; readonly write: Write; readonly newId: () => string }): ReactElement {
   const { site, tags, write } = props;
@@ -92,7 +94,8 @@ function TagStrip(props: { readonly site: SiteView; readonly tags: readonly TagV
 
 const editable = (target: EventTarget | null): boolean => target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
 
-export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProps): ReactElement {
+/** The interface of pairrank. */
+export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID() }: AppProps): ReactElement {
   const tracker = useMemo(() => trackSlots(surface), [surface]);
   useEffect(() => () => tracker.stop(), [tracker]);
   const [view, setView] = useState<StateView | undefined>(undefined);
@@ -100,6 +103,12 @@ export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProp
   const [screen, setScreen] = useState<Screen>("sites");
   const [index, setIndex] = useState(0);
   const [query, setQuery] = useState("");
+  // Each start of an import gets a new key, so the import starts again at its first step
+  const [run, setRun] = useState(0);
+  const startImport = (): void => {
+    setRun((n) => n + 1);
+    setScreen("import");
+  };
 
   const reload = useCallback(async (): Promise<void> => {
     try {
@@ -167,6 +176,9 @@ export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProp
           <button type="button" aria-pressed={screen === "duel"} disabled={sites.length < 2} onClick={() => setScreen("duel")}>
             Duel
           </button>
+          <button type="button" aria-pressed={screen === "import"} onClick={startImport}>
+            Import
+          </button>
         </nav>
         <span className="count">{view === undefined ? "" : `${sites.length} sites, ${view.tags.length} tags`}</span>
       </header>
@@ -182,7 +194,10 @@ export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProp
           {view !== undefined && sites.length === 0 && (
             <section className="empty">
               <h1>No sites yet</h1>
-              <p>Import your Chrome bookmarks to start. The import is the next part of the app.</p>
+              <p>Import your Chrome bookmarks to start. You choose the folders, and the folders do not become tags.</p>
+              <button type="button" className="primary" onClick={startImport}>
+                Import Chrome bookmarks
+              </button>
             </section>
           )}
           {sites.length > 0 && (
@@ -215,6 +230,19 @@ export function App({ api, surface, newId = () => crypto.randomUUID() }: AppProp
             </>
           )}
         </main>
+      )}
+
+      {screen === "import" && (
+        <ImportScreen
+          key={run}
+          api={api}
+          bookmarks={bookmarks}
+          reload={reload}
+          leave={(to) => {
+            setIndex(0);
+            setScreen(to);
+          }}
+        />
       )}
 
       {screen === "tags" && view !== undefined && <TagsScreen view={view} write={write} newId={newId} />}

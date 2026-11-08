@@ -25,7 +25,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R4 | The store | done | R3 | Keep the log in SQLite (`node:sqlite`). Add only, and replay the log to get the state. |
 | R5 | Ratings from the log | done | R1, R3 | Calculate one ladder for each scope, with an uncertainty. Select the model by the log-loss on held-out picks. |
 | R6 | The standard input format | done | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
-| R7 | The Chrome bookmarks adapter | open | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. |
+| R7 | The Chrome bookmarks adapter | active | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. The adapter is in #16. The desktop finds the Chrome profiles, and the wizard is in #17. |
 | R8 | The host | done | R4 | The procedures of the app over the store. The main process serves them to the interface through a message port. |
 | R9 | The surfaces | in progress | R2 | One interface shows a site. The interface lays out the slots, and each adapter follows that layout. The contract is in `@pairrank/surfaces`. The first adapter, an Electron view, shipped with R10. The second adapter is an `iframe`. |
 | R10 | The app shell | done | R8, R9 | Add the Electron preset to the template. Make the React interface (`@pairrank/ui`). Then make the desktop app (`@pairrank/desktop`): the log on disk, the procedures and one view for each site. |

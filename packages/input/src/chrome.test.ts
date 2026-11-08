@@ -1,6 +1,6 @@
 import { type Random, random } from "@mark1russell7/rigor-generators";
 import { describe, expect, it } from "vitest";
-import { ALL_FOLDERS, type BookmarkFolder, CHROME_SOURCE, type FolderSelection, MAX_DEPTH, chromeSiteList, chromeTime, choose, includedCounts, parseChromeBookmarks, selectedSites } from "./chrome.ts";
+import { ALL_FOLDERS, type BookmarkFolder, CHROME_SOURCE, type FolderSelection, MAX_DEPTH, choicesOf, chromeSiteList, chromeTime, choose, includedCounts, parseChromeBookmarks, profileNames, selectedSites } from "./chrome.ts";
 import { parseSiteList } from "./format.ts";
 
 /** 2020-01-01T00:00:00.000Z as a Chrome time: microseconds from 1601-01-01. */
@@ -187,5 +187,22 @@ describe("the adapter on seeded random files (200 files, 20 choices each)", () =
       for (const folder of folders) for (const site of folder.sites) expect(site.path, `seed ${seed}`).toEqual(folder.path);
       expect(roots.reduce((sum, root) => sum + root.total, 0)).toBe(selectedSites(roots, ALL_FOLDERS).length);
     }
+  });
+});
+
+describe("the sources of the bookmarks", () => {
+  it("gives the name of each profile from the file Local State", () => {
+    const names = profileNames({ profile: { info_cache: { Default: { name: "Person 1" }, "Profile 2": { name: "Work" }, "Profile 3": { name: " " }, bad: null } } });
+    expect([...names]).toEqual([
+      ["Default", "Person 1"],
+      ["Profile 2", "Work"],
+    ]);
+    for (const value of [null, 3, {}, { profile: { info_cache: "x" } }]) expect(profileNames(value).size).toBe(0);
+  });
+
+  it("gives the choice of each folder, also of a folder with no sites", () => {
+    const { roots } = parseChromeBookmarks(FILE);
+    const choices = choicesOf(roots, choose(roots, ALL_FOLDERS, "g-bar", "exclude"));
+    expect([choices.get("g-bar"), choices.get("g-fonts"), choices.get("g-synced")]).toEqual(["exclude", "exclude", "include"]);
   });
 });

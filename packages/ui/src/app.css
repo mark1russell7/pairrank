@@ -561,6 +561,233 @@ kbd,
   color: var(--quiet);
 }
 
+.empty .primary {
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.9rem;
+}
+
+.import {
+  overflow: auto;
+  padding: 1rem;
+  max-width: 48rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.import h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  color: var(--quiet);
+}
+
+.steps li {
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step) ". ";
+}
+
+.steps li[data-state="now"] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--pencil);
+}
+
+.steps li[data-state="done"] {
+  color: var(--ink);
+}
+
+.problems {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem 0.5rem 1.75rem;
+  border-left: 3px solid var(--pencil);
+  background: color-mix(in srgb, var(--pencil) 8%, transparent);
+}
+
+.import .quiet {
+  color: var(--quiet);
+  max-width: 38rem;
+}
+
+.sources {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.sources label,
+.folder-row label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.sources li {
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--mat);
+}
+
+.source-name {
+  font-weight: 600;
+}
+
+.source-kind {
+  color: var(--quiet);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.choose-file {
+  display: inline-block;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.choose-file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.choose-file:focus-within {
+  outline: 2px solid var(--pencil);
+  outline-offset: 1px;
+}
+
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.import-actions button {
+  padding: 0.4rem 0.9rem;
+}
+
+.import-body:focus {
+  outline: none;
+}
+
+.import-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 -1rem;
+  padding: 0.75rem 1rem;
+  background: var(--table);
+  border-bottom: 2px solid var(--mat);
+}
+
+.import-total {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.75rem;
+}
+
+.grow {
+  flex: 1;
+}
+
+.book h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.25rem;
+}
+
+.folders {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.folders .folders {
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--mat);
+  margin-left: 0.6rem;
+}
+
+.folder-row {
+  display: grid;
+  grid-template-columns: 1.25rem 1fr auto;
+  align-items: baseline;
+  gap: 0.25rem;
+  padding: 0.2rem 0;
+}
+
+.folder-row:hover {
+  background: color-mix(in srgb, var(--mat) 45%, transparent);
+}
+
+.disclose {
+  padding: 0;
+  width: 1.25rem;
+  color: var(--quiet);
+}
+
+.folder-count {
+  color: var(--quiet);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.folders li[data-state="off"] > .folder-row .folder-name {
+  color: var(--quiet);
+  text-decoration: line-through;
+  text-decoration-color: var(--mat);
+}
+
+.folders li[data-state="mixed"] > .folder-row .folder-count {
+  color: var(--ink);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--pencil);
+}
+
+.report {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.report dt {
+  color: var(--quiet);
+}
+
+.report dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.import-done {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .duel[aria-busy="true"] .slot {
     transition: opacity 120ms;
@@ -575,6 +802,10 @@ kbd,
 
   .tag-panel {
     padding-left: 0.25rem;
+  }
+
+  .import-total {
+    flex-basis: 100%;
   }
 
   .duel-sides {
