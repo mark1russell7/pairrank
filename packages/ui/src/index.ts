@@ -1,0 +1,9 @@
+/**
+ * The interface of pairrank, in React. It uses the host through `PairrankApi`, and shows the sites through a
+ * `Surface`. The desktop app gives the two, so the interface does not know Electron.
+ *
+ * @packageDocumentation
+ */
+export * from "./api.ts";
+export * from "./app.tsx";
+export * from "./slot.tsx";
