@@ -63,7 +63,7 @@ describe("the tag run", () => {
     key("h");
     await screen.findByRole("heading", { name: "The end of the run" });
     expect(screen.getByText("Done: 1 of 1 site.")).toBeTruthy();
-    expect((await siteOf(api, "https://c.example/"))?.hiddenReason).toBe("Hidden in a tag run");
+    expect((await siteOf(api, "https://c.example/"))?.hiddenReason).toBe("Hidden in a tag run.");
 
     key("u");
     await waitFor(() => expect(url(memory)).toBe("https://c.example/"));

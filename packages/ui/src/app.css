@@ -169,6 +169,59 @@ nav button[aria-pressed="true"] {
   gap: 0.25rem;
 }
 
+.which {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  border-bottom: 1px solid var(--mat);
+}
+
+.which button {
+  padding: 0.3rem 0;
+  color: var(--quiet);
+}
+
+.which button[aria-pressed="true"] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--pencil);
+}
+
+.count-of {
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.25rem;
+}
+
+.hidden-sites .hint {
+  color: var(--quiet);
+  margin: 0.75rem 0 0;
+}
+
+.hidden-sites .said:empty {
+  display: none;
+}
+
+.hidden-list li {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(8rem, 1.2fr) minmax(8rem, 0.8fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.4rem 0.25rem;
+  border-bottom: 1px solid var(--mat);
+}
+
+.hidden-reason {
+  color: var(--quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hidden-list button {
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--mat);
+  border-radius: 2px;
+}
+
 .tag {
   border: 1px solid var(--quiet);
   border-radius: 2px;
@@ -868,9 +921,15 @@ input[type="checkbox"] {
 }
 
 @media (max-width: 40rem) {
-  .site-list button {
+  .site-list button,
+  .hidden-list li {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  .hidden-list button {
+    justify-self: start;
+    margin-top: 0.25rem;
   }
 
   .tag-panel {

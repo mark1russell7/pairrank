@@ -81,7 +81,7 @@ describe("App", () => {
     const { api, memory } = setup();
     await api.importList(list);
     render(<App api={api} surface={memory.surface} />);
-    expect(await screen.findByText("3 sites, 1 tags")).toBeTruthy();
+    expect(await screen.findByText("3 sites, 1 tag")).toBeTruthy();
     expect(screen.getByText("Alpha")).toBeTruthy();
     expect(screen.getByText("News")).toBeTruthy();
     fireEvent.change(screen.getByRole("searchbox", { name: "Find a site" }), { target: { value: "beta" } });

@@ -9,7 +9,9 @@ import { type ReactElement, useCallback, useEffect, useMemo, useState } from "re
 import { createRoot } from "react-dom/client";
 import type { BookmarksApi, PairrankApi } from "./api.ts";
 import { DuelScreen } from "./duel-screen.tsx";
+import { HiddenSites } from "./hidden-sites.tsx";
 import { ImportScreen } from "./import-screen.tsx";
+import { countOf } from "./importing.ts";
 import { LookScreen, nameOf } from "./look-screen.tsx";
 import { TagsScreen, type Write } from "./tags.tsx";
 
@@ -56,6 +58,8 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
     setScreen("look");
   };
   const [query, setQuery] = useState("");
+  // The Sites screen lists the shown sites or the hidden sites
+  const [which, setWhich] = useState<"shown" | "hidden">("shown");
   // Each start of an import gets a new key, so the import starts again at its first step
   const [run, setRun] = useState(0);
   const startImport = (): void => {
@@ -89,6 +93,8 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
   const sites = useMemo(() => (view === undefined ? [] : visibleSites(view)), [view]);
   const tags = useMemo(() => new Map<string, TagView>(view?.tags.map((tag) => [tag.id, tag]) ?? []), [view]);
   const found = useMemo(() => sites.filter((site) => matches(site, query)), [sites, query]);
+  const hidden = useMemo(() => view?.sites.filter((site) => site.hidden) ?? [], [view]);
+  const foundHidden = useMemo(() => hidden.filter((site) => matches(site, query)), [hidden, query]);
 
   return (
     <div className="app" data-screen={screen}>
@@ -111,7 +117,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
             Import
           </button>
         </nav>
-        <span className="count">{view === undefined ? "" : `${sites.length} sites, ${view.tags.length} tags`}</span>
+        <span className="count">{view === undefined ? "" : `${countOf(sites.length, "site")}, ${countOf(view.tags.length, "tag")}`}</span>
       </header>
 
       {error !== undefined && (
@@ -122,7 +128,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
 
       {screen === "sites" && (
         <main className="sites">
-          {view !== undefined && sites.length === 0 && (
+          {view !== undefined && view.sites.length === 0 && (
             <section className="empty">
               <h1>No sites yet</h1>
               <p>Import your Chrome bookmarks to start. You choose the folders, and the folders do not become tags.</p>
@@ -131,30 +137,43 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
               </button>
             </section>
           )}
-          {sites.length > 0 && (
+          {view !== undefined && view.sites.length > 0 && (
             <>
               <input className="search" type="search" placeholder="Find a site by title or address" aria-label="Find a site" value={query} onChange={(event) => setQuery(event.target.value)} />
-              <ol className="site-list">
-                {found.map((site) => (
-                  <li key={site.id}>
-                    <button
-                      type="button"
-                      onClick={() => startLook(site.id)}
-                    >
-                      <span className="site-name">{nameOf(site)}</span>
-                      <span className="site-url">{site.url}</span>
-                      <span className="site-tags">
-                        {site.tags.map((id) => (
-                          <span className="tag" key={id} style={tags.get(id)?.color === undefined ? undefined : { borderColor: tags.get(id)?.color }}>
-                            {tags.get(id)?.name ?? id}
+              {(hidden.length > 0 || which === "hidden") && (
+                <div className="which" role="group" aria-label="Which sites">
+                  <button type="button" aria-pressed={which === "shown"} onClick={() => setWhich("shown")}>
+                    Shown <span className="count-of">{sites.length}</span>
+                  </button>
+                  <button type="button" aria-pressed={which === "hidden"} onClick={() => setWhich("hidden")}>
+                    Hidden <span className="count-of">{hidden.length}</span>
+                  </button>
+                </div>
+              )}
+              {which === "hidden" && <HiddenSites sites={foundHidden} total={hidden.length} write={write} />}
+              {which === "shown" && (
+                <>
+                  <ol className="site-list">
+                    {found.map((site) => (
+                      <li key={site.id}>
+                        <button type="button" onClick={() => startLook(site.id)}>
+                          <span className="site-name">{nameOf(site)}</span>
+                          <span className="site-url">{site.url}</span>
+                          <span className="site-tags">
+                            {site.tags.map((id) => (
+                              <span className="tag" key={id} style={tags.get(id)?.color === undefined ? undefined : { borderColor: tags.get(id)?.color }}>
+                                {tags.get(id)?.name ?? id}
+                              </span>
+                            ))}
                           </span>
-                        ))}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              {found.length === 0 && <p className="none">No site agrees with this search.</p>}
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                  {sites.length === 0 && <p className="none">Each site is hidden. Choose Hidden to restore a site.</p>}
+                  {sites.length > 0 && found.length === 0 && <p className="none">No site agrees with this search.</p>}
+                </>
+              )}
             </>
           )}
         </main>
