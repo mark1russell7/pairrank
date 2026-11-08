@@ -13,3 +13,5 @@ export * from "./duel.ts";
 export * from "./duel-screen.tsx";
 export * from "./importing.ts";
 export * from "./import-screen.tsx";
+export * from "./run.ts";
+export * from "./look-screen.tsx";

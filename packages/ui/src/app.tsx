@@ -1,18 +1,17 @@
 /**
- * The interface of pairrank: a list of the sites, the tags, and a look at one site at a time. On the Look screen, the
- * key of a tag puts the tag on the site or removes it. The duel shows two sites side by side in the same frame.
+ * The interface of pairrank: a list of the sites, the tags, the import, the tag run and the duel. The tag run on the
+ * Look screen shows one site at a time. The duel shows two sites side by side in the same frame.
  */
 import type { Draft } from "@pairrank/core";
 import type { SiteView, StateView, TagView } from "@pairrank/host/views";
 import { type Surface, trackSlots } from "@pairrank/surfaces";
-import { type FormEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { BookmarksApi, PairrankApi } from "./api.ts";
 import { DuelScreen } from "./duel-screen.tsx";
 import { ImportScreen } from "./import-screen.tsx";
-import { Slot } from "./slot.tsx";
-import { createDraft, tagProblem, toggleDraft } from "./tagging.ts";
-import { Swatch, TagsScreen, type Write } from "./tags.tsx";
+import { LookScreen, nameOf } from "./look-screen.tsx";
+import { TagsScreen, type Write } from "./tags.tsx";
 
 /** The screens of the interface. */
 export type Screen = "sites" | "tags" | "look" | "duel" | "import";
@@ -39,60 +38,9 @@ export function matches(site: SiteView, query: string): boolean {
   return words.every((word) => text.includes(word));
 }
 
-/** This function gives the name of a site: its title, or its address with no scheme. */
-export function nameOf(site: SiteView): string {
-  return site.title !== undefined && site.title.trim() !== "" ? site.title : site.url.replace(/^https?:\/\//i, "");
-}
-
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
-
-/** The strip of the tags of the site on the Look screen, with a field that makes a tag and puts it on the site. */
-function TagStrip(props: { readonly site: SiteView; readonly tags: readonly TagView[]; readonly write: Write; readonly newId: () => string }): ReactElement {
-  const { site, tags, write } = props;
-  const [name, setName] = useState("");
-  const [problem, setProblem] = useState<string | undefined>(undefined);
-  const make = async (event: FormEvent): Promise<void> => {
-    event.preventDefault();
-    if (name.trim() === "") return;
-    const fields = { name, key: "", color: undefined };
-    const id = props.newId();
-    const found = tagProblem(fields, tags) ?? (await write([createDraft(id, fields), { type: "site.tagged", site: site.id, tag: id }]));
-    setProblem(found);
-    if (found === undefined) setName("");
-  };
-  return (
-    <div className="strip tag-strip" role="group" aria-label="Tags of the site">
-      {tags.map((tag) => (
-        <button type="button" key={tag.id} className="tag-toggle" aria-pressed={site.tags.includes(tag.id)} onClick={() => void write([toggleDraft(site, tag.id)]).then(setProblem)}>
-          <Swatch color={tag.color} />
-          {tag.name}
-          {tag.key !== undefined && <kbd>{tag.key}</kbd>}
-        </button>
-      ))}
-      <form className="quick-tag" onSubmit={(event) => void make(event)}>
-        <input
-          value={name}
-          placeholder="New tag"
-          aria-label="New tag for this site"
-          maxLength={80}
-          onChange={(event) => {
-            setName(event.target.value);
-            setProblem(undefined);
-          }}
-        />
-      </form>
-      {problem !== undefined && (
-        <span className="problem" role="alert">
-          {problem}
-        </span>
-      )}
-    </div>
-  );
-}
-
-const editable = (target: EventTarget | null): boolean => target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
 
 /** The interface of pairrank. */
 export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID() }: AppProps): ReactElement {
@@ -101,7 +49,12 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
   const [view, setView] = useState<StateView | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [screen, setScreen] = useState<Screen>("sites");
-  const [index, setIndex] = useState(0);
+  // Each start of a run gets a new key. A run from the list of the sites starts at the chosen site
+  const [look, setLook] = useState<{ readonly n: number; readonly start: string | undefined }>({ n: 0, start: undefined });
+  const startLook = (start?: string): void => {
+    setLook((now) => ({ n: now.n + 1, start }));
+    setScreen("look");
+  };
   const [query, setQuery] = useState("");
   // Each start of an import gets a new key, so the import starts again at its first step
   const [run, setRun] = useState(0);
@@ -135,28 +88,6 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
 
   const sites = useMemo(() => (view === undefined ? [] : visibleSites(view)), [view]);
   const tags = useMemo(() => new Map<string, TagView>(view?.tags.map((tag) => [tag.id, tag]) ?? []), [view]);
-  const named = useMemo(() => [...(view?.tags ?? [])].sort((a, b) => a.name.localeCompare(b.name)), [view]);
-  const current = sites.length === 0 ? undefined : sites[Math.min(index, sites.length - 1)];
-  const position = current === undefined ? 0 : sites.indexOf(current);
-
-  const step = useCallback((by: number) => setIndex((at) => (sites.length === 0 ? 0 : (Math.min(at, sites.length - 1) + by + sites.length) % sites.length)), [sites.length]);
-
-  useEffect(() => {
-    if (screen !== "look") return;
-    const onKey = (event: KeyboardEvent): void => {
-      if (editable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
-      const keyed = named.find((tag) => tag.key !== undefined && tag.key === event.key.toLowerCase());
-      if (event.key === "ArrowRight" || event.key === "j") step(1);
-      else if (event.key === "ArrowLeft" || event.key === "k") step(-1);
-      else if (event.key === "Escape") setScreen("sites");
-      else if (keyed !== undefined && current !== undefined) void write([toggleDraft(current, keyed.id)]);
-      else return;
-      event.preventDefault();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [screen, step, named, current, write]);
-
   const found = useMemo(() => sites.filter((site) => matches(site, query)), [sites, query]);
 
   return (
@@ -170,7 +101,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
           <button type="button" aria-pressed={screen === "tags"} disabled={view === undefined} onClick={() => setScreen("tags")}>
             Tags
           </button>
-          <button type="button" aria-pressed={screen === "look"} disabled={sites.length === 0} onClick={() => setScreen("look")}>
+          <button type="button" aria-pressed={screen === "look"} disabled={sites.length === 0} onClick={() => startLook()}>
             Look
           </button>
           <button type="button" aria-pressed={screen === "duel"} disabled={sites.length < 2} onClick={() => setScreen("duel")}>
@@ -208,10 +139,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
                   <li key={site.id}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setIndex(sites.indexOf(site));
-                        setScreen("look");
-                      }}
+                      onClick={() => startLook(site.id)}
                     >
                       <span className="site-name">{nameOf(site)}</span>
                       <span className="site-url">{site.url}</span>
@@ -238,10 +166,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
           api={api}
           bookmarks={bookmarks}
           reload={reload}
-          leave={(to) => {
-            setIndex(0);
-            setScreen(to);
-          }}
+          leave={(to) => (to === "look" ? startLook() : setScreen(to))}
         />
       )}
 
@@ -251,24 +176,8 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
         <DuelScreen api={api} view={view} surface={surface} tracker={tracker} reload={reload} newId={newId} leave={() => setScreen("sites")} />
       )}
 
-      {screen === "look" && current !== undefined && (
-        <main className="look">
-          <Slot surface={surface} tracker={tracker} slot="main" url={current.url} />
-          <TagStrip site={current} tags={named} write={write} newId={newId} />
-          <footer className="strip caption">
-            <button type="button" aria-label="Previous site" onClick={() => step(-1)}>
-              ‹
-            </button>
-            <span className="site-name">{nameOf(current)}</span>
-            <span className="site-url">{current.url}</span>
-            <span className="count">
-              {position + 1} of {sites.length}
-            </span>
-            <button type="button" aria-label="Next site" onClick={() => step(1)}>
-              ›
-            </button>
-          </footer>
-        </main>
+      {screen === "look" && view !== undefined && (
+        <LookScreen key={look.n} view={view} surface={surface} tracker={tracker} write={write} newId={newId} start={look.start} leave={() => setScreen("sites")} />
       )}
     </div>
   );

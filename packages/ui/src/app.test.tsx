@@ -6,7 +6,8 @@ import { callerOf } from "@procedures/client";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Call, apiOf } from "./api.ts";
-import { App, matches, nameOf } from "./app.tsx";
+import { App, matches } from "./app.tsx";
+import { nameOf } from "./look-screen.tsx";
 import { FAILURE_TEXT, boxOf, showsView } from "./slot.tsx";
 
 afterEach(cleanup);
@@ -101,8 +102,10 @@ describe("App", () => {
 
     fireEvent.keyDown(window, { key: "ArrowRight" });
     expect(memory.loads.get("main")?.url).toBe("https://c.example/");
+    // A run ends after its last site
     fireEvent.keyDown(window, { key: "ArrowRight" });
-    expect(memory.loads.get("main")?.url).toBe("https://a.example/");
+    expect(screen.getByRole("heading", { name: "The end of the run" })).toBeTruthy();
+    expect(memory.boxes.get("main")).toBeUndefined();
     fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(screen.getByText("3 of 3")).toBeTruthy();
 
