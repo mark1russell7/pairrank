@@ -13,12 +13,12 @@ import {
   isDone,
   runActionOf,
   runOf,
+  runStepDraft,
+  runUndoDraft,
   scopeName,
   scopeOf,
   scopeValue,
-  runStepDraft,
   tagStep,
-  runUndoDraft,
 } from "./run.ts";
 import { Slot } from "./slot.tsx";
 import { createDraft, tagProblem } from "./tagging.ts";
@@ -201,19 +201,19 @@ export function LookScreen({ view, surface, tracker, write, newId, start, leave 
       <div className="strip run-bar">
         <select
           value={scopeValue(run.scope)}
-            aria-label="Sites of the run"
-            onChange={(event) => {
-              setRun(startRun(view, scopeOf(event.target.value)));
-              setSteps([]);
-              event.target.blur();
-            }}
-          >
-            {choices.map((scope) => (
-              <option key={scopeValue(scope)} value={scopeValue(scope)}>
-                {scopeName(scope, view.tags)} ({runOf(view, scope).length})
-              </option>
-            ))}
-          </select>
+          aria-label="Sites of the run"
+          onChange={(event) => {
+            setRun(startRun(view, scopeOf(event.target.value)));
+            setSteps([]);
+            event.target.blur();
+          }}
+        >
+          {choices.map((scope) => (
+            <option key={scopeValue(scope)} value={scopeValue(scope)}>
+              {scopeName(scope, view.tags)} ({runOf(view, scope).length})
+            </option>
+          ))}
+        </select>
         {counted && live.length > 0 && (
           <span className="run-done">
             <span className="run-meter" aria-hidden="true">

@@ -1,6 +1,6 @@
 import type { SiteView, StateView } from "@pairrank/host/views";
 import { describe, expect, it } from "vitest";
-import { RUN_HIDE_REASON, firstScope, inScope, isDone, runActionOf, runOf, scopeName, scopeOf, scopeValue, runStepDraft, tagStep, runUndoDraft } from "./run.ts";
+import { RUN_HIDE_REASON, firstScope, inScope, isDone, runActionOf, runOf, runStepDraft, runUndoDraft, scopeName, scopeOf, scopeValue, tagStep } from "./run.ts";
 
 const site = (id: string, tags: string[] = [], hidden = false): SiteView => ({
   id,
