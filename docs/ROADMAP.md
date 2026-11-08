@@ -31,7 +31,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R10 | The app shell | in progress | R8, R9 | Add the Electron preset to the template. Make the React interface (`@pairrank/ui`). Then make the Electron desktop shell with the preset. |
 | R11 | The tag run | open | R10, R12 | Show one site at a time. Keys set and clear tags. |
 | R12 | Tags | done | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. The Look screen puts a tag on a site with its key. |
-| R13 | The duel | open | R10, R5 | Show two sites side by side. Pick A, B, tie or skip, or hide a site. Pick under one tag or overall. |
+| R13 | The duel | done | R10, R5 | Show two sites side by side. Pick A, B, tie or skip, or hide a site. Pick under one tag or overall. An undo removes the last pick or hide. The desktop shell of R10 shows the screen. |
 | R14 | The choice of pairs | done | R5 | Select the pairs with the least sure result and the sites with the fewest picks. Use a seed. The procedure is `pairrank.pair`. |
 | R15 | Duel presets | open | R13 | Save a combined mode: a rule for the pairs, and a list of the picks that each pair asks. |
 | R16 | The viewer | open | R5, R10 | Filter the sites by an expression of tags, and sort them by a ladder or by a score over a set of tags. |

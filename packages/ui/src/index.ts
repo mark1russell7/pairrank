@@ -9,3 +9,5 @@ export * from "./app.tsx";
 export * from "./slot.tsx";
 export * from "./tagging.ts";
 export * from "./tags.tsx";
+export * from "./duel.ts";
+export * from "./duel-screen.tsx";
