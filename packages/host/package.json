@@ -19,6 +19,7 @@
   "dependencies": {
     "@pairrank/core": "workspace:*",
     "@pairrank/input": "workspace:*",
+    "@pairrank/ratings": "workspace:*",
     "@pairrank/store": "workspace:*",
     "@procedures/client": "^0.52.1"
   }

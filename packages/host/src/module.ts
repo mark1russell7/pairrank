@@ -4,8 +4,9 @@
  *
  * @packageDocumentation
  */
-import { type Draft, type Problem, type State, parseDraft, scopeKey, stamp } from "@pairrank/core";
+import { type Draft, type Problem, type Scope, type State, parseDraft, scopeKey, stamp } from "@pairrank/core";
 import { type EntryProblem, type ImportReport, parseSiteList, planImport } from "@pairrank/input";
+import { type Ladder, type ModelChoice, type ModelName, ladderOf, selectModel } from "@pairrank/ratings";
 import type { Store } from "@pairrank/store";
 import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
 
@@ -123,6 +124,24 @@ const DraftsInput = zodAdapter<{ drafts: Draft[] }>({
 
 const ListInput = zodAdapter<{ list: unknown }>({ parse: (value) => ({ list: objectOf(value)["list"] }) });
 
+const MODELS = new Set<unknown>(["bradley-terry", "elo", "glicko2"]);
+
+function scopeOf(value: unknown): Scope {
+  const scope = objectOf(value);
+  if (scope["kind"] === "overall") return { kind: "overall" };
+  if (scope["kind"] === "tag" && typeof scope["tag"] === "string" && scope["tag"] !== "") return { kind: "tag", tag: scope["tag"] };
+  throw new Error("The scope must be { kind: overall } or { kind: tag, tag }.");
+}
+
+const LadderInput = zodAdapter<{ scope: Scope; model?: ModelName }>({
+  parse: (value) => {
+    const input = objectOf(value);
+    const model = input["model"];
+    if (model !== undefined && !MODELS.has(model)) throw new Error("The model must be bradley-terry, elo or glicko2.");
+    return { scope: scopeOf(input["scope"]), ...(model === undefined ? {} : { model: model as ModelName }) };
+  },
+});
+
 const reads = { reads: ["pairrank.log"], writes: [] as string[], idempotent: true, destructive: false };
 const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent: false, destructive: false };
 
@@ -133,6 +152,8 @@ const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent:
  * - `pairrank.apply` writes drafts as events, in one transaction.
  * - `pairrank.import.plan` gives the report of an import, and changes nothing.
  * - `pairrank.import.apply` imports a site list.
+ * - `pairrank.ladder` gives the ladder of a scope.
+ * - `pairrank.model` compares the models of a scope by the log-loss on its last picks.
  *
  * The log is append-only, so no procedure removes data: a delete or an undo is a new event.
  */
@@ -184,6 +205,20 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
         const { parsed, plan: result } = plan(list);
         return { report: result.report, entries: parsed.problems, problems: store.appendAll(result.events) };
       })
+      .build(),
+    createProcedure()
+      .path(["pairrank", "ladder"])
+      .input(LadderInput)
+      .output(as<Ladder>())
+      .meta({ description: "Give the ladder of a scope", effects: reads })
+      .handler(async ({ scope, model }): Promise<Ladder> => ladderOf(store.state, scope, model === undefined ? {} : { model }))
+      .build(),
+    createProcedure()
+      .path(["pairrank", "model"])
+      .input(LadderInput)
+      .output(as<ModelChoice>())
+      .meta({ description: "Compare the models of a scope by the log-loss on its last picks", effects: reads })
+      .handler(async ({ scope }): Promise<ModelChoice> => selectModel(store.state, scope))
       .build(),
   ];
   return defineModule("@pairrank/host", procedures);
