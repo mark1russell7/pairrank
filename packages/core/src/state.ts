@@ -12,6 +12,8 @@ export interface Site {
   title: string | undefined;
   readonly source: string | undefined;
   readonly added: string;
+  /** The time that the source gives for the site. */
+  readonly dated: string | undefined;
   hidden: boolean;
   hiddenReason: string | undefined;
   readonly tags: Set<TagId>;
@@ -149,6 +151,7 @@ function change(state: State, event: Event): void {
         title: event.title,
         source: event.source,
         added: event.at,
+        dated: event.dated,
         hidden: false,
         hiddenReason: undefined,
         tags: new Set(),
