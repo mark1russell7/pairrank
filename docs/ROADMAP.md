@@ -38,4 +38,4 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
 | R18 | Hidden sites | open | R13 | Show the hidden sites, and restore a site. |
 | R19 | The screenshot surface | later | R9 | Show a screenshot of a site when a live view is not possible. |
-| R20 | Security scans in a private repository | in progress | | The template security scan fails in a private repository. A pull request of the template corrects it. |
+| R20 | Security scans in a private repository | done | | The template security scan fails in a private repository. A pull request of the template corrects it. |
