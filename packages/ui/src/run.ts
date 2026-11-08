@@ -76,7 +76,7 @@ export function runActionOf(key: string): RunAction | undefined {
 export type RunStep = { readonly kind: "tag"; readonly site: string; readonly tag: string; readonly added: boolean } | { readonly kind: "hide"; readonly site: string };
 
 /** The reason of a hide in a run. The list of the hidden sites shows it. */
-export const RUN_HIDE_REASON = "Hidden in a tag run";
+export const RUN_HIDE_REASON = "Hidden in a tag run.";
 
 /** This function gives the draft of a step. */
 export function runStepDraft(step: RunStep): Draft {

@@ -12,6 +12,7 @@ export * from "./tags.tsx";
 export * from "./duel.ts";
 export * from "./duel-screen.tsx";
 export * from "./importing.ts";
+export * from "./hidden-sites.tsx";
 export * from "./import-screen.tsx";
 export * from "./run.ts";
 export * from "./look-screen.tsx";

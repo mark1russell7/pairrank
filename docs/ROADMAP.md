@@ -36,7 +36,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R15 | Duel presets | open | R13 | Save a combined mode: a rule for the pairs, and a list of the picks that each pair asks. |
 | R16 | The viewer | open | R5, R10 | Filter the sites by an expression of tags, and sort them by a ladder or by a score over a set of tags. |
 | R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
-| R18 | Hidden sites | open | R13 | Show the hidden sites, and restore a site. |
+| R18 | Hidden sites | active | R13 | Show the hidden sites, and restore a site. The Sites screen lists them with the reason of each hide. |
 | R19 | The screenshot surface | later | R9 | Show a screenshot of a site when a live view is not possible. |
 | R20 | Security scans in a private repository | done | | The template security scan fails in a private repository. A pull request of the template corrects it. |
 | R21 | The `iframe` surface | later | R9 | Show a site in an `iframe`, for a host with no Electron. Many sites refuse a frame, so the R19 screenshot is its fallback. |
