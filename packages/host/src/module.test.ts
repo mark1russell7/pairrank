@@ -1,5 +1,6 @@
 import { openStore } from "@pairrank/store";
 import { Client, PortTransport, ProcedureServer, callerOf, createRegistry, pathToMethod } from "@procedures/client";
+import type { Ladder, ModelChoice } from "@pairrank/ratings";
 import { describe, expect, it } from "vitest";
 import { type ApplyResult, type ImportPreview, type ImportResult, type StateView, pairrankModule } from "./module.ts";
 
@@ -60,6 +61,14 @@ describe("pairrankModule", () => {
     expect(result.problems.map((problem) => [problem.event, problem.code])).toEqual([[result.events[1], "same-site"]]);
     const view = await call<StateView>(["pairrank", "view"], {});
     expect(view.picks).toEqual({ overall: 1 });
+
+    const ladder = await call<Ladder>(["pairrank", "ladder"], { scope: { kind: "overall" } });
+    expect(ladder.ratings.map((rating) => rating.site)).toEqual([a, b]);
+    const elo = await call<Ladder>(["pairrank", "ladder"], { scope: { kind: "overall" }, model: "elo" });
+    expect(elo.model).toBe("elo");
+    await expect(call(["pairrank", "ladder"], { scope: { kind: "everything" } })).rejects.toThrow();
+    const choice = await call<ModelChoice>(["pairrank", "model"], { scope: { kind: "overall" } });
+    expect(choice.model).toBe("bradley-terry");
     store.close();
   });
 
