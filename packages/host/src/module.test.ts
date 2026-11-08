@@ -2,7 +2,8 @@ import { openStore } from "@pairrank/store";
 import { Client, PortTransport, ProcedureServer, callerOf, createRegistry, pathToMethod } from "@procedures/client";
 import type { Ladder, ModelChoice } from "@pairrank/ratings";
 import { describe, expect, it } from "vitest";
-import { type ApplyResult, type ImportPreview, type ImportResult, type StateView, pairrankModule } from "./module.ts";
+import { pairrankModule } from "./module.ts";
+import type { ApplyResult, ImportPreview, ImportResult, StateView } from "./views.ts";
 
 function setup() {
   const store = openStore(":memory:");

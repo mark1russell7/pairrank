@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "@pairrank/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "devDependencies": {
+    "@mark1russell7/cue": "^2.0.0",
+    "@pairrank/store": "workspace:*",
+    "@procedures/client": "^0.52.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "happy-dom": "^21.0.4",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@mark1russell7/layout-contract": "^0.6.2",
+    "@pairrank/core": "workspace:*",
+    "@pairrank/host": "workspace:*",
+    "@pairrank/ratings": "workspace:*",
+    "@pairrank/surfaces": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}
