@@ -33,6 +33,8 @@ export interface LookProps {
   readonly newId: () => string;
   /** The site at the start. With a site, the run has each site. With none, the run starts with `firstScope`. */
   readonly start: string | undefined;
+  /** The sites of the viewer, in its order, and a name for them. With a list, the run has the list. */
+  readonly list?: { readonly ids: readonly string[]; readonly name: string } | undefined;
   readonly leave: () => void;
 }
 
@@ -103,8 +105,12 @@ function startRun(view: StateView, scope: RunScope, at?: string): Run {
 }
 
 /** The Look screen. */
-export function LookScreen({ view, surface, tracker, write, newId, start, leave }: LookProps): ReactElement {
-  const [run, setRun] = useState<Run>(() => (start === undefined ? startRun(view, firstScope(view)) : startRun(view, { kind: "all" }, start)));
+export function LookScreen({ view, surface, tracker, write, newId, start, list, leave }: LookProps): ReactElement {
+  const listScope = useMemo((): RunScope | undefined => (list === undefined ? undefined : { kind: "list", ids: list.ids, name: list.name }), [list]);
+  const [run, setRun] = useState<Run>(() => {
+    if (listScope !== undefined) return startRun(view, listScope, start);
+    return start === undefined ? startRun(view, firstScope(view)) : startRun(view, { kind: "all" }, start);
+  });
   const [steps, setSteps] = useState<readonly RunStep[]>([]);
   const [onward, setOnward] = useState(false);
   const [problem, setProblem] = useState<string | undefined>(undefined);
@@ -193,7 +199,12 @@ export function LookScreen({ view, surface, tracker, write, newId, start, leave 
     return () => window.removeEventListener("keydown", onKey);
   }, [named, current, act, go, undo, leave]);
 
-  const choices: RunScope[] = [{ kind: "untagged" }, { kind: "all" }, ...named.map((tag): RunScope => ({ kind: "without", tag: tag.id }))];
+  const choices: RunScope[] = [
+    ...(listScope === undefined ? [] : [listScope]),
+    { kind: "untagged" },
+    { kind: "all" },
+    ...named.map((tag): RunScope => ({ kind: "without", tag: tag.id })),
+  ];
   const counted = run.scope.kind !== "all";
 
   return (
@@ -203,7 +214,8 @@ export function LookScreen({ view, surface, tracker, write, newId, start, leave 
           value={scopeValue(run.scope)}
           aria-label="Sites of the run"
           onChange={(event) => {
-            setRun(startRun(view, scopeOf(event.target.value)));
+            const value = event.target.value;
+            setRun(startRun(view, value === "list" && listScope !== undefined ? listScope : scopeOf(value)));
             setSteps([]);
             event.target.blur();
           }}

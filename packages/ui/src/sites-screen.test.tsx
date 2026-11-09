@@ -1,0 +1,148 @@
+// @vitest-environment happy-dom
+import type { Draft } from "@pairrank/core";
+import { pairrankModule } from "@pairrank/host";
+import { openStore } from "@pairrank/store";
+import { type MemorySurface as Memory, memorySurface } from "@pairrank/surfaces";
+import { callerOf } from "@procedures/client";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { type Call, type PairrankApi, apiOf } from "./api.ts";
+import { App } from "./app.tsx";
+import { FIRST_SETTINGS, orderChoices, orderOf, ratingText } from "./viewer.ts";
+
+afterEach(cleanup);
+
+/** The ids of the sites Alpha, Beta and Gamma, and of the tags News and Read later. */
+const [ALPHA, BETA, GAMMA] = ["id1", "id2", "id3"];
+const [NEWS, LATER] = ["news", "later"];
+
+/** The host with four sites and two tags. Alpha and Beta have News, and Beta and Gamma have Read later. */
+async function setup(more: readonly Draft[] = []): Promise<{ api: PairrankApi; memory: Memory }> {
+  const store = openStore(":memory:");
+  let n = 0;
+  const caller = callerOf(pairrankModule(store, { key: (address) => address.replace(/\/$/, ""), id: () => `id${++n}`, now: () => "2026-11-08T12:00:00Z" }));
+  const call: Call = (path, input) => caller(path, input);
+  const api = apiOf(call);
+  const sites = ["Alpha", "Beta", "Gamma", "Delta"].map((title) => ({ url: `https://${title.toLowerCase()}.example/`, title }));
+  await api.importList({ format: "pairrank.sites", version: 1, source: "test", sites });
+  await api.apply([
+    { type: "tag.created", tag: NEWS, name: "News" },
+    { type: "tag.created", tag: LATER, name: "Read later" },
+    { type: "site.tagged", site: ALPHA, tag: NEWS },
+    { type: "site.tagged", site: BETA, tag: NEWS },
+    { type: "site.tagged", site: BETA, tag: LATER },
+    { type: "site.tagged", site: GAMMA, tag: LATER },
+    ...more,
+  ]);
+  const memory = memorySurface();
+  render(<App api={api} surface={memory.surface} />);
+  await screen.findByRole("textbox", { name: "Filter by tags" });
+  return { api, memory };
+}
+
+const url = (memory: Memory) => memory.loads.get("main")?.url;
+const names = () => within(screen.getByRole("list")).queryAllByRole("button").map((button) => button.querySelector(".site-name")?.textContent);
+const query = () => screen.getByRole("textbox", { name: "Filter by tags" }) as HTMLInputElement;
+const order = () => screen.getByRole("combobox", { name: "Order of the sites" }) as HTMLSelectElement;
+const pick = (a: string, b: string, tag?: string): Draft => ({ type: "pick", a, b, scope: tag === undefined ? { kind: "overall" } : { kind: "tag", tag }, outcome: "a" });
+
+describe("the settings of the viewer", () => {
+  it("gives the order of each choice", () => {
+    expect(orderOf(FIRST_SETTINGS)).toEqual({ kind: "added" });
+    expect(orderOf({ ...FIRST_SETTINGS, order: "title" })).toEqual({ kind: "title" });
+    expect(orderOf({ ...FIRST_SETTINGS, order: "overall" })).toEqual({ kind: "rating", scopes: [{ kind: "overall" }] });
+    expect(orderOf({ ...FIRST_SETTINGS, order: "tag:t" })).toEqual({ kind: "rating", scopes: [{ kind: "tag", tag: "t" }] });
+    expect(orderOf({ ...FIRST_SETTINGS, order: "mean" })).toBeUndefined();
+    expect(orderOf({ ...FIRST_SETTINGS, order: "mean", mean: ["a", "b"] })).toEqual({
+      kind: "rating",
+      scopes: [
+        { kind: "tag", tag: "a" },
+        { kind: "tag", tag: "b" },
+      ],
+    });
+    expect(orderOf({ ...FIRST_SETTINGS, order: "tag:" })).toEqual({ kind: "added" });
+  });
+
+  it("names the choices, with the tags in the order of their names", () => {
+    const tags = [
+      { id: "z", name: "Zebra", color: undefined, key: undefined, sites: 0 },
+      { id: "a", name: "Apple", color: undefined, key: undefined, sites: 0 },
+    ];
+    expect(orderChoices(tags).map((choice) => choice.name)).toEqual(["Newest first", "Title", "Rating overall", "Rating in Apple", "Rating in Zebra", "Mean rating of tags"]);
+    expect([ratingText(1623.4, 44.6), ratingText(1500, undefined)]).toEqual(["1623 ± 45", "1500"]);
+  });
+});
+
+describe("the viewer on the Sites screen", () => {
+  it("lists the sites that agree with a tag query, and marks a problem in the query", async () => {
+    await setup();
+    await waitFor(() => expect(names()).toEqual(["Alpha", "Beta", "Gamma", "Delta"]));
+    fireEvent.change(query(), { target: { value: 'news and not "read later"' } });
+    await waitFor(() => expect(names()).toEqual(["Alpha"]));
+    expect(screen.getByText("1 of 4 sites")).toBeTruthy();
+
+    fireEvent.change(query(), { target: { value: "news or sport" } });
+    expect((await screen.findByRole("alert")).textContent).toBe('No tag has the name "sport". (at "sport")');
+    expect(query().getAttribute("aria-invalid")).toBe("true");
+    // The last good list stays on the screen
+    expect(names()).toEqual(["Alpha"]);
+
+    fireEvent.change(query(), { target: { value: "-news" } });
+    await waitFor(() => expect(names()).toEqual(["Gamma", "Delta"]));
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Find a site" }), { target: { value: "gam" } });
+    expect(names()).toEqual(["Gamma"]);
+  });
+
+  it("orders the sites by a rating in a tag, with the sites with no rating last", async () => {
+    await setup([pick(BETA, ALPHA, NEWS), pick(BETA, ALPHA, NEWS)]);
+    fireEvent.change(order(), { target: { value: `tag:${NEWS}` } });
+    await waitFor(() => expect(names()).toEqual(["Beta", "Alpha", "Gamma", "Delta"]));
+    const scores = screen.getAllByText(/^\d+( ± \d+)?$|^No rating$/).map((each) => each.textContent);
+    expect(scores.slice(2)).toEqual(["No rating", "No rating"]);
+    expect(Number(scores[0]?.split(" ")[0])).toBeGreaterThan(Number(scores[1]?.split(" ")[0]));
+  });
+
+  it("orders by the mean over the chosen tags, and by title until a tag is chosen", async () => {
+    await setup([pick(GAMMA, BETA, LATER), pick(GAMMA, BETA, LATER), pick(BETA, ALPHA, NEWS)]);
+    fireEvent.change(order(), { target: { value: "mean" } });
+    await waitFor(() => expect(names()).toEqual(["Alpha", "Beta", "Delta", "Gamma"]));
+    expect(screen.getByText("Choose the tags of the mean. Until then, the order is by title.")).toBeTruthy();
+    const chips = within(screen.getByRole("group", { name: "Tags of the mean" }));
+    fireEvent.click(chips.getByRole("button", { name: "Read later" }));
+    await waitFor(() => expect(names()).toEqual(["Gamma", "Beta", "Alpha", "Delta"]));
+    expect(chips.getByRole("button", { name: "Read later" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("keeps the settings after a change of screen, and shows the list one site at a time", async () => {
+    const { memory } = await setup();
+    fireEvent.change(query(), { target: { value: "later" } });
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain('No tag has the name "later".'));
+    fireEvent.change(query(), { target: { value: '"read later"' } });
+    fireEvent.change(order(), { target: { value: "title" } });
+    await waitFor(() => expect(names()).toEqual(["Beta", "Gamma"]));
+
+    fireEvent.click(screen.getByRole("button", { name: "Tags" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sites" }));
+    expect(query().value).toBe('"read later"');
+    expect(order().value).toBe("title");
+    await waitFor(() => expect(names()).toEqual(["Beta", "Gamma"]));
+
+    fireEvent.click(screen.getByRole("button", { name: "Look at these one at a time" }));
+    const run = (await screen.findByRole("combobox", { name: "Sites of the run" })) as HTMLSelectElement;
+    expect(run.value).toBe("list");
+    expect(run.selectedOptions[0]?.textContent).toBe('Sites of "Read later" (2)');
+    expect(url(memory)).toBe("https://beta.example/");
+    fireEvent.keyDown(window, { key: "j" });
+    expect(url(memory)).toBe("https://gamma.example/");
+  });
+
+  it("starts the run of the list at the site of a click", async () => {
+    const { memory } = await setup();
+    await waitFor(() => expect(names()).toEqual(["Alpha", "Beta", "Gamma", "Delta"]));
+    fireEvent.click(screen.getByRole("button", { name: /Gamma/ }));
+    const run = (await screen.findByRole("combobox", { name: "Sites of the run" })) as HTMLSelectElement;
+    expect(run.selectedOptions[0]?.textContent).toBe("Sites of the viewer (4)");
+    expect(url(memory)).toBe("https://gamma.example/");
+  });
+});
