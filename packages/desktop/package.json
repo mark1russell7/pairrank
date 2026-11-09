@@ -24,7 +24,8 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "@mark1russell7/layout-contract": "^0.6.2",
+    "@mark1russell7/layout-contract": "^0.9.4",
+    "@mark1russell7/service": "^0.8.5",
     "@pairrank/host": "workspace:*",
     "@pairrank/input": "workspace:*",
     "@pairrank/store": "workspace:*",

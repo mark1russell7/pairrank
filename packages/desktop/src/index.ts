@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { extname, join, normalize, sep } from "node:path";
-import type { Rect } from "@mark1russell7/layout-contract";
+import { type Rect, type SizedRect, scaleRect, snapRect, toSizedRect } from "@mark1russell7/layout-contract";
 import type { FailReason } from "@pairrank/surfaces";
 import type { BrowserWindowConstructorOptions, WebPreferences } from "electron";
 
@@ -153,13 +153,12 @@ export function failureOf(code: number): FailReason | undefined {
 }
 
 /**
- * This function gives the bounds of a view in whole pixels. It rounds each edge, so two boxes that touch still touch.
- * TEMP: this function moves to `snapRect` of `@mark1russell7/layout-contract`, the home of boxes.
+ * This function gives the bounds of a view from the box of its slot. The page sends the box in CSS pixels, and a view
+ * is in the pixels of the window. Thus the box gets the zoom factor of the page first. Then each edge goes to a whole
+ * pixel, so two boxes that touch still touch.
  */
-export function boundsOf(box: Rect): { x: number; y: number; width: number; height: number } {
-  const left = Math.round(box.x);
-  const top = Math.round(box.y);
-  return { x: left, y: top, width: Math.max(0, Math.round(box.x + box.w) - left), height: Math.max(0, Math.round(box.y + box.h) - top) };
+export function viewBounds(box: Rect, zoom: number): SizedRect {
+  return toSizedRect(snapRect(scaleRect(box, zoom)));
 }
 
 /** The fields of a key press of Electron (`before-input-event`) that the rules read. */

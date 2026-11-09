@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, boundsOf, contentType, failureOf, pageFile, portOf, returnsKeys, siteViewPreferences, windowOptions } from "./index.ts";
+import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, contentType, failureOf, pageFile, portOf, returnsKeys, siteViewPreferences, viewBounds, windowOptions } from "./index.ts";
 
 const root = resolve("build", "page");
 
@@ -89,11 +89,22 @@ describe("the views of the sites", () => {
   });
 
   it("round each edge of a box, so two boxes that touch still touch", () => {
-    expect(boundsOf({ x: 8.4, y: 44.6, w: 600.4, h: 700 })).toEqual({ x: 8, y: 45, width: 601, height: 700 });
-    const left = boundsOf({ x: 0.5, y: 0, w: 300.3, h: 10 });
-    const right = boundsOf({ x: 300.8, y: 0, w: 300, h: 10 });
+    expect(viewBounds({ x: 8.4, y: 44.6, w: 600.4, h: 700 }, 1)).toEqual({ x: 8, y: 45, width: 601, height: 700 });
+    const left = viewBounds({ x: 0.5, y: 0, w: 300.3, h: 10 }, 1);
+    const right = viewBounds({ x: 300.8, y: 0, w: 300, h: 10 }, 1);
     expect(left.x + left.width).toBe(right.x);
-    expect(boundsOf({ x: 3.2, y: 0, w: 0.1, h: 0 })).toEqual({ x: 3, y: 0, width: 0, height: 0 });
+    expect(viewBounds({ x: 3.2, y: 0, w: 0.1, h: 0 }, 1)).toEqual({ x: 3, y: 0, width: 0, height: 0 });
+  });
+
+  it("scale a box of the page by its zoom before the rounding (B4)", () => {
+    // At 125%, a slot of 400 by 300 CSS pixels at (10, 44) covers 500 by 375 pixels of the window at (12.5, 55)
+    expect(viewBounds({ x: 10, y: 44, w: 400, h: 300 }, 1.25)).toEqual({ x: 13, y: 55, width: 500, height: 375 });
+    expect(viewBounds({ x: 10, y: 44, w: 400, h: 300 }, 0.9)).toEqual({ x: 9, y: 40, width: 360, height: 270 });
+    // Two slots that touch still touch at a zoom
+    const left = viewBounds({ x: 0, y: 0, w: 333.3, h: 10 }, 1.1);
+    const right = viewBounds({ x: 333.3, y: 0, w: 333.3, h: 10 }, 1.1);
+    expect(left.x + left.width).toBe(right.x);
+    expect(() => viewBounds({ x: 0, y: 0, w: 1, h: 1 }, Number.NaN)).toThrow(RangeError);
   });
 
   it("give the keys back to the page with Escape and no modifier", () => {

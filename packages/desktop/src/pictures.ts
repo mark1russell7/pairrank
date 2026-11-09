@@ -2,6 +2,7 @@
  * The still pictures of the sites, as a procedure. The main process captures a site in a window off the screen. The
  * page shows the picture when the view of the site fails. This module has no Electron code, so a test examines it.
  */
+import { PreemptedError, preemptivePool } from "@mark1russell7/service/channel";
 import type { Capture, CaptureResult, PictureSize } from "@pairrank/surfaces";
 import { type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
 import { allowsSiteNavigation } from "./index.ts";
@@ -28,36 +29,21 @@ const textOf = (error: unknown): string => (error instanceof Error ? error.messa
 
 /**
  * This function gives captures that operate `max` at a time. A new capture stops the oldest capture, because the page
- * ignores the picture of an earlier load. Thus a fast change of sites does not start many windows.
+ * ignores the picture of an earlier load. Thus a fast change of sites does not start many windows. The pool is
+ * `preemptivePool` of `@mark1russell7/service`. This function only changes each stop and each error to a failure.
  *
  * A stopped capture ends at once with a failure. A capture that throws ends with the reason `network`.
  */
 export function capturePool(run: StoppableCapture, max: number): CapturePool {
-  if (!(Number.isInteger(max) && max >= 1)) throw new RangeError(`capturePool: max is an integer of 1 or more, not ${max}.`);
-  /** The controller of each capture that operates, from the oldest to the newest. */
-  const running = new Set<AbortController>();
-  const stopAll = (detail: string): void => {
-    for (const controller of running) controller.abort(new Error(detail));
-    running.clear();
+  // preemptivePool throws a RangeError when max is not an integer of 1 or more
+  const pool = preemptivePool(max);
+  const failure = (error: unknown): CaptureResult => {
+    // The pool stops the oldest capture with its own error. The page gets the text of this app.
+    return { ok: false, reason: "network", detail: error instanceof PreemptedError ? REPLACED : textOf(error) };
   };
   return {
-    capture(url, size) {
-      for (const oldest of running) {
-        if (running.size < max) break;
-        running.delete(oldest);
-        oldest.abort(new Error(REPLACED));
-      }
-      const controller = new AbortController();
-      running.add(controller);
-      const stopped = new Promise<CaptureResult>((resolve) => {
-        controller.signal.addEventListener("abort", () => resolve({ ok: false, reason: "network", detail: textOf(controller.signal.reason) }), { once: true });
-      });
-      const result = Promise.resolve()
-        .then(() => run(url, size, controller.signal))
-        .catch((error: unknown): CaptureResult => ({ ok: false, reason: "network", detail: textOf(error) }));
-      return Promise.race([result, stopped]).finally(() => running.delete(controller));
-    },
-    stop: () => stopAll(STOPPED),
+    capture: (url, size) => pool.run((signal) => run(url, size, signal)).catch(failure),
+    stop: () => pool.stop(new Error(STOPPED)),
   };
 }
 
