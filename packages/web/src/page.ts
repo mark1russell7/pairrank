@@ -1,11 +1,11 @@
 /**
  * This file is the script of the page of @pairrank/web. `tsdown` builds it to `build/page/page.js`. It sends the calls
  * of `@pairrank/ui` to the host over HTTP, and shows each site in an iframe. Before each load, the host checks if the
- * site refuses the frame.
+ * site refuses the frame. A site that refuses the frame shows as a still picture from the host.
  */
 /// <reference lib="dom" />
-import { type FrameCheckResult, iframeSurface, withLoadTimeout } from "@pairrank/surfaces";
-import { type Call, apiOf, bookmarksApiOf, mount } from "@pairrank/ui";
+import { type FrameCheckResult, iframeSurface, pictureSurface, withFallback, withLoadTimeout } from "@pairrank/surfaces";
+import { type Call, apiOf, bookmarksApiOf, captureApiOf, mount } from "@pairrank/ui";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client/browser";
 import { API_PATH, LOAD_TIMEOUT_MS } from "./constants.ts";
 import { domFrames } from "./dom-frames.ts";
@@ -26,7 +26,10 @@ async function check(url: string): Promise<FrameCheckResult> {
 const frames = document.createElement("div");
 document.body.append(frames);
 const timers = { set: (callback: () => void, ms: number) => window.setTimeout(callback, ms), clear: (handle: unknown) => window.clearTimeout(handle as number) };
-const surface = withLoadTimeout(iframeSurface({ check, frames: domFrames(frames) }), { ms: LOAD_TIMEOUT_MS, timers });
+const live = withLoadTimeout(iframeSurface({ check, frames: domFrames(frames) }), { ms: LOAD_TIMEOUT_MS, timers });
+// A site that refuses the frame shows as a still picture. A host without a capture fails the picture, and then the slot
+// gets the refusal, with the two details. A slow site is not a reason.
+const surface = withFallback(live, pictureSurface(captureApiOf(call)), ["refused"]);
 
 const root = document.getElementById("root");
 if (root !== null) mount(root, { api: apiOf(call), bookmarks: bookmarksApiOf(call), surface });

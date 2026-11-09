@@ -1,7 +1,7 @@
 /**
  * The browser host of pairrank. One listener on this computer serves the page of `@pairrank/ui`, the procedures of
  * `@pairrank/host`, the bookmarks files of Chrome and the frame check. The page shows each site in an iframe, not in a
- * view of Electron.
+ * view of Electron. With a capture, the host also gives still pictures of the sites that refuse the frame.
  *
  * - The listener is on `127.0.0.1` only. The browser checks of the host refuse a page of another origin, and the check
  *   of the `Host` header stops DNS rebinding.
@@ -11,6 +11,7 @@
 import { homedir } from "node:os";
 import { pairrankModule } from "@pairrank/host";
 import { type Files, bookmarksModule, chromeDataFolders, diskFiles } from "@pairrank/host/bookmarks";
+import { type CapturePool, picturesModule } from "@pairrank/host/pictures";
 import type { Store } from "@pairrank/store";
 import { createRegistry } from "@procedures/client";
 import { type HostFetch, createHostFetch } from "@procedures/http";
@@ -65,6 +66,11 @@ export interface WebHostOptions {
   readonly chromeFolders?: readonly string[] | undefined;
   /** The file operations of the bookmarks procedures. The default is the disk. */
   readonly files?: Files | undefined;
+  /**
+   * The captures of the still pictures (`capturePool` of `@pairrank/host/pictures`). The caller makes the pool and stops
+   * it. Without it, the host has no procedure `pictures.capture`, and a refused site stays failed.
+   */
+  readonly pictures?: CapturePool | undefined;
 }
 
 /**
@@ -81,7 +87,12 @@ export function webHost(options: WebHostOptions): ProcedureHostOptions {
   const check = frameCheck({ fetch, ancestor, timeoutMs: CHECK_TIMEOUT_MS });
   return {
     name: "pairrank-web",
-    registry: createRegistry(pairrankModule(store, { key: canonicalUrl }), bookmarksModule({ folders, files }), framesModule(check)),
+    registry: createRegistry(
+      pairrankModule(store, { key: canonicalUrl }),
+      bookmarksModule({ folders, files }),
+      framesModule(check),
+      ...(options.pictures === undefined ? [] : [picturesModule(options.pictures.capture)]),
+    ),
     faces: { http: httpFace({ basePath: API_PATH }), page: staticFace({ root: page, headers: PAGE_HEADERS }) },
     listen: [listener],
   };

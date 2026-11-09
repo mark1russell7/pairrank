@@ -68,8 +68,8 @@ export function bookmarksApiOf(call: Call): BookmarksApi {
 }
 
 /**
- * This function gives the capture of a site by the host, over one function `call`. Only the desktop host has the
- * procedure. A surface of still pictures uses the capture.
+ * This function gives the capture of a site by the host, over one function `call`. A host has the procedure only when
+ * it has a capture. A surface of still pictures uses the capture.
  */
 export function captureApiOf(call: Call): Capture {
   return (url, size) => call<CaptureResult>(["pictures", "capture"], { url, size });

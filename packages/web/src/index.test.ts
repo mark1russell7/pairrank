@@ -10,7 +10,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Lifecycle } from "@mark1russell7/service";
 import { fakeProcess } from "@mark1russell7/service/testing";
+import { capturePool } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
+import { captureApiOf } from "@pairrank/ui";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client";
 import { runProcedureHost } from "@procedures/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -22,6 +24,13 @@ let folder: string;
 let origin: string;
 let life: Lifecycle;
 const store = openStore(":memory:");
+const PICTURE = "data:image/jpeg;base64,/9j/";
+/** The captures of the host: a fake capture in place of a browser, which gives one picture and keeps each address. */
+const captured: string[] = [];
+const pictures = capturePool(async (url, size) => {
+  captured.push(`${url} ${size.w}x${size.h}`);
+  return { ok: true, picture: PICTURE, title: "A site" };
+}, 2);
 
 beforeAll(async () => {
   folder = mkdtempSync(join(tmpdir(), "pairrank-web-"));
@@ -29,7 +38,7 @@ beforeAll(async () => {
   writeFileSync(join(folder, "page.js"), "export {};");
   const running = await runProcedureHost({
     name: "pairrank-web-test",
-    host: webHost({ store, page: folder, port: 0, chromeFolders: [join(folder, "chrome")] }),
+    host: webHost({ store, page: folder, port: 0, chromeFolders: [join(folder, "chrome")], pictures }),
     mode: "foreground",
     run: { process: fakeProcess() },
   });
@@ -42,6 +51,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await life.shutdown("the test ended");
   await life.done;
+  pictures.stop();
   store.close();
   rmSync(folder, { recursive: true, force: true });
 });
@@ -77,6 +87,19 @@ describe("the browser host", () => {
   it("answers the bookmarks procedures with the folders of the options", async () => {
     const call = clientOf();
     expect(await call(["bookmarks", "sources"], {})).toEqual([]);
+  });
+
+  it("gives a still picture from the capture of the options, through the capture of the page", async () => {
+    const capture = captureApiOf(clientOf());
+    expect(await capture("https://a.example/", { w: 1280, h: 800 })).toEqual({ ok: true, picture: PICTURE, title: "A site" });
+    expect(captured).toEqual(["https://a.example/ 1280x800"]);
+    await expect(capture("file:///etc/hosts", { w: 1280, h: 800 })).rejects.toThrow("http or https");
+  });
+
+  it("has no capture procedure without a capture in the options", () => {
+    const registry = webHost({ store, page: folder, port: 0, chromeFolders: [] }).registry;
+    expect(registry?.get(["pictures", "capture"])).toBeUndefined();
+    expect(registry?.get(["frames", "check"])).toBeDefined();
   });
 
   it("refuses a call from a page of another origin", async () => {
