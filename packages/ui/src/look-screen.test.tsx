@@ -30,7 +30,10 @@ async function setup(prepare?: (api: PairrankApi) => Promise<unknown>): Promise<
   await prepare?.(api);
   const memory = memorySurface();
   render(<App api={api} surface={memory.surface} newId={() => `new${++n}`} />);
-  fireEvent.click(await screen.findByRole("button", { name: "Look" }));
+  // The button goes on when the app has its sites, and a click before that does nothing
+  const look = await screen.findByRole("button", { name: "Look" });
+  await waitFor(() => expect(look.hasAttribute("disabled")).toBe(false));
+  fireEvent.click(look);
   return { api, memory };
 }
 
