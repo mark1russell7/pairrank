@@ -4,7 +4,7 @@ import { openStore } from "@pairrank/store";
 import { memorySurface } from "@pairrank/surfaces";
 import { callerOf } from "@procedures/client";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Call, apiOf } from "./api.ts";
 import { App } from "./app.tsx";
 
@@ -139,5 +139,31 @@ describe("the tags on the Look screen", () => {
     await waitFor(() => expect(pressed("Later")).toBe("true"));
     const gamma = (await api.view()).sites.find((site) => site.title === "Gamma")!;
     expect([...gamma.tags].sort()).toEqual([view.tags.find((tag) => tag.name === "News")!.id, "tag1"].sort());
+  });
+
+  it("removes the tag at a second press of its key before the view changes", async () => {
+    const { api } = await open(true, async (api) => {
+      const world = (await api.view()).tags.find((tag) => tag.name === "World")!;
+      return api.apply([{ type: "tag.edited", tag: world.id, key: "w" }]);
+    });
+    const world = (await api.view()).tags.find((tag) => tag.name === "World")!.id;
+    fireEvent.click(screen.getByRole("button", { name: "Sites" }));
+    fireEvent.click(await screen.findByText("Gamma"));
+    const strip = () => within(screen.getByRole("group", { name: "Tags of the site" }));
+    const pressed = () => strip().getByRole("button", { name: /World/ }).getAttribute("aria-pressed");
+    await waitFor(() => expect(pressed()).toBe("false"));
+
+    // The two presses come in one task, so the first write is still in flight at the second press
+    const apply = vi.spyOn(api, "apply");
+    fireEvent.keyDown(window, { key: "w" });
+    fireEvent.keyDown(window, { key: "w" });
+    expect(apply.mock.calls.map(([drafts]) => drafts.map((draft) => draft.type))).toEqual([["site.tagged"], ["site.untagged"]]);
+    await Promise.all(apply.mock.results.map((result) => result.value));
+    expect((await api.view()).sites.find((site) => site.title === "Gamma")!.tags).not.toContain(world);
+    await waitFor(() => expect(pressed()).toBe("false"));
+    apply.mockRestore();
+    // Undo takes back the removal, so the site has the tag again
+    fireEvent.keyDown(window, { key: "u" });
+    await waitFor(() => expect(pressed()).toBe("true"));
   });
 });

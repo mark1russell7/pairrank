@@ -103,7 +103,13 @@ export function runUndoDraft(step: RunStep): Draft {
   return runStepDraft({ ...step, added: !step.added });
 }
 
-/** This function gives the step of a tag key on a site: it adds the tag, or removes it when the site has it. */
-export function tagStep(site: SiteView, tag: string): RunStep {
-  return { kind: "tag", site: site.id, tag, added: !site.tags.includes(tag) };
+/**
+ * This function gives the step of a tag key on a site: it adds the tag, or removes it when the site has it. `has` tells
+ * if the site has the tag. Its default is the tags of the view. A write in flight can give a newer value.
+ */
+export function tagStep(site: SiteView, tag: string, has = site.tags.includes(tag)): RunStep {
+  return { kind: "tag", site: site.id, tag, added: !has };
 }
+
+/** This function gives the key of a tag on a site, for a map of the expected states. */
+export const tagOn = (site: string, tag: string): string => `${site}\u0000${tag}`;
