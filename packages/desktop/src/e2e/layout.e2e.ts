@@ -4,8 +4,10 @@
  * with no height. The check also writes the visibility of the page of each site. On Linux with a virtual display,
  * Chromium tells `hidden` for a view on the screen, so the visibility is not a condition. CI starts it with `pnpm --filter @pairrank/desktop e2e`.
  *
- * At the end, the check zooms the page out with Ctrl+-, the key of the default menu. Then the view of each site covers
- * its slot. Its width in the pixels of the window is the width of the slot times the zoom (B4).
+ * At the end, the check zooms the page out with the item `zoomOut` of the default menu (Ctrl+-). Then the view of each
+ * site covers its slot. Its width in the pixels of the window is the width of the slot times the zoom (B4). A key event
+ * of the debug port goes to the page and not to the menu. Thus the check clicks the item through the inspector of the
+ * main process.
  */
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -34,10 +36,11 @@ const sleep = (ms: number): Promise<void> => new Promise((done) => setTimeout(do
 const started = Date.now();
 const say = (text: string): void => console.log(`${String(Date.now() - started).padStart(6)} ms  ${text}`);
 
-/** A connection to one target of the debug port: `Runtime.evaluate`, and `send` for another method. */
+/** A connection to one target of a debug port: `Runtime.evaluate`, and `send` for another method. */
 interface Connection {
   evaluate<T>(expression: string): Promise<T>;
-  send(method: string, params: Record<string, unknown>): Promise<void>;
+  /** This function sends a method, and gives the value of its result, if it has one. */
+  send(method: string, params: Record<string, unknown>): Promise<unknown>;
   close(): void;
 }
 
@@ -62,9 +65,7 @@ async function connect(target: Target): Promise<Connection> {
     });
   return {
     evaluate: async <T>(expression: string) => (await call("Runtime.evaluate", { expression, returnByValue: true })) as T,
-    send: async (method, params) => {
-      await call(method, params);
-    },
+    send: (method, params) => call(method, params),
     close: () => socket.close(),
   };
 }
@@ -105,8 +106,9 @@ await caller(["pairrank", "import", "apply"], { list: { format: "pairrank.sites"
 store.close();
 
 const debugPort = await freePort();
+const inspectPort = await freePort();
 const main = join(import.meta.dirname, "..", "..", "build", "main", "main.js");
-const app = spawn(electron as unknown as string, [`--remote-debugging-port=${debugPort}`, `--user-data-dir=${join(folder, "data")}`, main], {
+const app = spawn(electron as unknown as string, [`--inspect=${inspectPort}`, `--remote-debugging-port=${debugPort}`, `--user-data-dir=${join(folder, "data")}`, main], {
   env: { ...process.env, PAIRRANK_STORE: storeFile },
   stdio: ["ignore", "inherit", "inherit"],
 });
@@ -153,15 +155,39 @@ async function siteWidths(urls: readonly string[]): Promise<number[]> {
   return widths;
 }
 
-/** This function zooms the page out, and checks that the view of each site still covers its slot (B4). */
-async function examineZoom(page: Connection, urls: readonly string[]): Promise<void> {
+/**
+ * The click of the item `zoomOut` of the application menu, in the main process. The item gets the window of the page,
+ * as after Ctrl+- in that window. The value is `true`, or the text of the fault.
+ */
+const ZOOM_OUT = `(() => {
+  try {
+    const { BrowserWindow, Menu } = require("electron");
+    const find = (menu) => {
+      for (const item of menu?.items ?? []) {
+        if (String(item.role).toLowerCase() === "zoomout") return item;
+        const inner = find(item.submenu);
+        if (inner) return inner;
+      }
+    };
+    const item = find(Menu.getApplicationMenu());
+    const window = BrowserWindow.getAllWindows()[0];
+    if (!item) return "The application menu has no item zoomOut.";
+    if (!window) return "The app has no window.";
+    item.click(undefined, window, window.webContents);
+    return true;
+  } catch (error) {
+    return String(error);
+  }
+})()`;
+
+/** This function zooms the page out with the menu, and checks that the view of each site still covers its slot (B4). */
+async function examineZoom(page: Connection, main: Connection, urls: readonly string[]): Promise<void> {
   const ratio = () => page.evaluate<number>("window.devicePixelRatio");
   const before = await ratio();
-  // Ctrl+- is the zoom out of the default menu of Electron. The page does not use the key, so the menu gets it
-  const key = { modifiers: 2, key: "-", code: "Minus", windowsVirtualKeyCode: 189, nativeVirtualKeyCode: 189 };
-  await page.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...key });
-  await page.send("Input.dispatchKeyEvent", { type: "keyUp", ...key });
-  const zoom = await until("change of the zoom of the page after Ctrl+-", async () => {
+  // The command line of the inspector gives require()
+  const clicked = await main.send("Runtime.evaluate", { expression: ZOOM_OUT, returnByValue: true, includeCommandLineAPI: true });
+  if (clicked !== true) throw new Error(`The zoom out of the menu failed: ${String(clicked)}`);
+  const zoom = await until("change of the zoom of the page after the zoom out of the menu", async () => {
     const now = await ratio();
     return Math.abs(now - before) > 0.01 ? now / before : undefined;
   });
@@ -191,7 +217,16 @@ try {
   await examine(page, "Look", 1, [`${origin}/a`]);
   await click("Duel");
   await examine(page, "Duel", 2, [`${origin}/a`, `${origin}/b`]);
-  await examineZoom(page, [`${origin}/a`, `${origin}/b`]);
+  const inspector = await until("inspector of the main process", async () => {
+    try {
+      return ((await (await fetch(`http://127.0.0.1:${inspectPort}/json/list`)).json()) as Target[])[0];
+    } catch {
+      return undefined;
+    }
+  });
+  const main = await connect(inspector);
+  await examineZoom(page, main, [`${origin}/a`, `${origin}/b`]);
+  main.close();
   page.close();
   say("The layout check passed.");
   code = 0;
