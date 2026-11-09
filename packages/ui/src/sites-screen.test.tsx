@@ -8,9 +8,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, describe, expect, it } from "vitest";
 import { type Call, type PairrankApi, apiOf } from "./api.ts";
 import { App } from "./app.tsx";
-import { FIRST_SETTINGS, orderChoices, orderOf, ratingText } from "./viewer.ts";
+import { FIRST_SETTINGS, MIX_LEVELS, mixLevelOf, orderChoices, orderOf, ratingText } from "./viewer.ts";
 
 afterEach(cleanup);
+
+/** The first seed of the mix. */
+const SEED = 1;
 
 /** The ids of the sites Alpha, Beta and Gamma, and of the tags News and Read later. */
 const [ALPHA, BETA, GAMMA] = ["id1", "id2", "id3"];
@@ -35,7 +38,7 @@ async function setup(more: readonly Draft[] = []): Promise<{ api: PairrankApi; m
     ...more,
   ]);
   const memory = memorySurface();
-  render(<App api={api} surface={memory.surface} />);
+  render(<App api={api} surface={memory.surface} seed={SEED} />);
   await screen.findByRole("textbox", { name: "Filter by tags" });
   return { api, memory };
 }
@@ -61,6 +64,21 @@ describe("the settings of the viewer", () => {
       ],
     });
     expect(orderOf({ ...FIRST_SETTINGS, order: "tag:" })).toEqual({ kind: "added" });
+  });
+
+  it("adds the mix to an order by rating when the temperature is more than 0", () => {
+    const mixed = { ...FIRST_SETTINGS, temperature: 2, seed: 9 };
+    expect(orderOf({ ...mixed, order: "overall" })).toEqual({ kind: "rating", scopes: [{ kind: "overall" }], mix: { temperature: 2, seed: 9 } });
+    expect(orderOf({ ...mixed, order: "mean", mean: ["a"] })).toEqual({ kind: "rating", scopes: [{ kind: "tag", tag: "a" }], mix: { temperature: 2, seed: 9 } });
+    expect(orderOf({ ...mixed, order: "title" })).toEqual({ kind: "title" });
+    expect(orderOf({ ...mixed, order: "added" })).toEqual({ kind: "added" });
+  });
+
+  it("gives the level of a temperature, or the nearest level", () => {
+    expect(MIX_LEVELS.map((level) => mixLevelOf(level.temperature))).toEqual(MIX_LEVELS.map((_, i) => i));
+    expect(mixLevelOf(0.7)).toBe(1);
+    expect(mixLevelOf(100)).toBe(MIX_LEVELS.length - 1);
+    expect(MIX_LEVELS[0]?.temperature).toBe(0);
   });
 
   it("names the choices, with the tags in the order of their names", () => {
@@ -101,6 +119,37 @@ describe("the viewer on the Sites screen", () => {
     const scores = screen.getAllByText(/^\d+( ± \d+)?$|^No rating$/).map((each) => each.textContent);
     expect(scores.slice(2)).toEqual(["No rating", "No rating"]);
     expect(Number(scores[0]?.split(" ")[0])).toBeGreaterThan(Number(scores[1]?.split(" ")[0]));
+  });
+
+  it("mixes an order by rating, shuffles again with the next seed, and keeps the sites with no rating last", async () => {
+    const { api } = await setup([pick(BETA, ALPHA, NEWS), pick(BETA, ALPHA, NEWS)]);
+    expect(screen.queryByRole("slider", { name: "Mix" })).toBeNull();
+    fireEvent.change(order(), { target: { value: `tag:${NEWS}` } });
+    await waitFor(() => expect(names()).toEqual(["Beta", "Alpha", "Gamma", "Delta"]));
+    const slider = screen.getByRole("slider", { name: "Mix" });
+    expect(slider.getAttribute("aria-valuetext")).toBe("None");
+    expect(screen.getByText("The order follows the ratings.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Shuffle again" })).toBeNull();
+
+    // The host gives the order of each seed. Find the first shuffle that puts Alpha first.
+    const near = MIX_LEVELS.length - 1;
+    const temperature = MIX_LEVELS[near]?.temperature ?? 0;
+    const firstOf = async (seed: number) => {
+      const answer = await api.viewer("", { kind: "rating", scopes: [{ kind: "tag", tag: NEWS }], mix: { temperature, seed } });
+      return answer.ok ? answer.rows[0]?.site : undefined;
+    };
+    let shuffles = 0;
+    while ((await firstOf(SEED + shuffles)) !== ALPHA) shuffles++;
+    expect(shuffles).toBeLessThan(40);
+
+    fireEvent.change(slider, { target: { value: String(near) } });
+    expect(screen.getByText(MIX_LEVELS[near]?.hint ?? "")).toBeTruthy();
+    expect(slider.getAttribute("aria-valuetext")).toBe("Near random");
+    for (let i = 0; i < shuffles; i++) fireEvent.click(screen.getByRole("button", { name: "Shuffle again" }));
+    await waitFor(() => expect(names()).toEqual(["Alpha", "Beta", "Gamma", "Delta"]));
+
+    fireEvent.change(slider, { target: { value: "0" } });
+    await waitFor(() => expect(names()).toEqual(["Beta", "Alpha", "Gamma", "Delta"]));
   });
 
   it("orders by the mean over the chosen tags, and by title until a tag is chosen", async () => {

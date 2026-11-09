@@ -27,6 +27,8 @@ export interface AppProps {
   readonly bookmarks?: BookmarksApi;
   /** This function gives the id of a new tag. The default is `crypto.randomUUID`. */
   readonly newId?: () => string;
+  /** The first seed of the mix of the viewer. The default comes from the time of the start, so each start gives a new mix. */
+  readonly seed?: number;
 }
 
 /** This function gives the sites that are not hidden, in the order of the state. */
@@ -39,7 +41,7 @@ function messageOf(error: unknown): string {
 }
 
 /** The interface of pairrank. */
-export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID() }: AppProps): ReactElement {
+export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID(), seed }: AppProps): ReactElement {
   const tracker = useMemo(() => trackSlots(surface), [surface]);
   useEffect(() => () => tracker.stop(), [tracker]);
   const [view, setView] = useState<StateView | undefined>(undefined);
@@ -56,7 +58,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
     setScreen("look");
   };
   // The settings of the viewer stay while the user is on another screen
-  const [settings, setSettings] = useState<ViewerSettings>(FIRST_SETTINGS);
+  const [settings, setSettings] = useState<ViewerSettings>(() => ({ ...FIRST_SETTINGS, seed: seed ?? Date.now() % 2 ** 31 }));
   // Each start of an import gets a new key, so the import starts again at its first step
   const [run, setRun] = useState(0);
   const startImport = (): void => {

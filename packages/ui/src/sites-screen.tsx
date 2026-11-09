@@ -9,7 +9,7 @@ import { HiddenSites } from "./hidden-sites.tsx";
 import { countOf } from "./importing.ts";
 import { nameOf } from "./look-screen.tsx";
 import { Swatch, type Write } from "./tags.tsx";
-import { type ViewerSettings, orderChoices, orderOf, ratingText } from "./viewer.ts";
+import { MIX_LEVELS, type MixLevel, type ViewerSettings, mixLevelOf, orderChoices, orderOf, ratingText } from "./viewer.ts";
 
 /** A list of sites for a run of the Look screen, in its order, with a name. */
 export interface SiteList {
@@ -88,6 +88,8 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
   );
   const foundHidden = useMemo(() => hidden.filter((site) => matches(site, search)), [hidden, search]);
   const rated = ask.kind === "rating";
+  const level = mixLevelOf(settings.temperature);
+  const mixLevel = MIX_LEVELS[level] as MixLevel;
   const problem = answer !== undefined && !answer.ok ? answer.problem : undefined;
   // The Look screen adds the count to the name
   const named = answer?.ok === true && answer.query !== "" ? `Sites of ${answer.query}` : "Sites of the viewer";
@@ -163,6 +165,34 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
               </button>
             ))}
           {mean.length === 0 && view.tags.length > 0 && <span className="help">Choose the tags of the mean. Until then, the order is by title.</span>}
+        </div>
+      )}
+
+      {rated && (
+        <div className="mix" role="group" aria-label="Mix of the order">
+          <label className="mix-level">
+            <span>Mix</span>
+            <input
+              type="range"
+              min={0}
+              max={MIX_LEVELS.length - 1}
+              step={1}
+              aria-label="Mix"
+              aria-valuetext={mixLevel.name}
+              aria-describedby="mix-help"
+              value={level}
+              onChange={(event) => setSettings({ ...settings, temperature: (MIX_LEVELS[Number(event.target.value)] as MixLevel).temperature })}
+            />
+            <output>{mixLevel.name}</output>
+          </label>
+          <span id="mix-help" className="help">
+            {mixLevel.hint}
+          </span>
+          {settings.temperature > 0 && (
+            <button type="button" onClick={() => setSettings({ ...settings, seed: settings.seed + 1 })}>
+              Shuffle again
+            </button>
+          )}
         </div>
       )}
 

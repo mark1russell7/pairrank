@@ -1,13 +1,15 @@
 /**
  * The viewer of pairrank: the sites that agree with a tag query, in the order of a score. Two Vex programs make the
  * calculation at each site. The filter program reads the tags of the site. The score program gives the mean of the
- * ratings of the site in a set of ladders, and the standard error of that mean.
+ * ratings of the site in a set of ladders, and the standard error of that mean. The mix program loosens an order of the
+ * ratings with a Gumbel draw for each site (the Gumbel-max method).
  */
+import { random } from "@mark1russell7/rigor-generators";
 import { type Expr, type Space, app, axes, each, evaluate, let_, lit, ref, space, v } from "@mark1russell7/vex";
 import { BoolDomain, JsonDomain, NumDomain, TextDomain } from "@mark1russell7/vex-domains";
 import { type Site, type State, type TagQuery, scopeKey, tagsOfQuery } from "@pairrank/core";
 import { type LadderOptions, ladderOf } from "@pairrank/ratings";
-import type { ViewerInput, ViewerResult, ViewerRow } from "./views.ts";
+import type { ViewerInput, ViewerMix, ViewerResult, ViewerRow } from "./views.ts";
 
 /** The record of one site in the space of the filter program: for each tag of the query, `true` when the site has the tag. */
 interface TagsRecord {
@@ -54,6 +56,44 @@ export const SCORE_PROGRAMS: Readonly<Record<"score" | "se" | "ladders", Expr>> 
   ),
   ladders: app("count", atEachScope("ratings")),
 };
+
+/** The record of one site with a score in the space of the mix program. */
+interface MixRecord {
+  readonly score: number;
+  /** A Gumbel draw with the scale 1. */
+  readonly noise: number;
+}
+
+/**
+ * The program of the key of the mix, at a site with a score. It reads the variable `temperature`. A difference of 400
+ * in the ratings is a factor of 10 in the strength of Bradley-Terry. Thus `score * ln(10) / 400` is the log of the strength.
+ *
+ * Sort by the key, from the highest. The chance that a site comes first is then in proportion to its strength to the
+ * power `1 / temperature`. Each next place follows the same law over the sites that are left (Plackett-Luce).
+ */
+export const MIX_PROGRAM: Expr = app("add", app("divide", app("multiply", ref("score"), lit(Math.LN10 / 400)), v("temperature")), ref("noise"));
+
+/** The highest temperature of a mix. At this temperature, the chances of two sites with a rating difference of 400 have the ratio 1.023. */
+export const MAX_TEMPERATURE = 100;
+
+/**
+ * This function gives the rows with a score in the order of the mix. Each site has its own stream of draws, so a
+ * change of the other sites does not change the draw of a site.
+ */
+function mixed(rows: readonly ViewerRow[], mix: ViewerMix): ViewerRow[] {
+  const records: Record<string, MixRecord> = {};
+  for (const row of rows) records[row.site] = { score: row.score as number, noise: random(mix.seed).fork(row.site).gumbel() };
+  const at = space.record(records);
+  const keys = new Map(
+    rows.map((row) => {
+      const result = evaluate(MIX_PROGRAM, { space: at, origin: row.site, domains: DOMAINS, vars: { temperature: mix.temperature } });
+      return [row.site, result.ok && typeof result.value === "number" ? result.value : Number.NEGATIVE_INFINITY];
+    }),
+  );
+  const keyOf = (row: ViewerRow): number => keys.get(row.site) ?? Number.NEGATIVE_INFINITY;
+  // A comparison of two equal keys gives 0, also for two keys of minus infinity
+  return [...rows].sort((x, y) => (keyOf(x) === keyOf(y) ? 0 : keyOf(y) > keyOf(x) ? 1 : -1));
+}
 
 const valueOf = (expr: Expr, at: Space<string, SiteRecord>, origin: string, scopes: readonly string[]): unknown => {
   const result = evaluate(expr, { space: at, origin, domains: DOMAINS, vars: { scopes } });
@@ -113,8 +153,14 @@ export function viewerOf(state: State, input: ViewerInput, options: LadderOption
   // Each sort is stable, so two equal values keep the order of the state
   const order = input.order;
   // A site with no score comes after each site with a score
-  if (order.kind === "rating") rows.sort((x, y) => (x.score === undefined ? (y.score === undefined ? 0 : 1) : y.score === undefined ? -1 : y.score - x.score));
-  else if (order.kind === "added") {
+  if (order.kind === "rating") {
+    rows.sort((x, y) => (x.score === undefined ? (y.score === undefined ? 0 : 1) : y.score === undefined ? -1 : y.score - x.score));
+    // The mix changes only the order of the sites with a score. The sites with no score stay last.
+    if (order.mix !== undefined && order.mix.temperature > 0) {
+      const scored = rows.filter((row) => row.score !== undefined);
+      return { rows: [...mixed(scored, order.mix), ...rows.slice(scored.length)], total: shown };
+    }
+  } else if (order.kind === "added") {
     const added = new Map(sites.map((site) => [site.id, site.added]));
     rows.sort((x, y) => (added.get(y.site) ?? "").localeCompare(added.get(x.site) ?? ""));
   } else {

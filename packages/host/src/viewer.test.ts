@@ -93,6 +93,51 @@ describe("viewerOf", () => {
   });
 });
 
+describe("the mix of an order by rating", () => {
+  const ids = (state: ReturnType<typeof stateOf>, input: Parameters<typeof viewerOf>[1]) => viewerOf(state, input).rows.map((row) => row.site);
+  const all: TagQuery = { kind: "all" };
+
+  it("keeps the strict order at the temperature 0, and gives the same order for the same seed", () => {
+    const state = stateOf();
+    const strict = ids(state, { query: all, order: { kind: "rating", scopes: [news, fun] } });
+    expect(ids(state, { query: all, order: { kind: "rating", scopes: [news, fun], mix: { temperature: 0, seed: 7 } } })).toEqual(strict);
+    for (let seed = 1; seed <= 20; seed++) {
+      const order = { kind: "rating", scopes: [news, fun], mix: { temperature: 2, seed } } as const;
+      expect(ids(state, { query: all, order })).toEqual(ids(state, { query: all, order }));
+      // d and e have no rating in these ladders, so they stay last, in the order of the state
+      expect(ids(state, { query: all, order }).slice(3)).toEqual(["d", "e"]);
+    }
+  });
+
+  it("puts a site first with a chance in proportion to its strength at the temperature 1", () => {
+    const state = stateOf();
+    const ladder = new Map(ladderOf(state, news).ratings.map((rating) => [rating.site, rating.rating]));
+    const [a, b] = [ladder.get("a") ?? 0, ladder.get("b") ?? 0];
+    // The strength of Bradley-Terry: a rating difference of 400 is a factor of 10
+    const expected = 1 / (1 + 10 ** ((b - a) / 400));
+    const n = 4000;
+    let first = 0;
+    for (let seed = 1; seed <= n; seed++) if (ids(state, { query: all, order: { kind: "rating", scopes: [news], mix: { temperature: 1, seed } } })[0] === "a") first++;
+    // The bound is about 5 standard errors of a proportion
+    expect(Math.abs(first / n - expected)).toBeLessThan(5 * Math.sqrt((expected * (1 - expected)) / n));
+    // A high temperature gives each order of two sites about the same chance
+    let hot = 0;
+    for (let seed = 1; seed <= n; seed++) if (ids(state, { query: all, order: { kind: "rating", scopes: [news], mix: { temperature: 100, seed } } })[0] === "a") hot++;
+    expect(Math.abs(hot / n - 0.5)).toBeLessThan(0.05);
+  });
+
+  it("keeps the order of the other sites when the query removes a site", () => {
+    const state = stateOf();
+    // a has News and c has Fun, but b has the two tags
+    const tag = (id: string): TagQuery => ({ kind: "tag", tag: id });
+    const notB: TagQuery = { kind: "or", queries: [{ kind: "and", queries: [tag("news"), { kind: "not", query: tag("fun") }] }, { kind: "and", queries: [tag("fun"), { kind: "not", query: tag("news") }] }] };
+    for (let seed = 1; seed <= 40; seed++) {
+      const order = { kind: "rating", scopes: [news, fun], mix: { temperature: 3, seed } } as const;
+      expect(ids(state, { query: notB, order })).toEqual(ids(state, { query: all, order }).filter((id) => id === "a" || id === "c"));
+    }
+  });
+});
+
 describe("pairrank.viewer", () => {
   async function setup() {
     const store = openStore(":memory:");
@@ -135,5 +180,16 @@ describe("pairrank.viewer", () => {
     const { call } = await setup();
     await expect(call(["pairrank", "viewer"], { query: "", order: { kind: "rating", scopes: [] } })).rejects.toThrow(/from 1 to 100 scopes/);
     await expect(call(["pairrank", "viewer"], { query: "", order: { kind: "random" } })).rejects.toThrow(/The order must be/);
+    const overall = [{ kind: "overall" }];
+    for (const temperature of [-1, 101, Number.NaN, "1"]) {
+      await expect(call(["pairrank", "viewer"], { query: "", order: { kind: "rating", scopes: overall, mix: { temperature, seed: 1 } } })).rejects.toThrow(/from 0 to 100/);
+    }
+    await expect(call(["pairrank", "viewer"], { query: "", order: { kind: "rating", scopes: overall, mix: { temperature: 1, seed: 1.5 } } })).rejects.toThrow(/must be an integer/);
+  });
+
+  it("mixes an order by rating with a seed", async () => {
+    const { call } = await setup();
+    const answer = await call<ViewerAnswer>(["pairrank", "viewer"], { query: "", order: { kind: "rating", scopes: [{ kind: "overall" }], mix: { temperature: 1, seed: 3 } } });
+    expect(answer.ok && answer.rows.length).toBe(3);
   });
 });

@@ -9,8 +9,8 @@ import { parseSiteList, planImport } from "@pairrank/input";
 import { type Ladder, type ModelChoice, type ModelName, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
 import type { Store } from "@pairrank/store";
 import { modePair } from "./modes.ts";
-import { viewerOf } from "./viewer.ts";
-import { type ApplyResult, type DuelPair, type ImportPreview, type ImportResult, type StateView, type ViewerAnswer, type ViewerOrder, viewOf } from "./views.ts";
+import { MAX_TEMPERATURE, viewerOf } from "./viewer.ts";
+import { type ApplyResult, type DuelPair, type ImportPreview, type ImportResult, type StateView, type ViewerAnswer, type ViewerMix, type ViewerOrder, viewOf } from "./views.ts";
 import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
 
 /** The options of the module. */
@@ -95,6 +95,17 @@ const PairInput = zodAdapter<PairInputValue>({
 /** The most scopes that one order of the viewer takes. */
 const MAX_SCOPES = 100;
 
+/** This function reads the mix of an order by rating. */
+function mixOf(value: unknown): ViewerMix | undefined {
+  if (value === undefined) return undefined;
+  const mix = objectOf(value);
+  const temperature = mix["temperature"];
+  const seed = mix["seed"];
+  if (typeof temperature !== "number" || !(temperature >= 0 && temperature <= MAX_TEMPERATURE)) throw new Error(`The temperature of a mix must be a number from 0 to ${MAX_TEMPERATURE}.`);
+  if (typeof seed !== "number" || !Number.isSafeInteger(seed)) throw new Error("The seed of a mix must be an integer.");
+  return { temperature, seed };
+}
+
 const ViewerInputSchema = zodAdapter<{ query: string; order: ViewerOrder; model?: ModelName }>({
   parse: (value) => {
     const input = objectOf(value);
@@ -109,7 +120,8 @@ const ViewerInputSchema = zodAdapter<{ query: string; order: ViewerOrder; model?
     else if (kind === "rating") {
       const scopes = order["scopes"];
       if (!Array.isArray(scopes) || scopes.length === 0 || scopes.length > MAX_SCOPES) throw new Error(`An order by rating must have from 1 to ${MAX_SCOPES} scopes.`);
-      parsed = { kind, scopes: scopes.map(scopeOf) };
+      const mix = mixOf(order["mix"]);
+      parsed = { kind, scopes: scopes.map(scopeOf), ...(mix === undefined ? {} : { mix }) };
     } else throw new Error("The order must be { kind: rating, scopes }, { kind: title } or { kind: added }.");
     return { query, order: parsed, ...(model === undefined ? {} : { model: model as ModelName }) };
   },
