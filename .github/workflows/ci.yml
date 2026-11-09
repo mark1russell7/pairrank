@@ -145,6 +145,13 @@ jobs:
         with:
           node-version: 26
           cache: pnpm
+      # The binary of Electron comes from the releases of GitHub at each install. The cache keeps it, so an error of
+      # that download (a 504) does not fail the gate. The key is the lockfile, so a new version of Electron gets a new binary.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: electron-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
       - name: smoke
         run: |
