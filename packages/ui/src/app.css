@@ -441,6 +441,34 @@ nav button[aria-pressed="true"] {
   font-size: 0.9rem;
 }
 
+/* A still picture of a site fills its slot from the top, as the page shows in a window */
+.slot-picture {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.slot-picture img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.slot-picture figcaption {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  background: var(--table);
+  color: var(--quiet);
+  font-size: 0.8rem;
+  box-shadow: inset 0 -2px 0 var(--pencil);
+}
+
 /* The tags. A tag is a label on a mat: a thin frame in its color, and the name in ink. */
 .swatch {
   display: inline-block;

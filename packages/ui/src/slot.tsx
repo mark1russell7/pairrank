@@ -1,6 +1,7 @@
 /**
  * A slot of the window that shows one site. The interface lays out the slot with CSS. The slot gives its box to the
- * surface, so the view of the site follows the layout of the interface.
+ * surface, so the view of the site follows the layout of the interface. A surface with no view gives a still picture
+ * of the site, and the slot draws the picture.
  */
 import type { Rect } from "@mark1russell7/layout-contract";
 import type { FailReason, SlotId, SlotStatus, SlotTracker, Surface } from "@pairrank/surfaces";
@@ -83,6 +84,12 @@ export function Slot({ surface, tracker, slot, url, empty = "No site." }: SlotPr
     <div className="slot" ref={element} data-state={status.state} aria-busy={status.state === "loading"}>
       {status.state === "empty" && <p className="slot-text">{empty}</p>}
       {status.state === "loading" && <p className="slot-text">The site loads.</p>}
+      {status.state === "shown" && status.picture !== undefined && (
+        <figure className="slot-picture">
+          <img src={status.picture} alt={`A still picture of ${status.title ?? status.url}`} />
+          <figcaption>A still picture. The live page did not show here.</figcaption>
+        </figure>
+      )}
       {status.state === "failed" && (
         <div className="slot-text" role="alert">
           <p>{FAILURE_TEXT[status.reason]}</p>
