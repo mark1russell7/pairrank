@@ -3,7 +3,7 @@
  * `pnpm start` starts it with Electron.
  *
  * - The main process opens the log of events. It serves the procedures of `@pairrank/host`, of the bookmarks
- *   (`@pairrank/host/bookmarks`) and of the still pictures (`pictures.ts`) on one message port.
+ *   (`@pairrank/host/bookmarks`) and of the still pictures (`@pairrank/host/pictures`) on one message port.
  * - A second port carries the commands of the surface of the page, and the events of the views of the sites.
  * - The environment variable `PAGE_URL` gives the address of a page server in development, for example Vite. Without
  *   it, the app shows the files of `build/page/` under `app://page/`.
@@ -18,6 +18,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pairrankModule } from "@pairrank/host";
 import { bookmarksModule, chromeDataFolders, diskFiles } from "@pairrank/host/bookmarks";
+import { capturePool, picturesModule } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
 import { applyCommand, parseCommand } from "@pairrank/surfaces";
 import { PortTransport, ProcedureServer, createRegistry, electronPortOf } from "@procedures/client";
@@ -39,7 +40,6 @@ import {
   windowOptions,
 } from "./index.ts";
 import { electronCapture } from "./capture.ts";
-import { capturePool, picturesModule } from "./pictures.ts";
 import { siteViews } from "./views.ts";
 
 const build = join(dirname(fileURLToPath(import.meta.url)), "..");

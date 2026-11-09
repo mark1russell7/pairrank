@@ -14,11 +14,11 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { REPLACED, capturePool } from "@pairrank/host/pictures";
 import { type CaptureResult, PICTURE_SIZE } from "@pairrank/surfaces";
 import { BrowserWindow, app, nativeImage } from "electron";
 import { electronCapture } from "../capture.ts";
 import { PAINT_DELAY_MS, PICTURE_QUALITY } from "../index.ts";
-import { REPLACED, capturePool } from "../pictures.ts";
 
 /** The color of the page of the check, as red, green and blue. */
 const COLOR = [0x33, 0x66, 0xcc] as const;
