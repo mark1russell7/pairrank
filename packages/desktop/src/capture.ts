@@ -28,6 +28,7 @@ export function electronCapture({ timeoutMs, paintDelayMs, quality }: ElectronCa
       const window = new BrowserWindow(captureWindowOptions(size));
       const contents = window.webContents;
       let painted: NativeImage | undefined;
+      let frames = 0;
       let paintTimer: ReturnType<typeof setTimeout> | undefined;
       let ended = false;
 
@@ -55,7 +56,8 @@ export function electronCapture({ timeoutMs, paintDelayMs, quality }: ElectronCa
           const data = image.toJPEG(quality).toString("base64");
           end({ ok: true, picture: `data:image/jpeg;base64,${data}`, url: contents.getURL(), title: contents.getTitle() });
         } catch (error) {
-          end({ ok: false, reason: "network", detail: error instanceof Error ? error.message : String(error) });
+          const text = error instanceof Error ? error.message : String(error);
+          end({ ok: false, reason: "network", detail: `The window painted ${frames} frames, and its capture failed: ${text}` });
         }
       };
 
@@ -67,6 +69,7 @@ export function electronCapture({ timeoutMs, paintDelayMs, quality }: ElectronCa
       });
       contents.on("paint", (_event, _dirty, image) => {
         painted = image;
+        frames += 1;
       });
       contents.on("did-fail-load", (_event, code, text, _url, mainFrame) => {
         const reason = failureOf(code);

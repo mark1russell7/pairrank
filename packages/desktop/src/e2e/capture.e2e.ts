@@ -27,6 +27,9 @@ const TOLERANCE = 24;
 
 const folder = mkdtempSync(join(tmpdir(), "pairrank-capture-"));
 app.setPath("userData", folder);
+// The Linux runner of CI has a virtual display and no GPU. There, a window off the screen paints no frame in the GPU
+// mode, so the check uses the software mode on Linux. On Windows the check passes in the GPU mode (2026-11-08).
+if (process.platform === "linux") app.disableHardwareAcceleration();
 // The check closes each window of a capture, and the app must not stop then
 app.on("window-all-closed", () => undefined);
 
@@ -118,7 +121,11 @@ async function checks(): Promise<number> {
 function finish(code: number): void {
   sites.closeAllConnections();
   sites.close();
-  rmSync(folder, { recursive: true, force: true, maxRetries: 3 });
+  try {
+    rmSync(folder, { recursive: true, force: true, maxRetries: 3 });
+  } catch {
+    // Windows keeps the folder locked while Electron operates. The folder is in the temporary folder of the system.
+  }
   app.exit(code);
 }
 
