@@ -26,6 +26,7 @@ The command builds the page to `build/page/`, and then starts the host. Open the
 | Host | `src/frames.ts` | It reads the headers of a site through the host policy of `@procedures/http`, and tells if the site refuses a frame. |
 | Host | `@pairrank/host/bookmarks` | It finds the bookmarks files of the Chrome profiles, and reads only those files. The page cannot give a path. |
 | Host | `@pairrank/host/pictures` | It gives the procedure `pictures.capture` over the capture of the option `pictures`. A new capture stops the oldest capture. |
+| Host | `src/headless.ts` | It gives a capture with a headless browser of the system. The picture comes back as a JPEG `data:` address. |
 | Host | `src/main.ts` | It opens the log and starts the host. It is the only file that starts it. |
 | Page | `src/page.ts` | It shows the interface, and sends the calls to the host over HTTP. |
 | Page | `src/dom-frames.ts` | It makes one hidden `iframe` for each load, in a sandbox, and puts it in the box of its slot. |
@@ -38,4 +39,5 @@ The command builds the page to `build/page/`, and then starts the host. Open the
 - Each frame has `referrerpolicy="no-referrer"` and no permissions. A site of the origin of the page gets no `allow-same-origin`.
 - A site that refuses a frame shows as a still picture from the host. The page sends the refused load to `pictures.capture`.
 - The option `pictures` of `webHost` gives the capture. The caller makes the pool and stops it. The tests and the browser check give a fake capture.
-- `src/main.ts` gives no capture yet, so a refused site shows the refusal. The capture with a headless browser comes with `@procedures/browser` (R22).
+- `headlessCapture` writes each picture in a new temporary folder, and deletes the folder after the capture. The render is an option, so the tests start no browser.
+- `src/main.ts` gives no capture yet, so a refused site shows the refusal. The first release of `@procedures/browser` gives `renderScreenshot`, the render of `headlessCapture` (R22).

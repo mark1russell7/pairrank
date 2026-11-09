@@ -79,9 +79,6 @@ export function siteViewPreferences(): WebPreferences {
 /** The time from the end of the load of a capture to its picture, in milliseconds. The page paints in this time. */
 export const PAINT_DELAY_MS = 600;
 
-/** The most captures that operate at the same time. A new capture stops the oldest capture. */
-export const MAX_CAPTURES = 2;
-
 /** The quality of the JPEG picture of a capture, from 0 to 100. */
 export const PICTURE_QUALITY = 80;
 
