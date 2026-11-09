@@ -5,7 +5,7 @@
 import type { Rect } from "@mark1russell7/layout-contract";
 import { type LoadId, type SlotHost, type SlotId, type SurfaceEvent, refusalOf } from "@pairrank/surfaces";
 import { type BaseWindow, WebContentsView } from "electron";
-import { allowsSiteNavigation, boundsOf, failureOf, returnsKeys, siteViewPreferences } from "./index.ts";
+import { allowsSiteNavigation, failureOf, returnsKeys, siteViewPreferences, viewBounds } from "./index.ts";
 
 /** The views of the sites of one window. */
 export interface SiteViews extends SlotHost {
@@ -24,9 +24,10 @@ interface Entry {
 
 /**
  * This function makes the views of the sites of a window. `send` gives each event to the page. `focusPage` gives the
- * keys back to the page of the app.
+ * keys back to the page of the app. `zoom` gives the zoom factor of the page at the time of the call. The page sends each box again after a
+ * change of the zoom, because the change resizes its window.
  */
-export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => void, focusPage: () => void): SiteViews {
+export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => void, focusPage: () => void, zoom: () => number): SiteViews {
   const entries = new Map<SlotId, Entry>();
 
   const entryOf = (slot: SlotId): Entry => {
@@ -101,7 +102,7 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
         entry.view.setVisible(false);
         return;
       }
-      entry.view.setBounds(boundsOf(box));
+      entry.view.setBounds(viewBounds(box, zoom()));
       entry.view.setVisible(true);
     },
     clear(slot, load) {

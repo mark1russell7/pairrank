@@ -132,7 +132,12 @@ async function start(): Promise<void> {
     new PortTransport(portOf(procedures.port1), { serve: server });
     if (smoke) procedures.port1.once("message", () => stop(0, "the page sent its first message"));
 
-    const views = siteViews(window, (event) => surface.port1.postMessage(event), () => window.webContents.focus());
+    const views = siteViews(
+      window,
+      (event) => surface.port1.postMessage(event),
+      () => window.webContents.focus(),
+      () => window.webContents.getZoomFactor(),
+    );
     surface.port1.on("message", ({ data }) => {
       try {
         applyCommand(views, parseCommand(data));
