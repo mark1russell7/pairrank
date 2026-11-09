@@ -39,6 +39,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R18 | Hidden sites | done | R13 | Show the hidden sites, and restore a site. The Sites screen lists them with the reason of each hide. |
 | R19 | The screenshot surface | later | R9 | Show a screenshot of a site when a live view is not possible. |
 | R20 | Security scans in a private repository | done | | The template security scan fails in a private repository. A pull request of the template corrects it. |
-| R21 | The `iframe` surface | later | R9 | Show a site in an `iframe`, for a host with no Electron. Many sites refuse a frame, so the R19 screenshot is its fallback. |
+| R21 | The `iframe` surface in a browser host | later | R9 | Show a site in an `iframe`, for a host with no Electron. The server reads the frame headers of a site before the load. A refusal switches the slot to its fallback. |
+| R22 | Still pictures in the browser host | later | R19, R21 | The server of the browser host captures the still pictures with a headless browser of the system. The page wiring of R19 stays the same. |
 | B1 | Sites load, then disappear | done | | The screen of each site had no height, so the app hid the view after each load. A layout check in CI holds the fix. |
 | B2 | A race in the duel tests | done | | The tests read the slots before React gave them their sites. The tests wait for the pair that the screen names. A slow run of the tests holds the fix. |
