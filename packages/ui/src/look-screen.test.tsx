@@ -3,7 +3,7 @@ import { pairrankModule } from "@pairrank/host";
 import { openStore } from "@pairrank/store";
 import { memorySurface } from "@pairrank/surfaces";
 import { callerOf } from "@procedures/client";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Call, type PairrankApi, apiOf } from "./api.ts";
 import { App } from "./app.tsx";
@@ -104,6 +104,21 @@ describe("the tag run", () => {
     expect(url(memory)).toBe("https://b.example/");
     key("Escape");
     expect(screen.getByRole("searchbox", { name: "Find a site" })).toBeTruthy();
+  });
+
+  it("draws the still picture of a surface with no view, and not the text of a load", async () => {
+    const { memory } = await setup();
+    const load = memory.loads.get("main");
+    const picture = "data:image/png;base64,iVBORw0KGgo=";
+    act(() => memory.emit({ type: "shown", slot: "main", load: load?.load ?? 0, url: "https://b.example/", title: "Beta", picture }));
+    const image = screen.getByRole("img", { name: "A still picture of Beta" });
+    expect(image.getAttribute("src")).toBe(picture);
+    expect(screen.getByText("A still picture. The live page did not show here.")).toBeTruthy();
+    expect(screen.queryByText("The site loads.")).toBeNull();
+    // A live view gives no picture, so the slot draws nothing on its own
+    act(() => key("j"));
+    act(() => memory.emit({ type: "shown", slot: "main", load: memory.loads.get("main")?.load ?? 0, url: "https://c.example/" }));
+    expect(screen.queryByRole("img")).toBeNull();
   });
 
   it("tells when a run has no sites", async () => {

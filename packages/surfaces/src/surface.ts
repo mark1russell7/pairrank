@@ -1,6 +1,9 @@
 /**
- * The contract of a surface: a thing that shows a site in a slot of the window. Each adapter (an Electron view, an
- * `iframe`, later a screenshot) obeys this contract, so the interface of the app does not know which adapter it uses.
+ * The contract of a surface: a thing that shows a site in a slot of the window. Each adapter (an Electron view, a
+ * still picture, later an `iframe`) obeys this contract, so the interface of the app does not know which adapter it uses.
+ *
+ * An adapter with a view of its own puts the view on the box of the slot. An adapter with no view gives a still
+ * picture in its `shown` event, and the page draws the picture in the slot.
  */
 import type { Rect } from "@mark1russell7/layout-contract";
 import { isWebUrl } from "@pairrank/input";
@@ -30,7 +33,15 @@ export type FailReason =
 /** An event of a slot. */
 export type SurfaceEvent =
   | { readonly type: "loading"; readonly slot: SlotId; readonly load: LoadId; readonly url: string }
-  | { readonly type: "shown"; readonly slot: SlotId; readonly load: LoadId; readonly url: string; readonly title?: string }
+  | {
+      readonly type: "shown";
+      readonly slot: SlotId;
+      readonly load: LoadId;
+      readonly url: string;
+      readonly title?: string;
+      /** A still picture of the site, as a `data:` address of an image. Only an adapter with no view gives it. */
+      readonly picture?: string;
+    }
   | { readonly type: "failed"; readonly slot: SlotId; readonly load: LoadId; readonly url: string; readonly reason: FailReason; readonly detail?: string }
   /** The site went to another address in its slot, for example after a click. */
   | { readonly type: "navigated"; readonly slot: SlotId; readonly load: LoadId; readonly url: string }
@@ -70,7 +81,7 @@ export interface Surface {
 export type SlotStatus =
   | { readonly state: "empty"; readonly load: LoadId }
   | { readonly state: "loading"; readonly load: LoadId; readonly url: string }
-  | { readonly state: "shown"; readonly load: LoadId; readonly url: string; readonly title?: string }
+  | { readonly state: "shown"; readonly load: LoadId; readonly url: string; readonly title?: string; readonly picture?: string }
   | { readonly state: "failed"; readonly load: LoadId; readonly url: string; readonly reason: FailReason; readonly detail?: string };
 
 /** The status of a slot before its first load. */
@@ -89,7 +100,13 @@ export function nextStatus(status: SlotStatus, event: SurfaceEvent): SlotStatus 
     case "shown":
       // A slow site that comes after the time limit replaces the timeout: the page is there
       if (event.load > status.load || status.state === "loading" || (status.state === "failed" && status.reason === "timeout")) {
-        return { state: "shown", load: event.load, url: event.url, ...(event.title === undefined ? {} : { title: event.title }) };
+        return {
+          state: "shown",
+          load: event.load,
+          url: event.url,
+          ...(event.title === undefined ? {} : { title: event.title }),
+          ...(event.picture === undefined ? {} : { picture: event.picture }),
+        };
       }
       return status;
     case "failed":
