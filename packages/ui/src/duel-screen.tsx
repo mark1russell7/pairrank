@@ -1,13 +1,16 @@
 /**
- * The duel screen: two sites side by side, under one scope. A pick writes one event, and then the host chooses the next
- * pair (`pairrank.pair`). An undo removes the last pick or the last hide of the duel.
+ * The duel screen: two sites side by side, under one scope or a saved mode. A pick writes one event. A mode can ask
+ * some picks of each pair, one after another. After the last pick, the host chooses the next pair (`pairrank.pair`).
+ * An undo removes the last pick or the last hide of the duel, and shows its pair and its pick again.
  */
-import type { Draft, Scope } from "@pairrank/core";
-import type { SiteView, StateView, TagView } from "@pairrank/host/views";
+import type { Draft, ModeId, Scope } from "@pairrank/core";
+import type { ModeView, SiteView, StateView, TagView } from "@pairrank/host/views";
 import type { SlotTracker, Surface } from "@pairrank/surfaces";
 import { type ReactElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PairrankApi } from "./api.ts";
-import { type DuelAction, type DuelStep, type Pair, actionOf, outcomeOf, pickDraft, recentOf, seedOf, undoDraft } from "./duel.ts";
+import { type Asking, type DuelAction, type DuelStep, type Pair, actionOf, lastAsk, outcomeOf, pickDraft, recentOf, seedOf, undoDraft } from "./duel.ts";
+import { type DuelSource, OVERALL, askName, sourceOf, sourceValue } from "./mode.ts";
+import { ModeEditor } from "./mode-editor.tsx";
 import { Slot } from "./slot.tsx";
 import { Swatch } from "./tags.tsx";
 
@@ -25,8 +28,12 @@ export interface DuelProps {
   readonly leave: () => void;
 }
 
-const scopeValue = (scope: Scope): string => (scope.kind === "overall" ? "overall" : `tag:${scope.tag}`);
-const scopeOf = (value: string): Scope => (value === "overall" ? { kind: "overall" } : { kind: "tag", tag: value.slice("tag:".length) });
+/** The pair of a round, with the picks that it asks. */
+interface Round {
+  readonly key: string;
+  readonly pair: Pair | null | undefined;
+  readonly asks: readonly Scope[];
+}
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -54,14 +61,21 @@ function Side(props: { readonly site: SiteView | undefined; readonly tags: Reado
 
 /** The duel screen. */
 export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }: DuelProps): ReactElement {
-  const [scope, setScope] = useState<Scope>({ kind: "overall" });
+  const [source, setSource] = useState<DuelSource>(OVERALL);
   const [duel, setDuel] = useState(newId);
   const [round, setRound] = useState(0);
   // The pair of a round, with the key of its round. The old pair stays on the screen while the next pair loads, and
   // the actions wait. The state of the load comes from the key, so no render shows the old pair as ready
-  const [loaded, setLoaded] = useState<{ readonly key: string; readonly pair: Pair | null | undefined }>({ key: "", pair: undefined });
-  const roundKey = `${scopeValue(scope)} ${seedOf(duel, round)}`;
+  const [loaded, setLoaded] = useState<Round>({ key: "", pair: undefined, asks: [] });
+  // The position of the current pick in the picks of the pair
+  const [ask, setAsk] = useState(0);
+  // The mode editor takes the place of the sites: a saved mode, or `null` for a new mode
+  const [editing, setEditing] = useState<ModeView | null | undefined>(undefined);
+  const roundKey = `${sourceValue(source)} ${seedOf(duel, round)}`;
   const pair = loaded.pair;
+  const asking: Asking = useMemo(() => ({ asks: loaded.asks, ask }), [loaded.asks, ask]);
+  const scope = loaded.asks[ask];
+  const mode = source.kind === "mode" ? view.modes.find((each) => each.id === source.mode) : undefined;
   const loading = loaded.key !== roundKey;
   const [steps, setSteps] = useState<readonly DuelStep[]>([]);
   const [hiding, setHiding] = useState(false);
@@ -79,26 +93,27 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }
   const lastPair = useRef<Pair | undefined>(undefined);
   useEffect(() => {
     let live = true;
-    api.pair(scope, seedOf(duel, round), recentOf(stepsRef.current, lastPair.current)).then(
+    api.pair(source.kind === "mode" ? source.mode : source.scope, seedOf(duel, round), recentOf(stepsRef.current, lastPair.current)).then(
       (choice) => {
         if (!live) return;
         const next = choice === null ? null : { a: choice.a, b: choice.b };
         lastPair.current = next ?? undefined;
-        setLoaded({ key: roundKey, pair: next });
+        setLoaded({ key: roundKey, pair: next, asks: choice?.asks ?? [] });
+        setAsk(0);
       },
       (failure: unknown) => {
         if (!live) return;
         setProblem(messageOf(failure));
-        setLoaded({ key: roundKey, pair: undefined });
+        setLoaded({ key: roundKey, pair: undefined, asks: [] });
       },
     );
     return () => {
       live = false;
     };
-  }, [api, scope, duel, round, roundKey]);
+  }, [api, source, duel, round, roundKey]);
 
   const run = useCallback(
-    async (drafts: readonly Draft[], step: (events: readonly string[]) => DuelStep | undefined, undo = false): Promise<boolean> => {
+    async (drafts: readonly Draft[], step: (events: readonly string[]) => DuelStep | undefined, next: "pair" | "ask" | "undo"): Promise<boolean> => {
       if (busy.current) return false;
       busy.current = true;
       setPending(true);
@@ -111,9 +126,10 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }
         }
         setProblem(undefined);
         const done = step(result.events);
-        setSteps((current) => (undo ? current.slice(0, -1) : done === undefined ? current : [...current, done]));
+        setSteps((current) => (next === "undo" ? current.slice(0, -1) : done === undefined ? current : [...current, done]));
         await reload();
-        if (!undo) setRound((current) => current + 1);
+        if (next === "pair") setRound((current) => current + 1);
+        else if (next === "ask") setAsk((current) => current + 1);
         return true;
       } catch (failure) {
         setProblem(messageOf(failure));
@@ -131,35 +147,38 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }
       if (action === "undo") {
         const last = steps.at(-1);
         if (last === undefined || loading) return;
-        void run([undoDraft(last)], () => undefined, true).then((done) => {
+        void run([undoDraft(last)], () => undefined, "undo").then((done) => {
           if (!done) return;
           lastPair.current = last.pair;
-          setLoaded({ key: roundKey, pair: last.pair });
+          setLoaded({ key: roundKey, pair: last.pair, asks: last.asks });
+          setAsk(last.ask);
         });
         return;
       }
-      if (pair === null || pair === undefined || loading) return;
+      if (pair === null || pair === undefined || scope === undefined || loading) return;
       if (action === "hide") {
         setHiding(true);
         return;
       }
       const outcome = outcomeOf(action);
-      void run([pickDraft(pair, scope, outcome, duel)], (events) => ({ kind: "pick", pair, outcome, event: events[0]! }));
+      void run([pickDraft(pair, scope, outcome, duel)], (events) => ({ kind: "pick", pair, outcome, event: events[0]!, ...asking }), lastAsk(asking) ? "pair" : "ask");
     },
-    [steps, pair, scope, duel, run, loading, roundKey],
+    [steps, pair, scope, asking, duel, run, loading, roundKey],
   );
 
   const hide = useCallback(
     (site: string): void => {
       setHiding(false);
       if (pair === null || pair === undefined || loading) return;
-      void run([{ type: "site.hidden", site, reason: "Hidden in a duel." }], () => ({ kind: "hide", pair, site }));
+      void run([{ type: "site.hidden", site, reason: "Hidden in a duel." }], () => ({ kind: "hide", pair, site, ...asking }), "pair");
     },
-    [pair, run, loading],
+    [pair, asking, run, loading],
   );
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
+      // The editor has its own keys
+      if (editing !== undefined) return;
       const target = event.target;
       if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -176,10 +195,10 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [act, hide, hiding, pair, leave]);
+  }, [act, hide, hiding, pair, leave, editing]);
 
-  const choose = (value: string): void => {
-    setScope(scopeOf(value));
+  const choose = (next: DuelSource): void => {
+    setSource(next);
     setDuel(newId());
     setRound(0);
     setSteps([]);
@@ -188,35 +207,91 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }
     lastPair.current = undefined;
   };
 
-  const ready = Boolean(pair) && !loading && !pending;
+  // A deleted mode leaves the duel
+  useEffect(() => {
+    if (source.kind === "mode" && mode === undefined) choose(OVERALL);
+  });
+
+  const openEditor = (edit: ModeView | null): void => {
+    setHiding(false);
+    setEditing(edit);
+  };
+
+  const closeEditor = (saved: ModeId | null | undefined): void => {
+    setEditing(undefined);
+    if (saved === null) choose(OVERALL);
+    else if (saved !== undefined) choose({ kind: "mode", mode: saved });
+  };
+
+  const ready = Boolean(pair) && scope !== undefined && !loading && !pending;
   const left = pair ? sites.get(pair.a) : undefined;
   const right = pair ? sites.get(pair.b) : undefined;
   const picks = steps.filter((step) => step.kind === "pick" && step.outcome !== "skip").length;
 
   return (
-    <main className="duel" data-hiding={hiding} aria-busy={loading || pending}>
+    <main className="duel" data-hiding={hiding} data-editing={editing !== undefined} aria-busy={loading || pending}>
       <div className="strip duel-bar">
         <label className="scope">
           <span>Pick under</span>
-          <select value={scopeValue(scope)} onChange={(event) => choose(event.target.value)}>
+          <select value={sourceValue(source)} disabled={editing !== undefined} onChange={(event) => choose(sourceOf(event.target.value))}>
             <option value="overall">Overall</option>
             {named.map((tag) => (
               <option key={tag.id} value={`tag:${tag.id}`}>
                 {tag.name}
               </option>
             ))}
+            {view.modes.length > 0 && (
+              <optgroup label="Modes">
+                {[...view.modes]
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((each) => (
+                    <option key={each.id} value={`mode:${each.id}`}>
+                      {each.name}
+                    </option>
+                  ))}
+              </optgroup>
+            )}
           </select>
         </label>
+        {editing === undefined && (
+          <>
+            {mode !== undefined && (
+              <button type="button" onClick={() => openEditor(mode)}>
+                Change the mode
+              </button>
+            )}
+            <button type="button" onClick={() => openEditor(null)}>
+              New mode
+            </button>
+          </>
+        )}
+        {mode !== undefined && pair && scope !== undefined && editing === undefined && (
+          <span className="asking" role="status" aria-live="polite">
+            {loaded.asks.length > 1 ? `Pick ${ask + 1} of ${loaded.asks.length}: ` : ""}
+            <strong>{askName(scope, tags)}</strong>
+          </span>
+        )}
         <span className="count">Picks in this duel: {picks}</span>
-        <button type="button" disabled={steps.length === 0 || pending} onClick={() => act("undo")}>
+        <button type="button" disabled={steps.length === 0 || pending || editing !== undefined} onClick={() => act("undo")}>
           Undo <kbd>u</kbd>
         </button>
       </div>
 
-      {pair === null ? (
+      {editing !== undefined ? (
+        <ModeEditor api={api} view={view} mode={editing ?? undefined} newId={newId} close={closeEditor} reload={reload} />
+      ) : pair === null ? (
         <section className="duel-none">
-          <h1>Not enough sites for a duel</h1>
-          <p>A duel needs two sites that are not hidden{scope.kind === "tag" ? " and have this tag" : ""}. Put the tag on more sites on the Look screen, or pick under a different tag.</p>
+          {source.kind === "mode" ? (
+            <>
+              <h1>No pair in this mode</h1>
+              <p>A pair needs two sites of the mode that are not hidden, with one pick of the mode in common. Change the mode, or put tags on more sites on the Look screen.</p>
+            </>
+          ) : (
+            <>
+              <h1>Not enough sites for a duel</h1>
+              <p>A duel needs two sites that are not hidden{source.scope.kind === "tag" ? " and have this tag" : ""}. Put the tag on more sites on the Look screen, or pick under a different tag.</p>
+            </>
+          )}
         </section>
       ) : (
         <div className="duel-sides">
@@ -231,36 +306,38 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }
         </div>
       )}
 
-      <div className="strip duel-actions" role="group" aria-label="Pick">
-        {hiding ? (
-          <p className="hide-ask" role="status">
-            Which site do you hide? Press <kbd>←</kbd> or <kbd>→</kbd>, or <kbd>Esc</kbd> to keep the two sites.
-          </p>
-        ) : (
-          <>
-            <button type="button" className="pick" disabled={!ready} onClick={() => act("left")}>
-              <kbd>←</kbd> Left is better
-            </button>
-            <button type="button" disabled={!ready} onClick={() => act("tie")}>
-              Tie <kbd>t</kbd>
-            </button>
-            <button type="button" disabled={!ready} onClick={() => act("skip")}>
-              Skip <kbd>s</kbd>
-            </button>
-            <button type="button" disabled={!ready} onClick={() => act("hide")}>
-              Hide a site <kbd>h</kbd>
-            </button>
-            <button type="button" className="pick" disabled={!ready} onClick={() => act("right")}>
-              Right is better <kbd>→</kbd>
-            </button>
-          </>
-        )}
-        {problem !== undefined && (
-          <span className="problem" role="alert">
-            {problem}
-          </span>
-        )}
-      </div>
+      {editing === undefined && (
+        <div className="strip duel-actions" role="group" aria-label="Pick">
+          {hiding ? (
+            <p className="hide-ask" role="status">
+              Which site do you hide? Press <kbd>←</kbd> or <kbd>→</kbd>, or <kbd>Esc</kbd> to keep the two sites.
+            </p>
+          ) : (
+            <>
+              <button type="button" className="pick" disabled={!ready} onClick={() => act("left")}>
+                <kbd>←</kbd> Left is better
+              </button>
+              <button type="button" disabled={!ready} onClick={() => act("tie")}>
+                Tie <kbd>t</kbd>
+              </button>
+              <button type="button" disabled={!ready} onClick={() => act("skip")}>
+                Skip <kbd>s</kbd>
+              </button>
+              <button type="button" disabled={!ready} onClick={() => act("hide")}>
+                Hide a site <kbd>h</kbd>
+              </button>
+              <button type="button" className="pick" disabled={!ready} onClick={() => act("right")}>
+                Right is better <kbd>→</kbd>
+              </button>
+            </>
+          )}
+          {problem !== undefined && (
+            <span className="problem" role="alert">
+              {problem}
+            </span>
+          )}
+        </div>
+      )}
     </main>
   );
 }

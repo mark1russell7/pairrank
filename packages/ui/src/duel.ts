@@ -33,10 +33,16 @@ export interface Pair {
   readonly b: string;
 }
 
-/** One step of a duel that an undo can remove. */
+/** The picks that a pair asks, one after another, and the position of the current pick. */
+export interface Asking {
+  readonly asks: readonly Scope[];
+  readonly ask: number;
+}
+
+/** One step of a duel that an undo can remove. An undo shows the pair again, at the pick of the step. */
 export type DuelStep =
-  | { readonly kind: "pick"; readonly pair: Pair; readonly outcome: Outcome; readonly event: string }
-  | { readonly kind: "hide"; readonly pair: Pair; readonly site: string };
+  | ({ readonly kind: "pick"; readonly pair: Pair; readonly outcome: Outcome; readonly event: string } & Asking)
+  | ({ readonly kind: "hide"; readonly pair: Pair; readonly site: string } & Asking);
 
 /** This function gives the outcome of a pick action. The left site is `a` of the pick. */
 export function outcomeOf(action: "left" | "right" | "tie" | "skip"): Outcome {
@@ -56,11 +62,22 @@ export function undoDraft(step: DuelStep): Draft {
 /** The count of the last pairs that the choice of the next pair avoids. */
 export const RECENT_PAIRS = 20;
 
-/** This function gives the last pairs of a duel, with the pair on the screen, for `pairrank.pair`. */
+/**
+ * This function gives the last pairs of a duel, with the pair on the screen, for `pairrank.pair`. A pair with some
+ * picks gives one step for each pick, but it is one pair of the list.
+ */
 export function recentOf(steps: readonly DuelStep[], current?: Pair): (readonly [string, string])[] {
-  const pairs = steps.map((step) => [step.pair.a, step.pair.b] as const);
-  if (current !== undefined) pairs.push([current.a, current.b]);
+  const pairs: (readonly [string, string])[] = [];
+  for (const pair of [...steps.map((step) => step.pair), ...(current === undefined ? [] : [current])]) {
+    const last = pairs.at(-1);
+    if (last === undefined || last[0] !== pair.a || last[1] !== pair.b) pairs.push([pair.a, pair.b]);
+  }
   return pairs.slice(-RECENT_PAIRS);
+}
+
+/** This function tells if a pick is the last pick that a pair asks. After the last pick, the duel shows the next pair. */
+export function lastAsk(asking: Asking): boolean {
+  return asking.ask >= asking.asks.length - 1;
 }
 
 /** This function gives the seed of a round of a duel, so a duel gives the same pairs again for the same picks. */
