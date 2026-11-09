@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "@pairrank/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "build": "tsdown",
+    "start": "tsdown && node src/main.ts",
+    "e2e": "tsdown && node src/e2e/browser.e2e.ts"
+  },
+  "dependencies": {
+    "@pairrank/host": "workspace:*",
+    "@pairrank/store": "workspace:*",
+    "@pairrank/surfaces": "workspace:*",
+    "@pairrank/ui": "workspace:*",
+    "@procedures/client": "^0.53.1",
+    "@procedures/http": "^0.53.1",
+    "@procedures/peer": "^0.53.1",
+    "@procedures/server": "^0.53.1",
+    "polite-crawler": "^0.5.1"
+  },
+  "devDependencies": {
+    "@mark1russell7/cue": "^2.0.0",
+    "@mark1russell7/service": "^0.8.4",
+    "@types/node": "^26.6.5",
+    "happy-dom": "^21.0.4",
+    "tsdown": "^0.23.7",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

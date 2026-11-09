@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, contentType, failureOf, pageFile, portOf, returnsKeys, siteViewPreferences, viewBounds, windowOptions } from "./index.ts";
+import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, contentType, failureOf, pageFile, returnsKeys, siteViewPreferences, viewBounds, windowOptions } from "./index.ts";
 
 const root = resolve("build", "page");
 
@@ -113,20 +113,5 @@ describe("the views of the sites", () => {
     expect(returnsKeys({ ...key, type: "keyUp" })).toBe(false);
     expect(returnsKeys({ ...key, control: true })).toBe(false);
     expect(returnsKeys({ ...key, key: "ArrowLeft" })).toBe(false);
-  });
-});
-
-describe("portOf", () => {
-  it("gives the message of an event of a main port, in the form of the Node ports", () => {
-    const sent: unknown[] = [];
-    let listener: (event: { readonly data: unknown }) => void = () => {};
-    let started = false;
-    const port = portOf({ postMessage: (message) => sent.push(message), on: (_type, each) => (listener = each), start: () => (started = true) });
-    const received: unknown[] = [];
-    port.on("message", (data) => received.push(data));
-    port.start();
-    port.postMessage({ type: "call" });
-    listener({ data: { type: "result" } });
-    expect([sent, received, started]).toEqual([[{ type: "call" }], [{ type: "result" }], true]);
   });
 });

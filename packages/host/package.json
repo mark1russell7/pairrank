@@ -7,6 +7,7 @@
   "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./bookmarks": "./src/bookmarks.ts",
     "./views": "./src/views.ts"
   },
   "scripts": {
@@ -29,6 +30,6 @@
     "@pairrank/input": "workspace:*",
     "@pairrank/ratings": "workspace:*",
     "@pairrank/store": "workspace:*",
-    "@procedures/client": "^0.52.1"
+    "@procedures/client": "^0.53.1"
   }
 }

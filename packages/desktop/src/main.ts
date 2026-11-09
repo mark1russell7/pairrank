@@ -3,7 +3,7 @@
  * `pnpm start` starts it with Electron.
  *
  * - The main process opens the log of events. It serves the procedures of `@pairrank/host`, of the bookmarks
- *   (`bookmarks.ts`) and of the still pictures (`pictures.ts`) on one message port.
+ *   (`@pairrank/host/bookmarks`) and of the still pictures (`pictures.ts`) on one message port.
  * - A second port carries the commands of the surface of the page, and the events of the views of the sites.
  * - The environment variable `PAGE_URL` gives the address of a page server in development, for example Vite. Without
  *   it, the app shows the files of `build/page/` under `app://page/`.
@@ -12,14 +12,15 @@
  * - With the argument `--smoke`, the app stops with the exit code 0 after the first message of the page. It stops with
  *   1 after a fault, or after 30 seconds with no message. CI uses it.
  */
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pairrankModule } from "@pairrank/host";
+import { bookmarksModule, chromeDataFolders, diskFiles } from "@pairrank/host/bookmarks";
 import { openStore } from "@pairrank/store";
 import { applyCommand, parseCommand } from "@pairrank/surfaces";
-import { PortTransport, ProcedureServer, createRegistry } from "@procedures/client";
+import { PortTransport, ProcedureServer, createRegistry, electronPortOf } from "@procedures/client";
 import { BrowserWindow, MessageChannelMain, app, protocol, session } from "electron";
 import { canonicalUrl } from "polite-crawler/urls";
 import {
@@ -35,10 +36,8 @@ import {
   allowsNavigation,
   contentType,
   pageFile,
-  portOf,
   windowOptions,
 } from "./index.ts";
-import { type Files, bookmarksModule, chromeDataFolders } from "./bookmarks.ts";
 import { electronCapture } from "./capture.ts";
 import { capturePool, picturesModule } from "./pictures.ts";
 import { siteViews } from "./views.ts";
@@ -79,26 +78,6 @@ async function serveFile(request: Request): Promise<Response> {
   }
 }
 
-/** The file operations of the bookmarks procedures, on the disk. */
-const files: Files = {
-  list: async (folder) => {
-    try {
-      return await readdir(folder);
-    } catch {
-      return [];
-    }
-  },
-  size: async (file) => {
-    try {
-      const found = await stat(file);
-      return found.isFile() ? found.size : undefined;
-    } catch {
-      return undefined;
-    }
-  },
-  read: (file) => readFile(file, "utf8"),
-};
-
 async function start(): Promise<void> {
   // The page and the sites ask for no permission: the camera, the microphone, the notifications and the others get no.
   for (const each of [session.defaultSession, session.fromPartition(SITE_PARTITION)]) {
@@ -109,7 +88,7 @@ async function start(): Promise<void> {
 
   const store = openStore(smoke ? ":memory:" : (process.env["PAIRRANK_STORE"] ?? join(app.getPath("userData"), STORE_FILE)));
   app.on("will-quit", () => store.close());
-  const bookmarks = bookmarksModule({ folders: chromeDataFolders(process.platform, process.env, homedir()), files });
+  const bookmarks = bookmarksModule({ folders: chromeDataFolders(process.platform, process.env, homedir()), files: diskFiles });
   const pictures = capturePool(electronCapture({ timeoutMs: LOAD_TIMEOUT_MS, paintDelayMs: PAINT_DELAY_MS, quality: PICTURE_QUALITY }), MAX_CAPTURES);
   const registry = createRegistry(pairrankModule(store, { key: canonicalUrl }), bookmarks, picturesModule(pictures.capture));
   const server = new ProcedureServer({ registry, autoRegister: true });
@@ -129,7 +108,7 @@ async function start(): Promise<void> {
     disconnect();
     const procedures = new MessageChannelMain();
     const surface = new MessageChannelMain();
-    new PortTransport(portOf(procedures.port1), { serve: server });
+    new PortTransport(electronPortOf(procedures.port1), { serve: server });
     if (smoke) procedures.port1.once("message", () => stop(0, "the page sent its first message"));
 
     const views = siteViews(

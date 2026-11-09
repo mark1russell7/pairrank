@@ -1,7 +1,9 @@
 /**
- * The bookmarks files of the Chrome profiles, as procedures. The main process finds the files, and reads only the
- * files that it found. The page cannot give a path. The page reads a file that the user chooses by itself.
+ * The bookmarks files of the Chrome profiles, as procedures. The host finds the files, and reads only the files that it
+ * found. The page cannot give a path. The page reads a file that the user chooses by itself. The entry
+ * `@pairrank/host/bookmarks` has Node.js code, so the root of the package does not export it.
  */
+import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { BOOKMARK_FILES, type BookmarkSource, type ChromeBookmarks, MAX_BOOKMARKS_BYTES, parseChromeBookmarks, profileNames } from "@pairrank/input";
 import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
@@ -15,6 +17,26 @@ export interface Files {
   /** This function gives the text of a file in UTF-8. */
   read(file: string): Promise<string>;
 }
+
+/** The file operations of the procedures on the disk. */
+export const diskFiles: Files = {
+  list: async (folder) => {
+    try {
+      return await readdir(folder);
+    } catch {
+      return [];
+    }
+  },
+  size: async (file) => {
+    try {
+      const found = await stat(file);
+      return found.isFile() ? found.size : undefined;
+    } catch {
+      return undefined;
+    }
+  },
+  read: (file) => readFile(file, "utf8"),
+};
 
 /**
  * This function gives the folders of the user data of Chrome for a platform. Each profile of Chrome is a folder in
