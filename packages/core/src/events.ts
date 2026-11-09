@@ -4,6 +4,8 @@
  * @packageDocumentation
  */
 
+import { type TagQuery, isTagQuery } from "./query.ts";
+
 /** The id of a site. */
 export type SiteId = string;
 
@@ -15,6 +17,18 @@ export type EventId = string;
 
 /** The scope of a pick: the overall ladder, or the ladder of one tag. */
 export type Scope = { readonly kind: "overall" } | { readonly kind: "tag"; readonly tag: TagId };
+
+/** The id of a duel mode. */
+export type ModeId = string;
+
+/**
+ * One ask of a duel mode: a pick overall, a pick under one tag, or a pick under each tag of the two sites. A tag ask
+ * applies to a pair only when the two sites have the tag.
+ */
+export type Ask = { readonly kind: "overall" } | { readonly kind: "tag"; readonly tag: TagId } | { readonly kind: "shared" };
+
+/** The most asks of a duel mode. */
+export const MAX_ASKS = 100;
 
 /** The result of a pick. `skip` keeps the record of the pair, but it gives no data to a rating. */
 export type Outcome = "a" | "b" | "tie" | "skip";
@@ -120,6 +134,24 @@ export interface PickUndone extends Base {
   readonly pick: EventId;
 }
 
+/**
+ * This event saves a duel mode: a pool of sites and the asks of each pair. A save with the id of a mode replaces that
+ * mode. The pool is a tag query. The duel shows two sites of the pool that have an ask in common.
+ */
+export interface ModeSaved extends Base {
+  readonly type: "mode.saved";
+  readonly mode: ModeId;
+  readonly name: string;
+  readonly pool: TagQuery;
+  readonly asks: readonly Ask[];
+}
+
+/** This event deletes a duel mode. The picks of its duels stay. */
+export interface ModeDeleted extends Base {
+  readonly type: "mode.deleted";
+  readonly mode: ModeId;
+}
+
 /** One event of the log. */
 export type Event =
   | SiteAdded
@@ -133,7 +165,9 @@ export type Event =
   | SiteTagged
   | SiteUntagged
   | Picked
-  | PickUndone;
+  | PickUndone
+  | ModeSaved
+  | ModeDeleted;
 
 /** The type words of the events. */
 export type EventType = Event["type"];
@@ -152,10 +186,12 @@ export const EVENT_TYPES: readonly EventType[] = [
   "site.untagged",
   "pick",
   "pick.undone",
+  "mode.saved",
+  "mode.deleted",
 ];
 
-/** The kind of one field: a text that is not empty, an optional text, a text or `null`, a scope, or an outcome. */
-type FieldKind = "id" | "text?" | "time?" | "nullable?" | "scope" | "outcome";
+/** The kind of one field. It is a text that is not empty, an optional text, a text or `null`, a scope or an outcome. It can also be a query or a list of asks. */
+type FieldKind = "id" | "text?" | "time?" | "nullable?" | "scope" | "outcome" | "query" | "asks";
 
 /** The fields of each type, other than `id`, `at` and `type`. An event can have no other fields. */
 const FIELDS: { readonly [T in EventType]: Readonly<Record<string, FieldKind>> } = {
@@ -171,6 +207,8 @@ const FIELDS: { readonly [T in EventType]: Readonly<Record<string, FieldKind>> }
   "site.untagged": { site: "id", tag: "id" },
   pick: { a: "id", b: "id", scope: "scope", outcome: "outcome", duel: "text?" },
   "pick.undone": { pick: "id" },
+  "mode.saved": { mode: "id", name: "id", pool: "query", asks: "asks" },
+  "mode.deleted": { mode: "id" },
 };
 
 const OUTCOMES = new Set<unknown>(["a", "b", "tie", "skip"]);
@@ -189,14 +227,26 @@ function fieldIsValid(kind: FieldKind, value: unknown): boolean {
       return value === undefined || value === null || typeof value === "string";
     case "outcome":
       return OUTCOMES.has(value);
-    case "scope": {
-      if (typeof value !== "object" || value === null) return false;
-      const scope = value as { kind?: unknown; tag?: unknown };
-      const keys = Object.keys(scope);
-      if (scope.kind === "overall") return keys.length === 1;
-      return scope.kind === "tag" && typeof scope.tag === "string" && scope.tag !== "" && keys.length === 2;
-    }
+    case "scope":
+      return isScope(value);
+    case "query":
+      return isTagQuery(value);
+    case "asks":
+      return Array.isArray(value) && value.length >= 1 && value.length <= MAX_ASKS && value.every((ask) => isAsk(ask));
   }
+}
+
+function isScope(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const scope = value as { kind?: unknown; tag?: unknown };
+  const keys = Object.keys(scope);
+  if (scope.kind === "overall") return keys.length === 1;
+  return scope.kind === "tag" && typeof scope.tag === "string" && scope.tag !== "" && keys.length === 2;
+}
+
+function isAsk(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  return (value as { kind?: unknown }).kind === "shared" ? Object.keys(value).length === 1 : isScope(value);
 }
 
 /** This function gives the problem of the fields of a draft (an event with no `id` and no `at`), or `undefined`. */

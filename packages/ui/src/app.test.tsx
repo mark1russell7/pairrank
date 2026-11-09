@@ -67,6 +67,8 @@ describe("apiOf", () => {
     expect(view.sites.map((site) => site.id)).toContain(pair?.a);
     expect((await api.ladder({ kind: "overall" }, "elo")).model).toBe("elo");
     expect((await api.model({ kind: "overall" })).model).toBe("bradley-terry");
+    await api.apply([{ type: "mode.saved", mode: "m", name: "Morning", pool: { kind: "all" }, asks: [{ kind: "overall" }] }]);
+    expect((await api.pair("m", "seed"))?.asks).toEqual([{ kind: "overall" }]);
   });
 });
 

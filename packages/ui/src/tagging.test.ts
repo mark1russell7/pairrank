@@ -74,7 +74,7 @@ describe("findTags and impactOf", () => {
   });
 
   it("count the sites and the picks of a tag", () => {
-    const view: StateView = { sites: [], tags: [{ ...tag("n", "News"), sites: 4 }], picks: { "tag:n": 9, overall: 2 }, problems: 0 };
+    const view: StateView = { sites: [], tags: [{ ...tag("n", "News"), sites: 4 }], modes: [], picks: { "tag:n": 9, overall: 2 }, problems: 0 };
     expect(impactOf(view, "n")).toEqual({ sites: 4, picks: 9 });
     expect(impactOf(view, "x")).toEqual({ sites: 0, picks: 0 });
   });

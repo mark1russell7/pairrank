@@ -3,7 +3,7 @@ import { Client, PortTransport, ProcedureServer, callerOf, createRegistry, pathT
 import type { Ladder, ModelChoice, PairChoice } from "@pairrank/ratings";
 import { describe, expect, it } from "vitest";
 import { pairrankModule } from "./module.ts";
-import type { ApplyResult, ImportPreview, ImportResult, StateView } from "./views.ts";
+import type { ApplyResult, DuelPair, ImportPreview, ImportResult, StateView } from "./views.ts";
 
 function setup() {
   const store = openStore(":memory:");
@@ -88,7 +88,7 @@ describe("pairrankModule", () => {
     const serving = new PortTransport(channel.port1, { serve: server });
     const client = new Client(new PortTransport(channel.port2));
     const view = await client.call<object, StateView>(pathToMethod(["pairrank", "view"]), {});
-    expect(view).toEqual({ sites: [], tags: [], picks: {}, problems: 0 });
+    expect(view).toEqual({ sites: [], tags: [], modes: [], picks: {}, problems: 0 });
     channel.port1.close();
     channel.port2.close();
     void serving;
@@ -106,6 +106,33 @@ describe("pairrankModule", () => {
     const news = view.tags.find((tag) => tag.name === "News")!.id;
     expect(await call(["pairrank", "pair"], { scope: { kind: "tag", tag: news }, seed: 1, recent: [[ids[0], ids[1]]], model: "elo" })).toBeNull();
     for (const bad of [{ scope: { kind: "overall" } }, { scope: { kind: "overall" }, seed: "" }, { scope: { kind: "overall" }, seed: 1, recent: [["a"]] }, { scope: { kind: "overall" }, seed: 1, model: "best" }]) {
+      await expect(call(["pairrank", "pair"], bad), JSON.stringify(bad)).rejects.toThrow();
+    }
+    store.close();
+  });
+
+  it("saves a mode, shows it in the view, and chooses the pairs of the mode", async () => {
+    const { store, call } = setup();
+    await call(["pairrank", "import", "apply"], { list });
+    const before = await call<StateView>(["pairrank", "view"], {});
+    const tools = before.tags.find((tag) => tag.name === "Tools")!.id;
+    const pool = { kind: "not", query: { kind: "tag", tag: tools } };
+    const result = await call<ApplyResult>(["pairrank", "apply"], { drafts: [{ type: "mode.saved", mode: "m", name: "Morning", pool: { kind: "all" }, asks: [{ kind: "overall" }, { kind: "shared" }] }] });
+    expect(result.problems).toEqual([]);
+    const view = await call<StateView>(["pairrank", "view"], {});
+    expect(view.modes).toEqual([{ id: "m", name: "Morning", pool: { kind: "all" }, asks: [{ kind: "overall" }, { kind: "shared" }] }]);
+
+    const ids = view.sites.map((site) => site.id).sort();
+    const pair = await call<DuelPair | null>(["pairrank", "pair"], { mode: "m", seed: "one" });
+    expect([pair?.a, pair?.b].sort()).toEqual(ids);
+    expect(pair?.asks).toEqual([{ kind: "overall" }]);
+    const overall = await call<DuelPair | null>(["pairrank", "pair"], { scope: { kind: "overall" }, seed: "one" });
+    expect(overall?.asks).toEqual([{ kind: "overall" }]);
+
+    // A pool with one site has no pair
+    await call(["pairrank", "apply"], { drafts: [{ type: "mode.saved", mode: "m", name: "Morning", pool, asks: [{ kind: "overall" }] }] });
+    expect(await call(["pairrank", "pair"], { mode: "m", seed: 1 })).toBeNull();
+    for (const bad of [{ mode: "x", seed: 1 }, { mode: "", seed: 1 }, { mode: "m", scope: { kind: "overall" }, seed: 1 }, { seed: 1 }]) {
       await expect(call(["pairrank", "pair"], bad), JSON.stringify(bad)).rejects.toThrow();
     }
     store.close();

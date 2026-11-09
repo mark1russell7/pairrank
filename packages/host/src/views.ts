@@ -2,7 +2,7 @@
  * The values that the host sends to the interface. This module has no Node.js code, so the interface imports it with
  * no store (`@pairrank/host/views`).
  */
-import { type Problem, type QueryProblem, type Scope, type SiteId, type State, type TagQuery, scopeKey } from "@pairrank/core";
+import { type Ask, type Problem, type QueryProblem, type Scope, type SiteId, type State, type TagQuery, scopeKey } from "@pairrank/core";
 import type { EntryProblem, ImportReport } from "@pairrank/input";
 
 /** One site, as a value that a port can send. */
@@ -27,10 +27,28 @@ export interface TagView {
   readonly sites: number;
 }
 
+/** One duel mode, as a value that a port can send. */
+export interface ModeView {
+  readonly id: string;
+  readonly name: string;
+  readonly pool: TagQuery;
+  readonly asks: readonly Ask[];
+}
+
+/** The pair of a duel, and the scopes of the picks that the pair asks, in their order. */
+export interface DuelPair {
+  readonly a: SiteId;
+  readonly b: SiteId;
+  /** The expected information of the picks of the pair. */
+  readonly information: number;
+  readonly asks: readonly Scope[];
+}
+
 /** The view of the state: the sites, the tags, and the count of picks in each scope. */
 export interface StateView {
   readonly sites: readonly SiteView[];
   readonly tags: readonly TagView[];
+  readonly modes: readonly ModeView[];
   /** The count of picks that are not skips, for each scope key (`overall` or `tag:<id>`). */
   readonly picks: Readonly<Record<string, number>>;
   /** The count of events that the rules refused at the last replay. */
@@ -112,6 +130,7 @@ export function viewOf(state: State, problems: number): StateView {
       tags: [...site.tags],
     })),
     tags: [...state.tags.values()].map((tag) => ({ id: tag.id, name: tag.name, color: tag.color, key: tag.key, sites: counts.get(tag.id) ?? 0 })),
+    modes: [...state.modes.values()].map((mode) => ({ id: mode.id, name: mode.name, pool: mode.pool, asks: [...mode.asks] })),
     picks,
     problems,
   };

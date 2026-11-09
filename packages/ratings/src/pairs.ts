@@ -55,48 +55,65 @@ export function informationOf(a: Rating, b: Rating): number {
 
 const pairKey = (a: SiteId, b: SiteId): string => (a < b ? `${a}\u0000${b}` : `${b}\u0000${a}`);
 
-/** This function gives the indexes of the second sites to examine: the neighbors in the ladder, and random sites. */
-function candidatesOf(first: number, size: number, count: number, draw: (n: number) => number): number[] {
-  if (size - 1 <= count) return [...Array(size).keys()].filter((index) => index !== first);
+/**
+ * This function gives the indexes of the second sites to examine: the neighbors in the order, and random sites. Only
+ * the indexes in `allowed` are candidates.
+ */
+function candidatesOf(first: number, allowed: ReadonlySet<number>, size: number, count: number, draw: (n: number) => number): number[] {
+  if (allowed.size <= count) return [...allowed].sort((x, y) => x - y);
   const chosen = new Set<number>();
   const near = Math.ceil(count / 2);
-  for (let step = 1; chosen.size < near; step++) {
-    if (first - step >= 0) chosen.add(first - step);
-    if (chosen.size < near && first + step < size) chosen.add(first + step);
+  for (let step = 1; chosen.size < near && step < size; step++) {
+    if (allowed.has(first - step)) chosen.add(first - step);
+    if (chosen.size < near && allowed.has(first + step)) chosen.add(first + step);
   }
   while (chosen.size < count) {
     const index = draw(size);
-    if (index !== first) chosen.add(index);
+    if (allowed.has(index)) chosen.add(index);
   }
   return [...chosen];
 }
 
+/** One site of the pool of `choosePairWith`: its rating, which gives the order of the pool, and its count of picks. */
+export interface PoolSite {
+  readonly site: SiteId;
+  readonly rating: number;
+  readonly picks: number;
+}
+
+/** The options of `choosePairWith`. */
+export interface PairSearch extends PairOptions {
+  /** This function gives the information of a pick between two sites, or `undefined` when the pair is not permitted. */
+  readonly information: (a: SiteId, b: SiteId) => number | undefined;
+}
+
 /**
- * This function chooses the next pair of a duel from the sites `sites`, with the ratings of `ladder`. A site with no
- * rating in the ladder starts at 1500 with no picks.
+ * This function chooses the next pair of a duel from a pool of sites. The pool is in the order of the ratings, from
+ * the highest.
  *
  * 1. A draw selects the first site. The weight of a site is 1 / (1 + its picks), so the sites with few picks come first.
- * 2. The second site is the candidate with the most information (`informationOf`). The candidates are the neighbors of
- *    the first site in the ladder, and random sites. A recent pair loses to each pair that is not recent.
+ *    A site with no permitted pair leaves the draw.
+ * 2. The second site is the candidate with the most information. The candidates are the neighbors of the first site in
+ *    the order, and random sites, each in an permitted pair. A recent pair loses to each pair that is not recent.
  * 3. A draw selects the left and the right side, so the side does not change the picks.
  *
- * In a pool of `FULL_SEARCH` sites or fewer, a recent pair comes only when each pair is recent. The function gives
- * `undefined` for fewer than two sites.
+ * In a pool of `FULL_SEARCH` sites or fewer, a recent pair comes only when each permitted pair is recent. The function
+ * gives `undefined` when there is no permitted pair.
  */
-export function choosePair(ladder: Ladder, sites: readonly SiteId[], options: PairOptions): PairChoice | undefined {
-  const rated = new Map(ladder.ratings.map((rating) => [rating.site, rating]));
-  const pool = [...new Set(sites)]
-    .map((site): Rating => rated.get(site) ?? { site, rating: 1500, se: undefined, wins: 0, losses: 0, ties: 0 })
-    .sort((x, y) => y.rating - x.rating);
+export function choosePairWith(sites: readonly PoolSite[], search: PairSearch): PairChoice | undefined {
+  const seen = new Set<SiteId>();
+  const pool = sites.filter((site) => !seen.has(site.site) && seen.add(site.site)).sort((x, y) => y.rating - x.rating);
   if (pool.length < 2) return undefined;
-  const draw = random(options.seed);
-  const recent = new Set((options.recent ?? []).map(([a, b]) => pairKey(a, b)));
+  const draw = random(search.seed);
+  const recent = new Set((search.recent ?? []).map(([a, b]) => pairKey(a, b)));
   const isRecent = (i: number, j: number): boolean => recent.has(pairKey(pool[i]!.site, pool[j]!.site));
+  const informationOf = (i: number, j: number): number | undefined => search.information(pool[i]!.site, pool[j]!.site);
   const jitter = draw.fork("jitter");
 
   let best: { i: number; j: number; fresh: boolean; score: number; tie: number } | undefined;
-  const consider = (i: number, j: number): void => {
-    const option = { i, j, fresh: !isRecent(i, j), score: informationOf(pool[i]!, pool[j]!), tie: jitter.next() };
+  const consider = (i: number, j: number, score: number | undefined): void => {
+    if (score === undefined) return;
+    const option = { i, j, fresh: !isRecent(i, j), score, tie: jitter.next() };
     if (
       best === undefined ||
       (option.fresh && !best.fresh) ||
@@ -106,14 +123,45 @@ export function choosePair(ladder: Ladder, sites: readonly SiteId[], options: Pa
     }
   };
 
-  const first = draw.fork("first").weighted(pool.map((rating) => 1 / (1 + picksOf(rating))));
+  // The first site: a draw by weight, again for each site with no permitted pair
+  const weights = pool.map((site) => 1 / (1 + site.picks));
+  const firstDraw = draw.fork("first");
+  let first = -1;
+  const scores = new Map<number, number>();
+  while (first < 0 && weights.some((weight) => weight > 0)) {
+    const index = firstDraw.weighted(weights);
+    for (let j = 0; j < pool.length; j++) {
+      const score = j === index ? undefined : informationOf(index, j);
+      if (score !== undefined) scores.set(j, score);
+    }
+    if (scores.size > 0) first = index;
+    else weights[index] = 0;
+  }
+  if (first < 0) return undefined;
+
   const second = draw.fork("second");
-  for (const j of candidatesOf(first, pool.length, Math.max(1, options.candidates ?? 24), (n) => second.below(n))) consider(first, j);
+  const allowed = new Set(scores.keys());
+  for (const j of candidatesOf(first, allowed, pool.length, Math.max(1, search.candidates ?? 24), (n) => second.below(n))) consider(first, j, scores.get(j));
   if (!best!.fresh && pool.length <= FULL_SEARCH) {
-    for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) consider(i, j);
+    for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) consider(i, j, informationOf(i, j));
   }
 
   const { i, j, score } = best!;
   const [left, right] = draw.fork("side").chance(0.5) ? [pool[j]!, pool[i]!] : [pool[i]!, pool[j]!];
   return { a: left.site, b: right.site, information: score };
+}
+
+/**
+ * This function chooses the next pair of a duel from the sites `sites`, with the ratings of `ladder`. A site with no
+ * rating in the ladder starts at 1500 with no picks. Each pair is permitted, and its information is `informationOf`.
+ * `choosePairWith` tells the steps.
+ */
+export function choosePair(ladder: Ladder, sites: readonly SiteId[], options: PairOptions): PairChoice | undefined {
+  const rated = new Map(ladder.ratings.map((rating) => [rating.site, rating]));
+  const ratingOf = (site: SiteId): Rating => rated.get(site) ?? { site, rating: 1500, se: undefined, wins: 0, losses: 0, ties: 0 };
+  const pool = sites.map((site): PoolSite => {
+    const rating = ratingOf(site);
+    return { site, rating: rating.rating, picks: picksOf(rating) };
+  });
+  return choosePairWith(pool, { ...options, information: (a, b) => informationOf(ratingOf(a), ratingOf(b)) });
 }

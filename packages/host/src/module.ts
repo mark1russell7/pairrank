@@ -4,12 +4,13 @@
  *
  * @packageDocumentation
  */
-import { type Draft, type Scope, type TagId, parseDraft, parseQuery, queryText, stamp } from "@pairrank/core";
+import { type Draft, type ModeId, type Scope, type TagId, parseDraft, parseQuery, queryText, stamp } from "@pairrank/core";
 import { parseSiteList, planImport } from "@pairrank/input";
-import { type Ladder, type ModelChoice, type ModelName, type PairChoice, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
+import { type Ladder, type ModelChoice, type ModelName, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
 import type { Store } from "@pairrank/store";
+import { modePair } from "./modes.ts";
 import { viewerOf } from "./viewer.ts";
-import { type ApplyResult, type ImportPreview, type ImportResult, type StateView, type ViewerAnswer, type ViewerOrder, viewOf } from "./views.ts";
+import { type ApplyResult, type DuelPair, type ImportPreview, type ImportResult, type StateView, type ViewerAnswer, type ViewerOrder, viewOf } from "./views.ts";
 import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
 
 /** The options of the module. */
@@ -67,10 +68,17 @@ const LadderInput = zodAdapter<{ scope: Scope; model?: ModelName }>({
 /** The most recent pairs that one call of `pairrank.pair` takes. */
 const MAX_RECENT = 200;
 
-const PairInput = zodAdapter<{ scope: Scope; seed: number | string; recent: [string, string][]; model?: ModelName }>({
+/** The input of `pairrank.pair`: a scope, or the id of a saved mode. */
+type PairInputValue = ({ scope: Scope; mode?: undefined } | { mode: ModeId; scope?: undefined }) & { seed: number | string; recent: [string, string][]; model?: ModelName };
+
+const PairInput = zodAdapter<PairInputValue>({
   parse: (value) => {
     const input = objectOf(value);
-    const { scope, model } = LadderInput.parse({ scope: input["scope"], model: input["model"] });
+    const mode = input["mode"];
+    if (mode !== undefined && (typeof mode !== "string" || mode === "")) throw new Error("The mode must be the id of a saved mode.");
+    if ((mode === undefined) === (input["scope"] === undefined)) throw new Error("The input must have a scope or a mode, and not the two.");
+    const model = input["model"];
+    if (model !== undefined && !MODELS.has(model)) throw new Error("The model must be bradley-terry, elo or glicko2.");
     const seed = input["seed"];
     if (!(typeof seed === "string" && seed !== "") && !(typeof seed === "number" && Number.isFinite(seed))) throw new Error("The seed must be a text or a finite number.");
     const recent = input["recent"] ?? [];
@@ -79,7 +87,8 @@ const PairInput = zodAdapter<{ scope: Scope; seed: number | string; recent: [str
       if (!Array.isArray(pair) || pair.length !== 2 || typeof pair[0] !== "string" || typeof pair[1] !== "string") throw new Error("Each recent pair must be a list of two site ids.");
       return [pair[0], pair[1]];
     });
-    return { scope, seed, recent: pairs, ...(model === undefined ? {} : { model }) };
+    const rest = { seed, recent: pairs, ...(model === undefined ? {} : { model: model as ModelName }) };
+    return mode === undefined ? { scope: scopeOf(input["scope"]), ...rest } : { mode, ...rest };
   },
 });
 
@@ -118,7 +127,7 @@ const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent:
  * - `pairrank.import.apply` imports a site list.
  * - `pairrank.ladder` gives the ladder of a scope.
  * - `pairrank.model` compares the models of a scope by the log-loss on its last picks.
- * - `pairrank.pair` chooses the next pair of a duel in a scope, with a seed.
+ * - `pairrank.pair` chooses the next pair of a duel in a scope or in a saved mode, with a seed.
  * - `pairrank.viewer` gives the sites that agree with a tag query, in an order.
  *
  * The log is append-only, so no procedure removes data: a delete or an undo is a new event.
@@ -189,11 +198,17 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
     createProcedure()
       .path(["pairrank", "pair"])
       .input(PairInput)
-      .output(as<PairChoice | null>())
-      .meta({ description: "Choose the next pair of a duel in a scope, with a seed", effects: reads })
-      .handler(async ({ scope, seed, recent, model }): Promise<PairChoice | null> => {
-        const ladder = ladderOf(store.state, scope, model === undefined ? {} : { model });
-        return choosePair(ladder, pairableOf(store.state, scope), { seed, recent }) ?? null;
+      .output(as<DuelPair | null>())
+      .meta({ description: "Choose the next pair of a duel in a scope or in a saved mode, with a seed", effects: reads })
+      .handler(async ({ scope, mode, seed, recent, model }): Promise<DuelPair | null> => {
+        const options = model === undefined ? {} : { model };
+        if (mode !== undefined) {
+          const saved = store.state.modes.get(mode);
+          if (saved === undefined) throw new Error(`No mode has the id "${mode}".`);
+          return modePair(store.state, saved, { seed, recent }, options) ?? null;
+        }
+        const choice = choosePair(ladderOf(store.state, scope, options), pairableOf(store.state, scope), { seed, recent });
+        return choice === undefined ? null : { ...choice, asks: [scope] };
       })
       .build(),
     createProcedure()

@@ -180,3 +180,50 @@ export function tagsOfQuery(query: TagQuery): TagId[] {
   visit(query);
   return [...tags];
 }
+
+/** The most parts (tags, `not`, `and` and `or`) of a query in an event, and its deepest nesting. */
+export const QUERY_LIMITS = { parts: 200, depth: 32 } as const;
+
+/**
+ * This function tells if a stored value is a valid query. A join has two or more parts, and each tag is a text that is
+ * not empty. The parts and the depth stay inside `QUERY_LIMITS`.
+ */
+export function isTagQuery(value: unknown): value is TagQuery {
+  let parts = 0;
+  const valid = (part: unknown, depth: number): boolean => {
+    if (++parts > QUERY_LIMITS.parts || depth > QUERY_LIMITS.depth) return false;
+    if (typeof part !== "object" || part === null || Array.isArray(part)) return false;
+    const record = part as Readonly<Record<string, unknown>>;
+    const keys = Object.keys(record).length;
+    switch (record["kind"]) {
+      case "all":
+        return keys === 1;
+      case "tag":
+        return keys === 2 && typeof record["tag"] === "string" && record["tag"] !== "";
+      case "not":
+        return keys === 2 && valid(record["query"], depth + 1);
+      case "and":
+      case "or": {
+        const queries = record["queries"];
+        return keys === 2 && Array.isArray(queries) && queries.length >= 2 && queries.every((each) => valid(each, depth + 1));
+      }
+      default:
+        return false;
+    }
+  };
+  return valid(value, 0);
+}
+
+/** This function gives the query with the tag `from` changed to the tag `into`, for a merge of tags. */
+export function replaceTag(query: TagQuery, from: TagId, into: TagId): TagQuery {
+  switch (query.kind) {
+    case "all":
+      return query;
+    case "tag":
+      return query.tag === from ? { kind: "tag", tag: into } : query;
+    case "not":
+      return { kind: "not", query: replaceTag(query.query, from, into) };
+    default:
+      return { kind: query.kind, queries: query.queries.map((each) => replaceTag(each, from, into)) };
+  }
+}

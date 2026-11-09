@@ -3,7 +3,8 @@
  *
  * @packageDocumentation
  */
-import { type Event, type EventId, type Outcome, type Scope, type SiteId, type TagId, scopeKey } from "./events.ts";
+import { type Ask, type Event, type EventId, type ModeId, type Outcome, type Scope, type SiteId, type TagId, scopeKey } from "./events.ts";
+import { type TagQuery, replaceTag, tagsOfQuery } from "./query.ts";
 
 /** One site of the state. `tags` holds the current tags of the site. */
 export interface Site {
@@ -39,6 +40,19 @@ export interface Pick {
   readonly duel: string | undefined;
 }
 
+/**
+ * One duel mode of the state. A merge of tags changes its tags to the tag that stays. A delete of a tag removes the
+ * asks of the tag. The pool keeps the deleted tag, and no site has that tag.
+ */
+export interface Mode {
+  readonly id: ModeId;
+  name: string;
+  pool: TagQuery;
+  asks: readonly Ask[];
+  /** The time of the last save. */
+  saved: string;
+}
+
 /** The state of the app. The functions of this module change it, and no other code changes it. */
 export interface State {
   readonly sites: Map<SiteId, Site>;
@@ -50,6 +64,7 @@ export interface State {
   /** The tags that were merged into another tag, or deleted. Each later event that names one of them is a problem. */
   readonly retired: Map<TagId, "merged" | "deleted">;
   readonly urls: Map<string, SiteId>;
+  readonly modes: Map<ModeId, Mode>;
 }
 
 /** The words of the problems. */
@@ -69,7 +84,8 @@ export type ProblemCode =
   | "not-hidden"
   | "missing-tag"
   | "unknown-pick"
-  | "empty-name";
+  | "empty-name"
+  | "unknown-mode";
 
 /** A problem is an event that breaks a rule. The state does not change for that event. */
 export interface Problem {
@@ -80,7 +96,7 @@ export interface Problem {
 
 /** This function makes an empty state. */
 export function createState(): State {
-  return { sites: new Map(), tags: new Map(), picks: new Map(), events: new Set(), retired: new Map(), urls: new Map() };
+  return { sites: new Map(), tags: new Map(), picks: new Map(), events: new Set(), retired: new Map(), urls: new Map(), modes: new Map() };
 }
 
 /** This class carries a problem out of the checks of one event. */
@@ -127,8 +143,35 @@ function checkUrl(state: State, url: string, self?: SiteId): void {
   if (owner !== undefined && owner !== self) refuse("duplicate-url", `The site ${owner} has the URL ${url}.`);
 }
 
-/** This function removes a tag from each site and moves the picks under it, or removes them when `into` is not given. */
+function checkModeName(state: State, name: string, self: ModeId): void {
+  if (name.trim() === "") refuse("empty-name", "A mode name must not be empty.");
+  const folded = name.trim().toLowerCase();
+  for (const mode of state.modes.values()) {
+    if (mode.id !== self && mode.name.toLowerCase() === folded) refuse("duplicate-name", `The mode ${mode.id} has the name "${mode.name}".`);
+  }
+}
+
+/** This function gives the asks with one ask for each scope, in their order. */
+function distinctAsks(asks: readonly Ask[]): Ask[] {
+  const seen = new Set<string>();
+  return asks.filter((ask) => {
+    const key = ask.kind === "shared" ? "shared" : scopeKey(ask);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * This function removes a tag from each site and moves the picks under it, or removes them when `into` is not given.
+ * It changes the modes in the same way.
+ */
 function moveTag(state: State, tag: TagId, into: TagId | undefined): void {
+  for (const mode of state.modes.values()) {
+    if (into !== undefined) mode.pool = replaceTag(mode.pool, tag, into);
+    const asks = mode.asks.flatMap((ask): Ask[] => (ask.kind !== "tag" || ask.tag !== tag ? [ask] : into === undefined ? [] : [{ kind: "tag", tag: into }]));
+    mode.asks = distinctAsks(asks);
+  }
   for (const site of state.sites.values()) {
     if (site.tags.delete(tag) && into !== undefined) site.tags.add(into);
   }
@@ -253,6 +296,20 @@ function change(state: State, event: Event): void {
     case "pick.undone": {
       if (!state.picks.has(event.pick)) refuse("unknown-pick", `There is no pick ${event.pick} that counts.`);
       state.picks.delete(event.pick);
+      return;
+    }
+    case "mode.saved": {
+      checkModeName(state, event.name, event.mode);
+      for (const tag of tagsOfQuery(event.pool)) tagOf(state, tag);
+      for (const ask of event.asks) if (ask.kind === "tag") tagOf(state, ask.tag);
+      const old = state.modes.get(event.mode);
+      const mode = { name: event.name.trim(), pool: event.pool, asks: distinctAsks(event.asks), saved: event.at };
+      if (old === undefined) state.modes.set(event.mode, { id: event.mode, ...mode });
+      else Object.assign(old, mode);
+      return;
+    }
+    case "mode.deleted": {
+      if (!state.modes.delete(event.mode)) refuse("unknown-mode", `There is no mode ${event.mode}.`);
       return;
     }
   }
