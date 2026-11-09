@@ -2,9 +2,9 @@
  * The Look screen: the tag run. It shows the sites of a scope one at a time. The key of a tag puts the tag on the site
  * or removes it. The list of the run is fixed at its start, so a site stays in the run after a tag.
  */
-import type { StateView, TagView } from "@pairrank/host/views";
+import type { SiteView, StateView, TagView } from "@pairrank/host/views";
 import type { Surface, SlotTracker } from "@pairrank/surfaces";
-import { type FormEvent, type ReactElement, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type ReactElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { countOf } from "./importing.ts";
 import {
   type RunScope,
@@ -18,6 +18,7 @@ import {
   scopeName,
   scopeOf,
   scopeValue,
+  tagOn,
   tagStep,
 } from "./run.ts";
 import { Slot } from "./slot.tsx";
@@ -136,16 +137,37 @@ export function LookScreen({ view, surface, tracker, write, newId, start, list, 
     [run.at, live],
   );
 
+  // The state of a tag on a site while its write is in flight. A second press of a tag key before the view changes
+  // reads this state, so it removes the tag that the first press added.
+  const expected = useRef(new Map<string, boolean>());
+  const hold = (site: string, tag: string, has: boolean): (() => void) => {
+    const key = tagOn(site, tag);
+    expected.current.set(key, has);
+    // After a failure the view tells the state again. A newer press keeps its own value.
+    return () => {
+      if (expected.current.get(key) === has) expected.current.delete(key);
+    };
+  };
+  useLayoutEffect(() => {
+    for (const [key, has] of expected.current) {
+      const [site, tag] = key.split("\u0000") as [string, string];
+      if (byId.get(site)?.tags.includes(tag) === has) expected.current.delete(key);
+    }
+  }, [byId]);
+  const tagStepOf = (site: SiteView, tag: string): RunStep => tagStep(site, tag, expected.current.get(tagOn(site.id, tag)));
+
   const act = useCallback(
     async (step: RunStep): Promise<string | undefined> => {
       // The step goes on the list before the write, so a quick undo finds it
       setSteps((now) => [...now, step]);
+      const forget = step.kind === "tag" ? hold(step.site, step.tag, step.added) : undefined;
       // A hide moves the run on before the write, because the hidden site leaves the list
       if (step.kind === "hide") setRun((now) => ({ ...now, at: live[live.indexOf(step.site) + 1] ?? null }));
       const found = await write([runStepDraft(step)]);
       if (found === undefined) {
         if (onward && step.kind === "tag" && step.added) go(1, step.site);
       } else {
+        forget?.();
         setSteps((now) => now.filter((each) => each !== step));
         if (step.kind === "hide") setRun((now) => ({ ...now, at: step.site }));
       }
@@ -160,9 +182,11 @@ export function LookScreen({ view, surface, tracker, write, newId, start, list, 
     if (last === undefined) return;
     // The step leaves the list before the write, so a second quick undo takes the step before it
     setSteps((now) => now.slice(0, -1));
+    const forget = last.kind === "tag" ? hold(last.site, last.tag, !last.added) : undefined;
     const found = await write([runUndoDraft(last)]);
     setProblem(found);
     if (found !== undefined) {
+      forget?.();
       setSteps((now) => [...now, last]);
       return;
     }
@@ -177,15 +201,23 @@ export function LookScreen({ view, surface, tracker, write, newId, start, list, 
     return found ?? act({ kind: "tag", site: current.id, tag: id, added: true });
   };
 
+  // The key handler reads the values of the last render. A layout effect sets them in the commit, so a key press just
+  // after a change of the view does not see the values of the render before it.
+  const latest = useRef({ named, current, act, go, undo, leave, tagStepOf });
+  useLayoutEffect(() => {
+    latest.current = { named, current, act, go, undo, leave, tagStepOf };
+  });
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
+      const { named, current, act, go, undo, leave, tagStepOf } = latest.current;
       if (editable(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
       // Enter and the space bar also press a button, so a button keeps them
       if ((event.key === "Enter" || event.key === " ") && event.target instanceof HTMLButtonElement) return;
       const keyed = named.find((tag) => tag.key !== undefined && tag.key === event.key.toLowerCase());
       const action = runActionOf(event.key);
       if (keyed !== undefined) {
-        if (current !== undefined) void act(tagStep(current, keyed.id));
+        if (current !== undefined) void act(tagStepOf(current, keyed.id));
       } else if (action === "next") go(1);
       else if (action === "previous") go(-1);
       else if (action === "hide") {
@@ -197,7 +229,7 @@ export function LookScreen({ view, surface, tracker, write, newId, start, list, 
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [named, current, act, go, undo, leave]);
+  }, []);
 
   const choices: RunScope[] = [
     ...(listScope === undefined ? [] : [listScope]),
@@ -250,7 +282,7 @@ export function LookScreen({ view, surface, tracker, write, newId, start, list, 
           <TagStrip
             tags={named}
             has={(tag) => current.tags.includes(tag)}
-            toggle={(tag) => act(tagStep(current, tag))}
+            toggle={(tag) => act(tagStepOf(current, tag))}
             create={create}
           />
           <footer className="strip caption">
