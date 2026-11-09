@@ -5,14 +5,17 @@
  */
 import { type Expr, type Space, app, axes, each, evaluate, let_, lit, ref, space, v } from "@mark1russell7/vex";
 import { BoolDomain, JsonDomain, NumDomain, TextDomain } from "@mark1russell7/vex-domains";
-import { type State, type TagQuery, scopeKey, tagsOfQuery } from "@pairrank/core";
+import { type Site, type State, type TagQuery, scopeKey, tagsOfQuery } from "@pairrank/core";
 import { type LadderOptions, ladderOf } from "@pairrank/ratings";
 import type { ViewerInput, ViewerResult, ViewerRow } from "./views.ts";
 
-/** The record of one site in the space of the programs. */
-interface SiteRecord {
-  /** For each tag of the query: `true` when the site has the tag. */
+/** The record of one site in the space of the filter program: for each tag of the query, `true` when the site has the tag. */
+interface TagsRecord {
   readonly has: Readonly<Record<string, boolean>>;
+}
+
+/** The record of one site in the space of the score programs. */
+interface SiteRecord {
   /** For each scope of the order that has the site: its rating, and the square of its standard error. */
   readonly ratings: Readonly<Record<string, number>>;
   readonly variances: Readonly<Record<string, number>>;
@@ -57,10 +60,25 @@ const valueOf = (expr: Expr, at: Space<string, SiteRecord>, origin: string, scop
   return result.ok ? result.value : undefined;
 };
 
+/** This function gives the sites that agree with a query, in the order of the state. A hidden site is not in the result. */
+export function sitesOfQuery(state: State, query: TagQuery): Site[] {
+  const sites = [...state.sites.values()].filter((site) => !site.hidden);
+  if (query.kind === "all") return sites;
+  const tags = tagsOfQuery(query);
+  const at: Space<string, TagsRecord> = space.record(
+    Object.fromEntries(sites.map((site) => [site.id, { has: Object.fromEntries(tags.map((tag) => [tag, site.tags.has(tag)])) }])),
+  );
+  const filter = filterProgram(query);
+  return sites.filter((site) => {
+    const result = evaluate(filter, { space: at, origin: site.id, domains: DOMAINS });
+    return result.ok && result.value === true;
+  });
+}
+
 /** This function gives the sites of the viewer. A hidden site is not in the viewer. */
 export function viewerOf(state: State, input: ViewerInput, options: LadderOptions = {}): ViewerResult {
-  const sites = [...state.sites.values()].filter((site) => !site.hidden);
-  const tags = tagsOfQuery(input.query);
+  const shown = [...state.sites.values()].filter((site) => !site.hidden).length;
+  const sites = sitesOfQuery(state, input.query);
   const scopes = input.order.kind === "rating" ? input.order.scopes : [];
   const keys = scopes.map(scopeKey);
   const ladders = scopes.map((scope) => new Map(ladderOf(state, scope, options).ratings.map((rating) => [rating.site, rating])));
@@ -75,29 +93,27 @@ export function viewerOf(state: State, input: ViewerInput, options: LadderOption
       ratings[keys[i] as string] = rating.rating;
       if (rating.se !== undefined) variances[keys[i] as string] = rating.se ** 2;
     });
-    records[site.id] = { has: Object.fromEntries(tags.map((tag) => [tag, site.tags.has(tag)])), ratings, variances };
+    records[site.id] = { ratings, variances };
   }
   const at = space.record(records);
-  const filter = filterProgram(input.query);
 
-  const rows: ViewerRow[] = sites
-    .filter((site) => valueOf(filter, at, site.id, keys) === true)
-    .map((site) => {
-      if (scopes.length === 0) return { site: site.id, score: undefined, se: undefined, ladders: 0 };
-      const score = valueOf(SCORE_PROGRAMS.score, at, site.id, keys);
-      const se = valueOf(SCORE_PROGRAMS.se, at, site.id, keys);
-      const count = valueOf(SCORE_PROGRAMS.ladders, at, site.id, keys);
-      return {
-        site: site.id,
-        score: typeof score === "number" ? score : undefined,
-        se: typeof se === "number" ? se : undefined,
-        ladders: typeof count === "number" ? count : 0,
-      };
-    });
+  const rows: ViewerRow[] = sites.map((site) => {
+    if (scopes.length === 0) return { site: site.id, score: undefined, se: undefined, ladders: 0 };
+    const score = valueOf(SCORE_PROGRAMS.score, at, site.id, keys);
+    const se = valueOf(SCORE_PROGRAMS.se, at, site.id, keys);
+    const count = valueOf(SCORE_PROGRAMS.ladders, at, site.id, keys);
+    return {
+      site: site.id,
+      score: typeof score === "number" ? score : undefined,
+      se: typeof se === "number" ? se : undefined,
+      ladders: typeof count === "number" ? count : 0,
+    };
+  });
 
   // Each sort is stable, so two equal values keep the order of the state
   const order = input.order;
-  if (order.kind === "rating") rows.sort((x, y) => (y.score ?? -Infinity) - (x.score ?? -Infinity));
+  // A site with no score comes after each site with a score
+  if (order.kind === "rating") rows.sort((x, y) => (x.score === undefined ? (y.score === undefined ? 0 : 1) : y.score === undefined ? -1 : y.score - x.score));
   else if (order.kind === "added") {
     const added = new Map(sites.map((site) => [site.id, site.added]));
     rows.sort((x, y) => (added.get(y.site) ?? "").localeCompare(added.get(x.site) ?? ""));
@@ -105,5 +121,5 @@ export function viewerOf(state: State, input: ViewerInput, options: LadderOption
     const names = new Map(sites.map((site) => [site.id, (site.title ?? site.url).toLowerCase()]));
     rows.sort((x, y) => (names.get(x.site) ?? "").localeCompare(names.get(y.site) ?? ""));
   }
-  return { rows, total: sites.length };
+  return { rows, total: shown };
 }

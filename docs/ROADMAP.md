@@ -33,7 +33,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R12 | Tags | done | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. The Look screen puts a tag on a site with its key. |
 | R13 | The duel | done | R10, R5 | Show two sites side by side. Pick A, B, tie or skip, or hide a site. Pick under one tag or overall. An undo removes the last pick or hide. The desktop shell of R10 shows the screen. |
 | R14 | The choice of pairs | done | R5 | Select the pairs with the least sure result and the sites with the fewest picks. Use a seed. The procedure is `pairrank.pair`. |
-| R15 | Duel presets | open | R13 | Save a combined mode: a rule for the pairs, and a list of the picks that each pair asks. |
+| R15 | Duel presets | in progress | R13 | Save a combined mode: a rule for the pairs, and a list of the picks that each pair asks. The first part gives the modes in the log and their pairs. |
 | R16 | The viewer | done | R5, R10 | The Sites screen filters the sites by a tag query with `and`, `or` and `not`. It orders them by date, title, one ladder or the mean over chosen tags. A list goes to the tag run. |
 | R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
 | R18 | Hidden sites | done | R13 | Show the hidden sites, and restore a site. The Sites screen lists them with the reason of each hide. |

@@ -1,7 +1,7 @@
 import { type Event, type Scope, replay } from "@pairrank/core";
 import { describe, expect, it } from "vitest";
 import { type Ladder, type Rating, ladderOf, pairableOf } from "./ladder.ts";
-import { START_UNCERTAINTY, choosePair, informationOf, uncertaintyOf } from "./pairs.ts";
+import { FULL_SEARCH, type PoolSite, START_UNCERTAINTY, choosePair, choosePairWith, informationOf, uncertaintyOf } from "./pairs.ts";
 
 const overall: Scope = { kind: "overall" };
 
@@ -91,6 +91,43 @@ describe("choosePair", () => {
     }
     const all = [...recent, ["b", "c"]] as const;
     expect(choosePair(board, ["a", "b", "c"], { seed: 1, recent: all })).toBeDefined();
+  });
+});
+
+describe("choosePairWith", () => {
+  const pool = (n: number): PoolSite[] => Array.from({ length: n }, (_, i) => ({ site: `s${i}`, rating: 1500 + i, picks: 0 }));
+  // Two groups: the even sites and the odd sites. A pair is allowed only inside a group
+  const sameGroup = (a: string, b: string): number | undefined => (Number(a.slice(1)) % 2 === Number(b.slice(1)) % 2 ? 1 : undefined);
+
+  it("gives only allowed pairs, in a small pool and in a large pool", () => {
+    for (const size of [5, FULL_SEARCH + 40]) {
+      for (let seed = 0; seed < 200; seed++) {
+        const pair = choosePairWith(pool(size), { seed, information: sameGroup });
+        expect(pair).toBeDefined();
+        expect(sameGroup(pair!.a, pair!.b)).toBe(1);
+      }
+    }
+  });
+
+  it("leaves out a site with no allowed pair, and gives nothing when no pair is allowed", () => {
+    // Only s0 and s1 make a pair. Each other site has no allowed pair, so the draw goes on to s0 or s1
+    const only = (a: string, b: string) => ([a, b].sort().join() === "s0,s1" ? 1 : undefined);
+    for (let seed = 0; seed < 100; seed++) expect([choosePairWith(pool(30), { seed, information: only })].map((pair) => [pair!.a, pair!.b].sort().join())).toEqual(["s0,s1"]);
+    expect(choosePairWith(pool(30), { seed: 1, information: () => undefined })).toBeUndefined();
+  });
+
+  it("takes the pair with the most information, and a recent pair only when each allowed pair is recent", () => {
+    const most = (a: string, b: string) => ([a, b].sort().join() === "s1,s2" ? 10 : 1);
+    for (let seed = 0; seed < 50; seed++) {
+      const pair = choosePairWith(pool(3), { seed, information: most });
+      if ([pair!.a, pair!.b].includes("s0")) continue;
+      expect([pair!.a, pair!.b].sort()).toEqual(["s1", "s2"]);
+    }
+    const recent = [["s0", "s2"]] as const;
+    for (let seed = 0; seed < 50; seed++) {
+      const pair = choosePairWith(pool(4), { seed, recent, information: sameGroup });
+      expect([pair!.a, pair!.b].sort()).toEqual(["s1", "s3"]);
+    }
   });
 });
 

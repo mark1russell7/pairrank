@@ -269,6 +269,9 @@ importers:
 
   packages/host:
     dependencies:
+      '@mark1russell7/rigor-statistics':
+        specifier: ^0.1.21
+        version: 0.1.21
       '@mark1russell7/vex':
         specifier: ^0.18.0
         version: 0.18.0
