@@ -4,11 +4,12 @@
  *
  * @packageDocumentation
  */
-import { type Draft, type Scope, parseDraft, stamp } from "@pairrank/core";
+import { type Draft, type Scope, type TagId, parseDraft, parseQuery, queryText, stamp } from "@pairrank/core";
 import { parseSiteList, planImport } from "@pairrank/input";
 import { type Ladder, type ModelChoice, type ModelName, type PairChoice, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
 import type { Store } from "@pairrank/store";
-import { type ApplyResult, type ImportPreview, type ImportResult, type StateView, viewOf } from "./views.ts";
+import { viewerOf } from "./viewer.ts";
+import { type ApplyResult, type ImportPreview, type ImportResult, type StateView, type ViewerAnswer, type ViewerOrder, viewOf } from "./views.ts";
 import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
 
 /** The options of the module. */
@@ -82,6 +83,29 @@ const PairInput = zodAdapter<{ scope: Scope; seed: number | string; recent: [str
   },
 });
 
+/** The most scopes that one order of the viewer takes. */
+const MAX_SCOPES = 100;
+
+const ViewerInputSchema = zodAdapter<{ query: string; order: ViewerOrder; model?: ModelName }>({
+  parse: (value) => {
+    const input = objectOf(value);
+    const query = input["query"] ?? "";
+    if (typeof query !== "string") throw new Error("The query must be a text.");
+    const model = input["model"];
+    if (model !== undefined && !MODELS.has(model)) throw new Error("The model must be bradley-terry, elo or glicko2.");
+    const order = objectOf(input["order"] ?? { kind: "title" });
+    const kind = order["kind"];
+    let parsed: ViewerOrder;
+    if (kind === "title" || kind === "added") parsed = { kind };
+    else if (kind === "rating") {
+      const scopes = order["scopes"];
+      if (!Array.isArray(scopes) || scopes.length === 0 || scopes.length > MAX_SCOPES) throw new Error(`An order by rating must have from 1 to ${MAX_SCOPES} scopes.`);
+      parsed = { kind, scopes: scopes.map(scopeOf) };
+    } else throw new Error("The order must be { kind: rating, scopes }, { kind: title } or { kind: added }.");
+    return { query, order: parsed, ...(model === undefined ? {} : { model: model as ModelName }) };
+  },
+});
+
 const reads = { reads: ["pairrank.log"], writes: [] as string[], idempotent: true, destructive: false };
 const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent: false, destructive: false };
 
@@ -95,6 +119,7 @@ const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent:
  * - `pairrank.ladder` gives the ladder of a scope.
  * - `pairrank.model` compares the models of a scope by the log-loss on its last picks.
  * - `pairrank.pair` chooses the next pair of a duel in a scope, with a seed.
+ * - `pairrank.viewer` gives the sites that agree with a tag query, in an order.
  *
  * The log is append-only, so no procedure removes data: a delete or an undo is a new event.
  */
@@ -169,6 +194,20 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
       .handler(async ({ scope, seed, recent, model }): Promise<PairChoice | null> => {
         const ladder = ladderOf(store.state, scope, model === undefined ? {} : { model });
         return choosePair(ladder, pairableOf(store.state, scope), { seed, recent }) ?? null;
+      })
+      .build(),
+    createProcedure()
+      .path(["pairrank", "viewer"])
+      .input(ViewerInputSchema)
+      .output(as<ViewerAnswer>())
+      .meta({ description: "Give the sites that agree with a tag query, in the order of a rating, a title or a date", effects: reads })
+      .handler(async ({ query, order, model }): Promise<ViewerAnswer> => {
+        const names = new Map<string, TagId>([...store.state.tags.values()].map((tag) => [tag.name.toLowerCase(), tag.id]));
+        const parsed = parseQuery(query, (name) => names.get(name.toLowerCase()));
+        if (!parsed.ok) return parsed;
+        const result = viewerOf(store.state, { query: parsed.query, order }, model === undefined ? {} : { model });
+        const text = queryText(parsed.query, (tag) => store.state.tags.get(tag)?.name ?? tag);
+        return { ok: true, query: text, ...result };
       })
       .build(),
   ];

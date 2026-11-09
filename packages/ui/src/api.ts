@@ -4,7 +4,7 @@
  */
 import type { Draft, Scope } from "@pairrank/core";
 import type { BookmarkSource, ChromeBookmarks } from "@pairrank/input";
-import type { ApplyResult, ImportPreview, ImportResult, StateView } from "@pairrank/host/views";
+import type { ApplyResult, ImportPreview, ImportResult, StateView, ViewerAnswer, ViewerOrder } from "@pairrank/host/views";
 import type { Ladder, ModelChoice, ModelName, PairChoice } from "@pairrank/ratings";
 
 /** A function that calls the procedure at a path with an input, and gives its value. */
@@ -26,6 +26,8 @@ export interface PairrankApi {
   model(scope: Scope): Promise<ModelChoice>;
   /** This function chooses the next pair of a duel in a scope, or gives `null` when the scope has fewer than two sites. */
   pair(scope: Scope, seed: number | string, recent?: readonly (readonly [string, string])[]): Promise<PairChoice | null>;
+  /** This function gives the sites that agree with the text of a tag query, in an order, or the problem of the text. */
+  viewer(query: string, order: ViewerOrder): Promise<ViewerAnswer>;
 }
 
 /** This function gives the procedures of the host over one function `call`. */
@@ -38,6 +40,7 @@ export function apiOf(call: Call): PairrankApi {
     ladder: (scope, model) => call<Ladder>(["pairrank", "ladder"], model === undefined ? { scope } : { scope, model }),
     model: (scope) => call<ModelChoice>(["pairrank", "model"], { scope }),
     pair: (scope, seed, recent = []) => call<PairChoice | null>(["pairrank", "pair"], { scope, seed, recent }),
+    viewer: (query, order) => call<ViewerAnswer>(["pairrank", "viewer"], { query, order }),
   };
 }
 

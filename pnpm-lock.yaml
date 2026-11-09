@@ -208,6 +208,9 @@ importers:
       '@mark1russell7/cue':
         specifier: ^2.0.0
         version: 2.1.1
+      '@mark1russell7/rigor-generators':
+        specifier: ^0.1.8
+        version: 0.1.8
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -266,6 +269,12 @@ importers:
 
   packages/host:
     dependencies:
+      '@mark1russell7/vex':
+        specifier: ^0.18.0
+        version: 0.18.0
+      '@mark1russell7/vex-domains':
+        specifier: ^0.18.0
+        version: 0.18.0
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -285,6 +294,9 @@ importers:
       '@mark1russell7/cue':
         specifier: ^2.0.0
         version: 2.1.1
+      '@mark1russell7/rigor-generators':
+        specifier: ^0.1.8
+        version: 0.1.8
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -699,6 +711,9 @@ packages:
       dependency-cruiser:
         optional: true
 
+  '@mark1russell7/coeval@0.21.0':
+    resolution: {integrity: sha512-eEotEeFBHfPtrLabaYq/f+C38VAjY5bH4T+1mNqT3kHReIAZlgK1/wHhqkAphy6XCzURx8qNnq274WNNNLkkAQ==}
+
   '@mark1russell7/coeval@0.22.0':
     resolution: {integrity: sha512-woojpBeRerVqxfFBx0yiR6ibSpm2f9mcfsUPDdvIyT9GKZ2uCtM0S/108Ur765C0rjNKxopwlSH4xXyhf906iA==}
 
@@ -806,6 +821,12 @@ packages:
   '@mark1russell7/typeset@0.1.9':
     resolution: {integrity: sha512-tTdsEWkMOtEUl6rAy9KMs9UOi4c1F5stqDvWMP/xY+/iR+ib85K6a7sGQOnO37mST0s53NCs5MBkI+VvEtCbGA==}
     engines: {node: '>=22.12'}
+
+  '@mark1russell7/vex-domains@0.18.0':
+    resolution: {integrity: sha512-2mzUiJ5LRvGRoZEbsc2FTvAkVyD/hfv+blpb4fALAera5mSQzcWjk1ig8uskZc5WxfLaNFoALrZ7vnYnN2TrLw==}
+
+  '@mark1russell7/vex@0.18.0':
+    resolution: {integrity: sha512-DAhTkMfdt1t64BvTDnUQ+Ta/zxBCZBNCqRvl6vijUtO2rSU6iqcki2NwAMLy/oC+u014bGC9vA7soIiiPa+6DQ==}
 
   '@mozilla/readability@0.6.0':
     resolution: {integrity: sha512-juG5VWh4qAivzTAeMzvY9xs9HY5rAcr2E4I7tiSSCokRFi7XIZCAu92ZkSTsIj1OPceCifL3cpfteP3pDT9/QQ==}
@@ -2325,6 +2346,8 @@ snapshots:
       '@swc/core': 1.16.22
       dependency-cruiser: 18.7.2
 
+  '@mark1russell7/coeval@0.21.0': {}
+
   '@mark1russell7/coeval@0.22.0': {}
 
   '@mark1russell7/collections@0.5.0': {}
@@ -2396,6 +2419,14 @@ snapshots:
     dependencies:
       '@mark1russell7/collections': 0.9.10
       '@mark1russell7/rigor-generators': 0.1.8
+
+  '@mark1russell7/vex-domains@0.18.0':
+    dependencies:
+      '@mark1russell7/vex': 0.18.0
+
+  '@mark1russell7/vex@0.18.0':
+    dependencies:
+      '@mark1russell7/coeval': 0.21.0
 
   '@mozilla/readability@0.6.0': {}
 
