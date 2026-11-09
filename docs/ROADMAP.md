@@ -41,4 +41,4 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R20 | Security scans in a private repository | done | | The template security scan fails in a private repository. A pull request of the template corrects it. |
 | R21 | The `iframe` surface | later | R9 | Show a site in an `iframe`, for a host with no Electron. Many sites refuse a frame, so the R19 screenshot is its fallback. |
 | B1 | Sites load, then disappear | done | | The screen of each site had no height, so the app hid the view after each load. A layout check in CI holds the fix. |
-| B2 | A race in the duel tests | next | | One run of the duel tests found the left slot with no site after the pick buttons went on. Find the cause in the duel screen or in the test. |
+| B2 | A race in the duel tests | done | | The tests read the slots before React gave them their sites. The tests wait for the pair that the screen names. A slow run of the tests holds the fix. |

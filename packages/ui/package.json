@@ -6,7 +6,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run && vitest run --config vitest.slow.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },

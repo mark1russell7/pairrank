@@ -33,19 +33,21 @@ async function open(sites = list.sites) {
   let d = 0;
   render(<App api={api} surface={memory.surface} newId={() => `duel${++d}`} />);
   const duel = await screen.findByRole("button", { name: "Duel" });
-  const urls = new Map((await api.view()).sites.map((site) => [site.url, site.id]));
+  // The buttons of the screens go on when the app has its sites. The Tags button goes on with one site too
+  await waitFor(() => expect(screen.getByRole("button", { name: "Tags" }).hasAttribute("disabled")).toBe(false));
+  const named = new Map((await api.view()).sites.map((site) => [site.title, site]));
   /**
-   * This function gives the ids of the sites on the screen, when the next pair is ready. After the buttons go on, a
-   * second wait lets the two slots get their sites.
+   * This function gives the ids of the sites on the screen, when the next pair is ready (B2). The names of the pair
+   * change in the same render as the buttons, so the pair comes from the names. The slots get their sites in the
+   * effects after that render, and React can start the effects after the end of a wait. So a second wait holds until
+   * the slots show the same pair.
    */
   const shown = async (): Promise<[string, string]> => {
     await waitFor(() => expect(screen.getByRole("button", { name: /Left is better/ }).hasAttribute("disabled")).toBe(false));
-    return waitFor(() => {
-      const left = memory.loads.get("left");
-      const right = memory.loads.get("right");
-      if (left === undefined || right === undefined) throw new Error("A slot has no site.");
-      return [urls.get(left.url)!, urls.get(right.url)!];
-    });
+    const [left, right] = [...document.querySelectorAll(".duel-caption .site-name")].map((name) => named.get(name.textContent ?? ""));
+    if (left === undefined || right === undefined) throw new Error("The screen does not name two sites.");
+    await waitFor(() => expect([memory.loads.get("left")?.url, memory.loads.get("right")?.url]).toEqual([left.url, right.url]));
+    return [left.id, right.id];
   };
   return { api, memory, duel, shown };
 }
