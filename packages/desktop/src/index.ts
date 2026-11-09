@@ -76,6 +76,34 @@ export function siteViewPreferences(): WebPreferences {
   };
 }
 
+/** The time from the end of the load of a capture to its picture, in milliseconds. The page paints in this time. */
+export const PAINT_DELAY_MS = 600;
+
+/** The most captures that operate at the same time. A new capture stops the oldest capture. */
+export const MAX_CAPTURES = 2;
+
+/** The quality of the JPEG picture of a capture, from 0 to 100. */
+export const PICTURE_QUALITY = 80;
+
+/** The frames each second of the window of a capture. The capture needs only the last frame. */
+export const CAPTURE_FRAME_RATE = 10;
+
+/**
+ * This function gives the options of the window of a capture. The window renders off the screen, with the options and
+ * the session of the views of the sites. It has no place in the taskbar, and it cannot get the keys.
+ */
+export function captureWindowOptions(size: { readonly w: number; readonly h: number }): BrowserWindowConstructorOptions {
+  return {
+    width: size.w,
+    height: size.h,
+    useContentSize: true,
+    show: false,
+    skipTaskbar: true,
+    focusable: false,
+    webPreferences: { ...siteViewPreferences(), offscreen: true },
+  };
+}
+
 /** This function gives the origin of an address, or `undefined` when the text is not an address. */
 function originOf(address: string): string | undefined {
   try {

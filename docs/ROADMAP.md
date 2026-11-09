@@ -27,7 +27,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R6 | The standard input format | done | R3 | Define the format of a list of sites (URL, title, tags, source, date). Remove duplicate URLs at import. |
 | R7 | The Chrome bookmarks adapter | done | R6, R10 | Read the Chrome bookmarks file. A wizard includes or excludes folders. The adapter shipped in #16. The profile search and the wizard shipped in #17. |
 | R8 | The host | done | R4 | The procedures of the app over the store. The main process serves them to the interface through a message port. |
-| R9 | The surfaces | done | R2 | One interface shows a site. The interface lays out the slots, and each adapter follows that layout. The contract is in `@pairrank/surfaces`. The first adapter, an Electron view, shipped with R10. R21 is the second adapter. |
+| R9 | The surfaces | done | R2 | One interface shows a site. The interface lays out the slots, and each adapter follows that layout. The contract is in `@pairrank/surfaces`. The first adapter, an Electron view, shipped with R10. R19 adds still pictures, and R21 adds an `iframe`. |
 | R10 | The app shell | done | R8, R9 | Add the Electron preset to the template. Make the React interface (`@pairrank/ui`). Then make the desktop app (`@pairrank/desktop`): the log on disk, the procedures and one view for each site. |
 | R11 | The tag run | done | R10, R12 | Show one site at a time. Keys set and clear tags. A run has a scope: the sites with no tags, each site, or the sites without a tag. An undo removes the last tag or hide. |
 | R12 | Tags | done | R4 | Make, rename, merge, color, delete and find tags at each time. Give a key to a tag. The Look screen puts a tag on a site with its key. |
@@ -37,7 +37,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R16 | The viewer | done | R5, R10 | The Sites screen filters the sites by a tag query with `and`, `or` and `not`. It orders them by date, title, one ladder or the mean over chosen tags. A list goes to the tag run. |
 | R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
 | R18 | Hidden sites | done | R13 | Show the hidden sites, and restore a site. The Sites screen lists them with the reason of each hide. |
-| R19 | The screenshot surface | later | R9 | Show a screenshot of a site when a live view is not possible. |
+| R19 | The screenshot surface | done | R9 | When a view crashes, or a site refuses the view, the slot shows a still picture. The main process captures the site in a window off the screen. |
 | R20 | Security scans in a private repository | done | | The template security scan fails in a private repository. A pull request of the template corrects it. |
 | R21 | The `iframe` surface in a browser host | later | R9 | Show a site in an `iframe`, for a host with no Electron. The server reads the frame headers of a site before the load. A refusal switches the slot to its fallback. |
 | R22 | Still pictures in the browser host | later | R19, R21 | The server of the browser host captures the still pictures with a headless browser of the system. The page wiring of R19 stays the same. |
