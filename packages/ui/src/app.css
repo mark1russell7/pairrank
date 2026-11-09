@@ -698,12 +698,25 @@ kbd,
 /* The duel: two mats side by side on the table, with the picks under them. */
 .duel {
   display: grid;
-  grid-template-rows: var(--strip) 1fr auto;
+  /* The bar wraps on a narrow window, so its row takes the height of its content */
+  grid-template-rows: auto 1fr auto;
   min-height: 0;
 }
 
 .duel-bar {
   background: var(--table);
+  flex-wrap: wrap;
+}
+
+/* The pick that the pair asks now. It changes after each pick of a mode, so it is the one strong text of the bar */
+.asking {
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+}
+
+.asking strong {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--pencil);
 }
 
 .scope {
@@ -786,6 +799,85 @@ kbd,
 
 .duel-none p {
   color: var(--quiet);
+}
+
+/* The mode editor takes the place of the two sites */
+.mode-editor {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  overflow: auto;
+  padding: 1.5rem 1rem;
+  max-width: 40rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.mode-editor h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.mode-editor .field input {
+  width: 100%;
+  min-width: 0;
+}
+
+.mode-editor .field input[aria-invalid="true"] {
+  border-color: var(--pencil);
+}
+
+.mode-editor .hint,
+.mode-editor .problem {
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+
+.mode-editor .asks {
+  display: grid;
+  gap: 0.5rem;
+  border: 0;
+  border-top: 1px solid var(--mat);
+  margin: 0.5rem 0 0;
+  padding: 0.75rem 0 0;
+  min-width: 0;
+}
+
+.mode-editor legend {
+  color: var(--quiet);
+  font-size: 0.85rem;
+  padding: 0;
+}
+
+.ask-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.editor-actions .pick {
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 0.35rem 1rem;
+  font-weight: 600;
+}
+
+.editor-actions .pick:hover:not(:disabled) {
+  border-color: var(--pencil);
+  box-shadow: inset 0 -2px 0 var(--pencil);
+}
+
+.editor-actions .quiet-danger {
+  margin-left: auto;
 }
 
 .empty .primary {
