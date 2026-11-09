@@ -18,7 +18,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pairrankModule } from "@pairrank/host";
 import { bookmarksModule, chromeDataFolders, diskFiles } from "@pairrank/host/bookmarks";
-import { capturePool, picturesModule } from "@pairrank/host/pictures";
+import { MAX_CAPTURES, capturePool, picturesModule } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
 import { applyCommand, parseCommand } from "@pairrank/surfaces";
 import { PortTransport, ProcedureServer, createRegistry, electronPortOf } from "@procedures/client";
@@ -27,7 +27,6 @@ import { canonicalUrl } from "polite-crawler/urls";
 import {
   CONTENT_SECURITY_POLICY,
   LOAD_TIMEOUT_MS,
-  MAX_CAPTURES,
   PAGE_SCHEME,
   PAGE_URL,
   PAINT_DELAY_MS,

@@ -19,6 +19,9 @@ export interface CapturePool {
   stop(): void;
 }
 
+/** The most captures that operate at the same time in a host. A new capture stops the oldest capture. */
+export const MAX_CAPTURES = 2;
+
 /** The detail of a capture that a newer capture stopped. */
 export const REPLACED = "A newer capture replaced this capture.";
 
