@@ -2,8 +2,8 @@
  * This file is the entry of the main process of @pairrank/desktop. `tsdown` builds it to `build/main/main.js`, and
  * `pnpm start` starts it with Electron.
  *
- * - The main process opens the log of events. It serves the procedures of `@pairrank/host` and of the bookmarks
- *   (`bookmarks.ts`) on one message port.
+ * - The main process opens the log of events. It serves the procedures of `@pairrank/host`, of the bookmarks
+ *   (`bookmarks.ts`) and of the still pictures (`pictures.ts`) on one message port.
  * - A second port carries the commands of the surface of the page, and the events of the views of the sites.
  * - The environment variable `PAGE_URL` gives the address of a page server in development, for example Vite. Without
  *   it, the app shows the files of `build/page/` under `app://page/`.
@@ -22,8 +22,25 @@ import { applyCommand, parseCommand } from "@pairrank/surfaces";
 import { PortTransport, ProcedureServer, createRegistry } from "@procedures/client";
 import { BrowserWindow, MessageChannelMain, app, protocol, session } from "electron";
 import { canonicalUrl } from "polite-crawler/urls";
-import { CONTENT_SECURITY_POLICY, PAGE_SCHEME, PAGE_URL, SITE_PARTITION, STORE_FILE, allowsNavigation, contentType, pageFile, portOf, windowOptions } from "./index.ts";
+import {
+  CONTENT_SECURITY_POLICY,
+  LOAD_TIMEOUT_MS,
+  MAX_CAPTURES,
+  PAGE_SCHEME,
+  PAGE_URL,
+  PAINT_DELAY_MS,
+  PICTURE_QUALITY,
+  SITE_PARTITION,
+  STORE_FILE,
+  allowsNavigation,
+  contentType,
+  pageFile,
+  portOf,
+  windowOptions,
+} from "./index.ts";
 import { type Files, bookmarksModule, chromeDataFolders } from "./bookmarks.ts";
+import { electronCapture } from "./capture.ts";
+import { capturePool, picturesModule } from "./pictures.ts";
 import { siteViews } from "./views.ts";
 
 const build = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -93,7 +110,9 @@ async function start(): Promise<void> {
   const store = openStore(smoke ? ":memory:" : (process.env["PAIRRANK_STORE"] ?? join(app.getPath("userData"), STORE_FILE)));
   app.on("will-quit", () => store.close());
   const bookmarks = bookmarksModule({ folders: chromeDataFolders(process.platform, process.env, homedir()), files });
-  const server = new ProcedureServer({ registry: createRegistry(pairrankModule(store, { key: canonicalUrl }), bookmarks), autoRegister: true });
+  const pictures = capturePool(electronCapture({ timeoutMs: LOAD_TIMEOUT_MS, paintDelayMs: PAINT_DELAY_MS, quality: PICTURE_QUALITY }), MAX_CAPTURES);
+  const registry = createRegistry(pairrankModule(store, { key: canonicalUrl }), bookmarks, picturesModule(pictures.capture));
+  const server = new ProcedureServer({ registry, autoRegister: true });
 
   const window = new BrowserWindow(windowOptions(join(build, "preload", "preload.cjs")));
   window.once("ready-to-show", () => window.show());
@@ -130,8 +149,12 @@ async function start(): Promise<void> {
       surface.port1.close();
     };
   });
-  // The window closes its views before it goes, because a view does not close with its window
-  window.on("close", () => disconnect());
+  // The window closes its views and the windows of the captures before it goes. A view does not close with its window,
+  // and the app stops only after its last window closes.
+  window.on("close", () => {
+    disconnect();
+    pictures.stop();
+  });
   if (smoke) setTimeout(() => stop(1, "no message from the page in 30 seconds"), 30_000).unref();
   await window.loadURL(page);
 }

@@ -6,6 +6,7 @@ import type { Draft, ModeId, Scope } from "@pairrank/core";
 import type { BookmarkSource, ChromeBookmarks } from "@pairrank/input";
 import type { ApplyResult, DuelPair, ImportPreview, ImportResult, StateView, ViewerAnswer, ViewerOrder } from "@pairrank/host/views";
 import type { Ladder, ModelChoice, ModelName } from "@pairrank/ratings";
+import type { Capture, CaptureResult } from "@pairrank/surfaces";
 
 /** A function that calls the procedure at a path with an input, and gives its value. */
 export type Call = <T>(path: string[], input: unknown) => Promise<T>;
@@ -64,4 +65,12 @@ export function bookmarksApiOf(call: Call): BookmarksApi {
     sources: () => call<BookmarkSource[]>(["bookmarks", "sources"], {}),
     read: (source) => call<ChromeBookmarks>(["bookmarks", "read"], { source }),
   };
+}
+
+/**
+ * This function gives the capture of a site by the host, over one function `call`. Only the desktop host has the
+ * procedure. A surface of still pictures uses the capture.
+ */
+export function captureApiOf(call: Call): Capture {
+  return (url, size) => call<CaptureResult>(["pictures", "capture"], { url, size });
 }
