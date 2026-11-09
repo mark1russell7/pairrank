@@ -99,7 +99,12 @@ const origin = `http://127.0.0.1:${(sites.address() as AddressInfo).port}`;
 
 /** A PNG picture of one pixel: the picture of the fake capture. */
 const PIXEL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-const pictures = capturePool(async () => ({ ok: true, picture: PIXEL, title: "Site B" }), 2);
+/** The addresses that the fake capture took, in order. */
+const captured: string[] = [];
+const pictures = capturePool(async (url) => {
+  captured.push(url);
+  return { ok: true, picture: PIXEL, title: "Site B" };
+}, 2);
 
 const folder = mkdtempSync(join(tmpdir(), "pairrank-web-e2e-"));
 const store = openStore(join(folder, "store.sqlite"));
@@ -170,9 +175,12 @@ async function settle(view: Page, screen: string, states: readonly string[]): Pr
   return seen;
 }
 
-/** This function examines the shown slot of a site: it is tall, and the one shown frame of the site covers it. */
+/**
+ * This function examines the live slot: the shown slot with no still picture. It is tall, and the one shown frame of the
+ * site covers it. A shown slot has no text of its address, so the frame tells the site.
+ */
 function examineShown(screen: string, seen: Seen, url: string): void {
-  const slot = seen.slots.find((each) => each.state === "shown" && each.url === url);
+  const slot = seen.slots.find((each) => each.state === "shown" && each.picture === "");
   if (slot === undefined) throw new Error(`${screen}: no slot is shown.`);
   if (slot.box.h < MIN_HEIGHT) throw new Error(`${screen}: the shown slot is ${slot.box.h} px tall. It must be ${MIN_HEIGHT} px or more.`);
   const shown = seen.frames.filter((frame) => frame.shown);
@@ -195,8 +203,9 @@ try {
   await click("Duel");
   const duel = await settle(view, "Duel", ["shown", "shown"]);
   examineShown("Duel", duel, `${origin}/a`);
-  const still = duel.slots.find((slot) => slot.url === `${origin}/b`);
-  if (still?.picture !== PIXEL) throw new Error(`Duel: the slot of ${origin}/b shows no picture of the capture: ${JSON.stringify(still)}.`);
+  const still = duel.slots.filter((slot) => slot.picture !== "");
+  if (still.length !== 1 || still[0]?.picture !== PIXEL) throw new Error(`Duel: one slot must show the picture of the capture: ${JSON.stringify(duel.slots)}.`);
+  if (captured.length === 0 || captured.some((url) => url !== `${origin}/b`)) throw new Error(`Duel: the capture took ${JSON.stringify(captured)}. It must take only ${origin}/b.`);
   if (duel.frames.some((frame) => frame.src === `${origin}/b`)) throw new Error("Duel: the site that refuses frames has a frame.");
   view.close();
   say("The browser check passed.");
