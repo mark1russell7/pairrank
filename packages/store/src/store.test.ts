@@ -62,6 +62,36 @@ describe("openStore", () => {
     again.close();
   });
 
+  it("replays the file after a failed write, so the state keeps no event of that write", () => {
+    const store = openStore(file);
+    store.append(site("a"));
+    // A second connection makes the insert of one event fail after its accept, as a full disk does
+    const other = new DatabaseSync(file);
+    other.exec("CREATE TRIGGER refuse BEFORE INSERT ON events WHEN NEW.id = 'bad' BEGIN SELECT RAISE(ABORT, 'disk full'); END");
+    expect(() => store.appendAll([site("b"), { ...site("c"), id: "bad" }])).toThrow("disk full");
+    expect([...store.state.sites.keys()]).toEqual(["a"]);
+    expect([...store.events()]).toHaveLength(1);
+
+    other.exec("DROP TRIGGER refuse");
+    other.close();
+    expect(store.append(site("b"))).toBeUndefined();
+    expect([...store.state.sites.keys()]).toEqual(["a", "b"]);
+    store.close();
+  });
+
+  it("refuses each call when the replay after a failed write fails", () => {
+    const store = openStore(file);
+    store.append(site("a"));
+    const other = new DatabaseSync(file);
+    other.exec("INSERT INTO events (id, at, type, body) VALUES ('junk', '2026-11-08T12:00:00Z', 'x', '{}')");
+    other.exec("CREATE TRIGGER refuse BEFORE INSERT ON events WHEN NEW.id = 'bad' BEGIN SELECT RAISE(ABORT, 'disk full'); END");
+    other.close();
+    expect(() => store.append({ ...site("b"), id: "bad" })).toThrow("disk full");
+    expect(() => store.state).toThrow(/broken/);
+    expect(() => store.append(site("c"))).toThrow(/broken/);
+    store.close();
+  });
+
   it("works with no file", () => {
     const store = openStore(":memory:");
     store.append(site("a"));
@@ -113,5 +143,22 @@ describe("openEventLog", () => {
     const again = openEventLog(file, parse);
     expect(again.count()).toBe(0);
     again.close();
+  });
+
+  it("is usable again after recover, and recover of a log that is not broken does nothing", () => {
+    const log = openEventLog(file, parse);
+    log.recover();
+    const record = { id: "r1", at: "2026-11-08T12:00:00Z", type: "t" };
+    expect(() =>
+      log.append(record, () => {
+        throw new Error("a bug");
+      }),
+    ).toThrow("a bug");
+    expect(() => log.count()).toThrow(/broken/);
+    log.recover();
+    expect(log.count()).toBe(0);
+    expect(log.append(record, () => undefined)).toBeUndefined();
+    expect(log.count()).toBe(1);
+    log.close();
   });
 });

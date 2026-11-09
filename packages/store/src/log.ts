@@ -30,6 +30,11 @@ export interface EventLog<E extends LogRecord> {
   appendAll<P>(events: Iterable<E>, accept: Accept<E, P>): P[];
   /** This function gives the count of events in the log. */
   count(): number;
+  /**
+   * This function makes a broken log usable again. It throws when the rollback of the failed write did not end, and
+   * then the log stays broken. After it, the caller replays the log, so its state is equal to the file again.
+   */
+  recover(): void;
   close(): void;
 }
 
@@ -70,7 +75,8 @@ function migrate(db: DatabaseSync): void {
  * This function opens a log, and makes the file when it is not there. `:memory:` gives a log with no file.
  *
  * The state of the caller and the file stay equal: `accept` comes before the write. A write or an `accept` can fail with an
- * error. Then the log is broken. Each later call throws, and the caller must open the log again and replay it.
+ * error. Then the transaction rolls back, and the log is broken. Each later call throws until `recover`. The state of the
+ * caller can keep the events of the failed write, so the caller replays the log after `recover`.
  *
  * @param parse - The function that changes a stored JSON value into an event. It throws on a value that is not an event.
  */
@@ -86,6 +92,8 @@ export function openEventLog<E extends LogRecord>(path: string, parse: (value: u
   }
   const insert = db.prepare("INSERT INTO events (id, at, type, body) VALUES (?, ?, ?, ?)");
   let broken: unknown;
+  /** The error of a rollback that did not end. A log with this error cannot recover. */
+  let stuck: unknown;
 
   function guard(): void {
     if (broken !== undefined) throw new Error("The log is broken by an earlier error. Open it again and replay it.", { cause: broken });
@@ -107,7 +115,11 @@ export function openEventLog<E extends LogRecord>(path: string, parse: (value: u
       return result;
     } catch (error) {
       broken = error;
-      if (db.isTransaction) db.exec("ROLLBACK");
+      try {
+        if (db.isTransaction) db.exec("ROLLBACK");
+      } catch (rollback) {
+        stuck = rollback;
+      }
       throw error;
     }
   }
@@ -139,6 +151,13 @@ export function openEventLog<E extends LogRecord>(path: string, parse: (value: u
     count() {
       guard();
       return (db.prepare("SELECT count(*) AS n FROM events").get() as { n: number }).n;
+    },
+    recover() {
+      if (broken === undefined) return;
+      if (stuck !== undefined || db.isTransaction) {
+        throw new Error("The rollback of the failed write did not end. Open the log again and replay it.", { cause: stuck ?? broken });
+      }
+      broken = undefined;
     },
     close() {
       db.close();

@@ -8,7 +8,10 @@ import { openEventLog } from "./log.ts";
 
 /** An open store. */
 export interface Store {
-  /** The current state. Only the functions of the store change it. */
+  /**
+   * The current state. Only the functions of the store change it. A failed write replays the file, so the state does
+   * not keep the events of that write. Thus read it again after each write. It throws when the store cannot replay.
+   */
   readonly state: State;
   /** The events of the file that the rules refused at the replay. A new version of a rule can cause them. */
   readonly problems: readonly Problem[];
@@ -24,13 +27,38 @@ export interface Store {
 /** This function opens a store, and replays its log. `:memory:` gives a store with no file. */
 export function openStore(path: string): Store {
   const log = openEventLog(path, parseEvent);
-  const { state, problems } = replay(log.read());
+  let { state, problems } = replay(log.read());
+  /** The error of a failed write that the store could not repair. */
+  let broken: unknown;
   const accept = (event: Event): Problem | undefined => apply(state, event);
+  const guard = (): void => {
+    if (broken !== undefined) throw new Error("The store is broken by an earlier error. Open it again.", { cause: broken });
+  };
+  /** This function writes, and replays the file after a failed write: `accept` changed the state before the rollback. */
+  const write = <T>(work: () => T): T => {
+    guard();
+    try {
+      return work();
+    } catch (error) {
+      try {
+        log.recover();
+        ({ state, problems } = replay(log.read()));
+      } catch (replayError) {
+        broken = replayError;
+      }
+      throw error;
+    }
+  };
   return {
-    state,
-    problems,
-    append: (event) => log.append(event, accept),
-    appendAll: (events) => log.appendAll(events, accept),
+    get state() {
+      guard();
+      return state;
+    },
+    get problems() {
+      return problems;
+    },
+    append: (event) => write(() => log.append(event, accept)),
+    appendAll: (events) => write(() => log.appendAll(events, accept)),
     events: () => log.read(),
     close: () => log.close(),
   };
