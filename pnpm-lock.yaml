@@ -219,7 +219,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/desktop:
     dependencies:
@@ -228,7 +228,7 @@ importers:
         version: 0.9.4
       '@mark1russell7/service':
         specifier: ^0.8.5
-        version: 0.8.5(ws@8.22.1)(zod@4.6.7)
+        version: 0.8.5(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
       '@pairrank/host':
         specifier: workspace:*
         version: link:../host
@@ -245,8 +245,8 @@ importers:
         specifier: workspace:*
         version: link:../ui
       '@procedures/client':
-        specifier: ^0.52.1
-        version: 0.52.1
+        specifier: ^0.53.1
+        version: 0.53.1
       polite-crawler:
         specifier: ^0.5.1
         version: 0.5.1
@@ -268,7 +268,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/host:
     dependencies:
@@ -297,8 +297,8 @@ importers:
         specifier: workspace:*
         version: link:../store
       '@procedures/client':
-        specifier: ^0.52.1
-        version: 0.52.1
+        specifier: ^0.53.1
+        version: 0.53.1
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0
@@ -311,7 +311,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/input:
     dependencies:
@@ -333,7 +333,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/ratings:
     dependencies:
@@ -358,7 +358,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/site:
     devDependencies:
@@ -379,7 +379,7 @@ importers:
         version: 8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/store:
     dependencies:
@@ -398,7 +398,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/surfaces:
     dependencies:
@@ -420,7 +420,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/ui:
     dependencies:
@@ -456,8 +456,8 @@ importers:
         specifier: workspace:*
         version: link:../store
       '@procedures/client':
-        specifier: ^0.52.1
-        version: 0.52.1
+        specifier: ^0.53.1
+        version: 0.53.1
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -484,7 +484,59 @@ importers:
         version: 8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.3
-        version: 5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/web:
+    dependencies:
+      '@pairrank/host':
+        specifier: workspace:*
+        version: link:../host
+      '@pairrank/store':
+        specifier: workspace:*
+        version: link:../store
+      '@pairrank/surfaces':
+        specifier: workspace:*
+        version: link:../surfaces
+      '@pairrank/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@procedures/client':
+        specifier: ^0.53.1
+        version: 0.53.1
+      '@procedures/http':
+        specifier: ^0.53.1
+        version: 0.53.1
+      '@procedures/peer':
+        specifier: ^0.53.1
+        version: 0.53.1(@opentelemetry/api@1.10.0)(ws@8.22.1)
+      '@procedures/server':
+        specifier: ^0.53.1
+        version: 0.53.1(@opentelemetry/api@1.10.0)(ws@8.22.1)
+      polite-crawler:
+        specifier: ^0.5.1
+        version: 0.5.1
+    devDependencies:
+      '@mark1russell7/cue':
+        specifier: ^2.0.0
+        version: 2.1.1
+      '@mark1russell7/service':
+        specifier: ^0.8.4
+        version: 0.8.5(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.6
+      happy-dom:
+        specifier: ^21.0.4
+        version: 21.0.4
+      tsdown:
+        specifier: ^0.23.7
+        version: 0.23.7(publint@0.3.25)(tsx@4.23.15)(typescript@7.0.2)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.3
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
 packages:
 
@@ -720,8 +772,8 @@ packages:
   '@mark1russell7/coeval@0.21.0':
     resolution: {integrity: sha512-eEotEeFBHfPtrLabaYq/f+C38VAjY5bH4T+1mNqT3kHReIAZlgK1/wHhqkAphy6XCzURx8qNnq274WNNNLkkAQ==}
 
-  '@mark1russell7/coeval@0.22.0':
-    resolution: {integrity: sha512-woojpBeRerVqxfFBx0yiR6ibSpm2f9mcfsUPDdvIyT9GKZ2uCtM0S/108Ur765C0rjNKxopwlSH4xXyhf906iA==}
+  '@mark1russell7/coeval@0.26.1':
+    resolution: {integrity: sha512-fzWgtsl3xpoOwmB5u/ZqEDPQIG6hIkXN3qSZc8uoN2Rv54OrqrMLw5Bgr9gedqIWhfHnT0+61EgkmRkoVg539Q==}
 
   '@mark1russell7/collections@0.10.0':
     resolution: {integrity: sha512-WsLRfrej6msQLVqcS17x6KODic8bLf/IuOF2tD04NNbOhWKYCQi0xAEGBCy/TtthxRvRa6Yti2fcpeIQbX/nCA==}
@@ -729,10 +781,6 @@ packages:
 
   '@mark1russell7/collections@0.5.0':
     resolution: {integrity: sha512-/SBxY5LOLjIYuBiSf0hdxA6OeGPJUIAHSQSepVDZVnCLEvY1Jte0E3ec0ahN3oyO7oE677FY9d3LuuN18nyv3g==}
-    engines: {node: '>=22.12'}
-
-  '@mark1russell7/collections@0.7.2':
-    resolution: {integrity: sha512-C5lHeQXAHtwgsdjK1rktRwaGvssMoEiBK5Wx2XBJkejhrjvaK7qATjumlp8EGNNVjkHNfIBw15UevBO7wyKj5g==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/collections@0.9.10':
@@ -748,6 +796,10 @@ packages:
     resolution: {integrity: sha512-0/L9nQwGqUTCLTnUPtYKJ/cvXTr/gJWFWASUzGUjKyj3LxNpYgAplLuTPNQe0g4kjcM+9JAb/D/IfYwBGvM/mA==}
     engines: {node: '>=22'}
     hasBin: true
+
+  '@mark1russell7/files@0.0.2':
+    resolution: {integrity: sha512-3oKnBCxZi5ChjRmxP3lMFsWTRZuhHvt8I7ZHIr2UmgPQR5VrY/qJDKF6k9m8IqFq4958m0Z1+8BDa0SqXe/Ymw==}
+    engines: {node: '>=22'}
 
   '@mark1russell7/layout-contract@0.9.4':
     resolution: {integrity: sha512-3VVmAJRhBe1WzMox3uaGM6dt9RMFDn8QvrONZKF30FA7zJ2ZabuAebTK+nPCFoYjoFYzdFtTvL+0bCV4t8k55g==}
@@ -787,10 +839,6 @@ packages:
     resolution: {integrity: sha512-eSuVS6nNd2H63dMrfleop+ffBtNd8Ua0/JrcUWUMxf2jHWw432fSwJ+aSa4ecAYq1Pa2ReCfwpqFUP4MII5+GA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-generators@0.1.8':
-    resolution: {integrity: sha512-6AC/YQdSrMKs/1NcHesjmmxVjKrqTDXjzKaElE8N8TgsqgiApCbsnk5xRoGJfvIJZUX7vJHFB9F+w48OSdRtHQ==}
-    engines: {node: '>=22'}
-
   '@mark1russell7/rigor-statistics@0.1.20':
     resolution: {integrity: sha512-os4nsGfn6rbXq3zR38H0AikY+eOk1CQBzN32RdrgIPYJg6vha0f8e0gnCwo4bJExakoLI2/1+KFArKV9sTMCsA==}
     engines: {node: '>=22'}
@@ -802,33 +850,6 @@ packages:
   '@mark1russell7/rigor-statistics@0.1.27':
     resolution: {integrity: sha512-UnBEZVSVSytwFH5pJ5ezlOCEs/19Ur0/REQ+Tq5BYs8uYWSNoP/hZNGx2tdqLN2Rn0u+A41GwieBnuM6DuWS4g==}
     engines: {node: '>=22'}
-
-  '@mark1russell7/service@0.6.7':
-    resolution: {integrity: sha512-uelnICLRXH0+LdIcNGurIfgb/GSA+HRPmvefBV5vCXnM7z7QRcam3uuMdhfrwM1ks98cbpZxbZERbOv7U4RvGg==}
-    engines: {node: '>=22.19'}
-    peerDependencies:
-      '@grpc/grpc-js': ^1.14.6
-      amqplib: ^2.2.0
-      ioredis: ^6.0.0
-      mongodb: ^7.7.0
-      pg: ^8.23.1
-      ws: ^8.22.0
-      zod: ^4.1.0
-    peerDependenciesMeta:
-      '@grpc/grpc-js':
-        optional: true
-      amqplib:
-        optional: true
-      ioredis:
-        optional: true
-      mongodb:
-        optional: true
-      pg:
-        optional: true
-      ws:
-        optional: true
-      zod:
-        optional: true
 
   '@mark1russell7/service@0.8.5':
     resolution: {integrity: sha512-baeUqiDWh3iwpXQnHSQp5h2yzPwAsb7uikq90VI9WACs6BcaFywGUYsDEB2C7UVxfLqxmDR+M9xCqY92xYYj4Q==}
@@ -904,19 +925,41 @@ packages:
       '@emnapi/core': ^1.7.1 || 2.0.0-beta.2
       '@emnapi/runtime': ^1.7.1 || 2.0.0-beta.2
 
+  '@opentelemetry/api@1.10.0':
+    resolution: {integrity: sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==}
+    engines: {node: '>=8.0.0'}
+
   '@oxc-project/types@0.156.0':
     resolution: {integrity: sha512-1Duyg48TdJNdyhEB8Xn1L36bT9Pv6GUtlKjHxOys8xkaF/rQq3XJE+bAurSK/AgIz5mGFsb77cn9Pb20+WCScw==}
 
   '@oxc-project/types@0.157.0':
     resolution: {integrity: sha512-95iTox1qdt6WGWce3xwNOVayByOfLaYAq+qGPpub6NWbBh9sv0GG3+zyfh9ZBCO/jVu5A0EWI+qQI7g6fevjxg==}
 
-  '@procedures/client@0.52.1':
-    resolution: {integrity: sha512-B1fQnlbdFdJjnLFFLxfzwp6LKU8NgvgUMKGm44wrjpYMU4ZLLuotzChHpKYB0Otngh+XaaFEecHzOid7yune9g==}
+  '@procedures/client@0.53.1':
+    resolution: {integrity: sha512-oiW/KQ0RXyfduPod7Ne6sCUWNTOpG7hXdi9RbpbenWGxaA7T0fIM5PxoYSUBIM/9eMhgqsaYTvccHqKcixhfsw==}
     engines: {node: '>=22'}
     peerDependencies:
       express: ^4.0.0 || ^5.0.0
     peerDependenciesMeta:
       express:
+        optional: true
+
+  '@procedures/http@0.53.1':
+    resolution: {integrity: sha512-WOwZTX56/QplljAoGMEzkadkja2HvB2mqVqzZ+YZwbD/egV6sItv15Mv8UVsGe1WsZR71HaHGt+TT0+xZgq68Q==}
+    engines: {node: '>=22'}
+
+  '@procedures/peer@0.53.1':
+    resolution: {integrity: sha512-n+mcSlK5wUPgtfasWcNKzaaKKWJxTsj+YqEiWU5+bp+PVmNTEnUxYJGEng87l7wd7WsK7KOiPAZyJQoM1U02HQ==}
+    engines: {node: '>=22'}
+
+  '@procedures/server@0.53.1':
+    resolution: {integrity: sha512-umz7fnD+KDmFTSNEyXpMiBbGtr2nCdUpooNN7o/nhgFFcJ0FF9/SsciFV1PUa4yPsTfXlZtxUg0p7ii5Fa/mjw==}
+    engines: {node: '>=22'}
+    hasBin: true
+    peerDependencies:
+      '@procedures/fs': ^0.53.1
+    peerDependenciesMeta:
+      '@procedures/fs':
         optional: true
 
   '@publint/pack@0.1.7':
@@ -2413,7 +2456,9 @@ snapshots:
 
   '@mark1russell7/coeval@0.21.0': {}
 
-  '@mark1russell7/coeval@0.22.0': {}
+  '@mark1russell7/coeval@0.26.1':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.12
 
   '@mark1russell7/collections@0.10.0(zod@4.6.7)':
     dependencies:
@@ -2425,10 +2470,6 @@ snapshots:
 
   '@mark1russell7/collections@0.5.0': {}
 
-  '@mark1russell7/collections@0.7.2':
-    dependencies:
-      '@mark1russell7/optional': 1.2.0
-
   '@mark1russell7/collections@0.9.10':
     dependencies:
       '@mark1russell7/optional': 1.2.0
@@ -2438,6 +2479,8 @@ snapshots:
       yaml: 2.9.1
 
   '@mark1russell7/cue@2.1.1': {}
+
+  '@mark1russell7/files@0.0.2': {}
 
   '@mark1russell7/layout-contract@0.9.4':
     dependencies:
@@ -2466,8 +2509,6 @@ snapshots:
 
   '@mark1russell7/rigor-generators@0.1.6': {}
 
-  '@mark1russell7/rigor-generators@0.1.8': {}
-
   '@mark1russell7/rigor-statistics@0.1.20':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.6
@@ -2480,17 +2521,7 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.12
 
-  '@mark1russell7/service@0.6.7(ws@8.22.1)(zod@4.6.7)':
-    dependencies:
-      '@mark1russell7/algebra': 0.8.3(zod@4.6.7)
-      '@mark1russell7/collections': 0.7.2
-      '@mark1russell7/quantity': 0.3.0(zod@4.6.7)
-      '@mark1russell7/rigor-generators': 0.1.8
-    optionalDependencies:
-      ws: 8.22.1
-      zod: 4.6.7
-
-  '@mark1russell7/service@0.8.5(ws@8.22.1)(zod@4.6.7)':
+  '@mark1russell7/service@0.8.5(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)':
     dependencies:
       '@mark1russell7/algebra': 0.8.3(zod@4.6.7)
       '@mark1russell7/collections': 0.10.0(zod@4.6.7)
@@ -2498,6 +2529,7 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.12
       '@mark1russell7/text': 0.0.2
     optionalDependencies:
+      '@opentelemetry/api': 1.10.0
       ws: 8.22.1
       zod: 4.6.7
 
@@ -2541,17 +2573,20 @@ snapshots:
       '@tybys/wasm-util': 0.10.4
     optional: true
 
+  '@opentelemetry/api@1.10.0': {}
+
   '@oxc-project/types@0.156.0': {}
 
   '@oxc-project/types@0.157.0': {}
 
-  '@procedures/client@0.52.1':
+  '@procedures/client@0.53.1':
     dependencies:
       '@mark1russell7/algebra': 0.8.3(zod@4.6.7)
-      '@mark1russell7/coeval': 0.22.0
+      '@mark1russell7/coeval': 0.26.1
       '@mark1russell7/collections': 0.5.0
-      '@mark1russell7/quantity': 0.3.0(zod@4.6.7)
-      '@mark1russell7/service': 0.6.7(ws@8.22.1)(zod@4.6.7)
+      '@mark1russell7/quantity': 0.3.4(zod@4.6.7)
+      '@mark1russell7/service': 0.8.5(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@opentelemetry/api': 1.10.0
       '@types/ws': 8.18.2
       ws: 8.22.1
       zod: 4.6.7
@@ -2563,6 +2598,56 @@ snapshots:
       - mongodb
       - pg
       - utf-8-validate
+
+  '@procedures/http@0.53.1':
+    dependencies:
+      '@procedures/client': 0.53.1
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - '@grpc/grpc-js'
+      - amqplib
+      - bufferutil
+      - express
+      - ioredis
+      - mongodb
+      - pg
+      - utf-8-validate
+
+  '@procedures/peer@0.53.1(@opentelemetry/api@1.10.0)(ws@8.22.1)':
+    dependencies:
+      '@mark1russell7/files': 0.0.2
+      '@mark1russell7/service': 0.8.5(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@procedures/client': 0.53.1
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - '@grpc/grpc-js'
+      - '@opentelemetry/api'
+      - amqplib
+      - bufferutil
+      - express
+      - ioredis
+      - mongodb
+      - pg
+      - utf-8-validate
+      - ws
+
+  '@procedures/server@0.53.1(@opentelemetry/api@1.10.0)(ws@8.22.1)':
+    dependencies:
+      '@mark1russell7/service': 0.8.5(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@procedures/client': 0.53.1
+      '@procedures/peer': 0.53.1(@opentelemetry/api@1.10.0)(ws@8.22.1)
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - '@grpc/grpc-js'
+      - '@opentelemetry/api'
+      - amqplib
+      - bufferutil
+      - express
+      - ioredis
+      - mongodb
+      - pg
+      - utf-8-validate
+      - ws
 
   '@publint/pack@0.1.7':
     dependencies:
@@ -3527,7 +3612,7 @@ snapshots:
       tsx: 4.23.15
       yaml: 2.9.1
 
-  vitest@5.1.0(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)):
+  vitest@5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/mocker': 5.1.0(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
@@ -3544,6 +3629,7 @@ snapshots:
       vite: 8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
       why-is-node-running: 3.2.1
     optionalDependencies:
+      '@opentelemetry/api': 1.10.0
       '@types/node': 26.6.6
       happy-dom: 21.0.4
     transitivePeerDependencies:

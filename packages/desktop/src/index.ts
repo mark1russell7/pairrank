@@ -178,25 +178,6 @@ export function returnsKeys(input: KeyInput): boolean {
   return input.type === "keyDown" && input.key === "Escape" && !input.control && !input.alt && !input.meta;
 }
 
-/** A message port of the main process of Electron (`MessagePortMain`): an event has its message in `data`. */
-export interface MainPort {
-  postMessage(message: unknown): void;
-  on(type: "message", listener: (event: { readonly data: unknown }) => void): unknown;
-  start(): void;
-}
-
-/**
- * This function gives a port of the main process in the form that `PortTransport` reads. In this Node form, the
- * listener gets the message itself. TEMP: this adapter moves to `@procedures/client`, the home of the ports.
- */
-export function portOf(port: MainPort): { postMessage(message: unknown): void; on(type: "message", listener: (data: unknown) => void): unknown; start(): void } {
-  return {
-    postMessage: (message) => port.postMessage(message),
-    on: (type, listener) => port.on(type, (event) => listener(event.data)),
-    start: () => port.start(),
-  };
-}
-
 /**
  * This function gives the file of a request to the page scheme. It gives `undefined` when the request is not for a
  * file in the folder of the page. A path that goes out of the folder, also with an encoded `..`, gives `undefined`. A

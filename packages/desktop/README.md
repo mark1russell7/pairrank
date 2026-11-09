@@ -22,7 +22,7 @@ The command builds the app to `build/`, and then starts it with Electron.
 | Process | File | Task |
 | --- | --- | --- |
 | Main | `src/main.ts` | It opens the log, serves the procedures of `@pairrank/host` and holds one view for each site. |
-| Main | `src/bookmarks.ts` | It finds the bookmarks files of the Chrome profiles, and reads only those files. The page cannot give a path. |
+| Main | `@pairrank/host/bookmarks` | It finds the bookmarks files of the Chrome profiles, and reads only those files. The page cannot give a path. |
 | Main | `src/capture.ts`, `src/pictures.ts` | It loads a site in a window off the screen, and gives a still picture of it. At most two captures operate. |
 | Preload | `src/preload.ts` | It gives the page the two message ports of the main process, and nothing more. |
 | Page | `src/page.ts` | It shows the interface, and sends the calls and the slot commands on the ports. |
