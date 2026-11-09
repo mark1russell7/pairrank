@@ -43,3 +43,4 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R22 | Still pictures in the browser host | later | R19, R21 | The server of the browser host captures the still pictures with a headless browser of the system. The page wiring of R19 stays the same. |
 | B1 | Sites load, then disappear | done | | The screen of each site had no height, so the app hid the view after each load. A layout check in CI holds the fix. |
 | B2 | A race in the duel tests | done | | The tests read the slots before React gave them their sites. The tests wait for the pair that the screen names. A slow run of the tests holds the fix. |
+| B3 | A failed write kept its events in the state | done | | A write that fails after its checks rolls back the file. The state kept the events of the write, so the screens showed them. After a failed write, the store replays the file. |
