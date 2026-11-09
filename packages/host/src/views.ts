@@ -2,7 +2,7 @@
  * The values that the host sends to the interface. This module has no Node.js code, so the interface imports it with
  * no store (`@pairrank/host/views`).
  */
-import { type Problem, type State, scopeKey } from "@pairrank/core";
+import { type Problem, type QueryProblem, type Scope, type SiteId, type State, type TagQuery, scopeKey } from "@pairrank/core";
 import type { EntryProblem, ImportReport } from "@pairrank/input";
 
 /** One site, as a value that a port can send. */
@@ -56,6 +56,38 @@ export interface ImportResult extends ImportPreview {
   /** The events that the rules refused. A correct plan gives none. */
   readonly problems: readonly Problem[];
 }
+
+/**
+ * The order of the viewer. A `rating` order gives the mean rating of each site over the ladders of its scopes, from the
+ * highest. A site with no rating in each of the scopes comes last. `added` gives the newest site first.
+ */
+export type ViewerOrder = { readonly kind: "rating"; readonly scopes: readonly Scope[] } | { readonly kind: "title" } | { readonly kind: "added" };
+
+/** The input of the viewer: a query as data, and an order. */
+export interface ViewerInput {
+  readonly query: TagQuery;
+  readonly order: ViewerOrder;
+}
+
+/** One site of the viewer. */
+export interface ViewerRow {
+  readonly site: SiteId;
+  /** The mean rating over the ladders of the order that have the site, or `undefined` when none has it. */
+  readonly score: number | undefined;
+  /** The standard error of the mean rating. Elo has no standard error, so it gives `undefined`. */
+  readonly se: number | undefined;
+  /** The count of the ladders of the order that have the site. */
+  readonly ladders: number;
+}
+
+/** The result of the viewer: the sites in their order, and the count of the sites that are not hidden. */
+export interface ViewerResult {
+  readonly rows: readonly ViewerRow[];
+  readonly total: number;
+}
+
+/** The answer of `pairrank.viewer`: the sites and the text of the query, or the problem of the text of the query. */
+export type ViewerAnswer = (ViewerResult & { readonly ok: true; readonly query: string }) | { readonly ok: false; readonly problem: QueryProblem };
 
 /** This function gives the view of a state. */
 export function viewOf(state: State, problems: number): StateView {
