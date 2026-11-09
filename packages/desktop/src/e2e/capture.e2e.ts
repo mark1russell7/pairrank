@@ -71,9 +71,11 @@ function centerOf(picture: string): { width: number; rgb: [number, number, numbe
 
 const describe = (result: CaptureResult): string => (result.ok ? `a picture of ${result.picture.length} characters` : `${result.reason}: ${result.detail ?? ""}`);
 
-let code = 1;
-try {
-  await app.whenReady();
+/** The time limit of the whole check. A hang then fails the check, and CI does not wait for the limit of the job. */
+const CHECK_LIMIT_MS = 120_000;
+
+/** This function does each check. It gives the exit code of the check. */
+async function checks(): Promise<number> {
   await new Promise<void>((done) => sites.listen(0, "127.0.0.1", done));
   const origin = `http://127.0.0.1:${(sites.address() as AddressInfo).port}`;
   const capture = electronCapture({ timeoutMs: 15_000, paintDelayMs: PAINT_DELAY_MS, quality: PICTURE_QUALITY });
@@ -109,12 +111,28 @@ try {
 
   check(BrowserWindow.getAllWindows().length === 0, "no window of a capture stays open");
   say("The capture check passed.");
-  code = 0;
-} catch (error) {
-  console.error(`The capture check failed: ${error instanceof Error ? error.message : String(error)}`);
-} finally {
+  return 0;
+}
+
+/** This function closes the server and the folder of the check, and stops Electron with the code. */
+function finish(code: number): void {
   sites.closeAllConnections();
   sites.close();
   rmSync(folder, { recursive: true, force: true, maxRetries: 3 });
   app.exit(code);
 }
+
+setTimeout(() => {
+  console.error(`The capture check failed: it did not end in ${CHECK_LIMIT_MS} ms.`);
+  finish(1);
+}, CHECK_LIMIT_MS);
+say("The capture check starts.");
+// Electron fires ready after the main module ends. Thus the module does not wait for ready at its top level.
+void app
+  .whenReady()
+  .then(checks)
+  .catch((error: unknown) => {
+    console.error(`The capture check failed: ${error instanceof Error ? error.message : String(error)}`);
+    return 1;
+  })
+  .then(finish);
