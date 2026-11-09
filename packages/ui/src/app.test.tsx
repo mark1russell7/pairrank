@@ -6,7 +6,8 @@ import { callerOf } from "@procedures/client";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { type Call, apiOf } from "./api.ts";
-import { App, matches } from "./app.tsx";
+import { App } from "./app.tsx";
+import { matches } from "./sites-screen.tsx";
 import { nameOf } from "./look-screen.tsx";
 import { FAILURE_TEXT, boxOf, showsView } from "./slot.tsx";
 

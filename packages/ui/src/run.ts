@@ -5,18 +5,30 @@
 import type { Draft } from "@pairrank/core";
 import type { SiteView, StateView, TagView } from "@pairrank/host/views";
 
-/** The scope of a run: each site, the sites with no tags, or the sites that do not have one tag. */
-export type RunScope = { readonly kind: "all" } | { readonly kind: "untagged" } | { readonly kind: "without"; readonly tag: string };
+/**
+ * The scope of a run: each site, the sites with no tags, or the sites that do not have one tag. A scope can also be a
+ * fixed list of sites in its order. The viewer gives a list, with a name for the user.
+ */
+export type RunScope =
+  | { readonly kind: "all" }
+  | { readonly kind: "untagged" }
+  | { readonly kind: "without"; readonly tag: string }
+  | { readonly kind: "list"; readonly ids: readonly string[]; readonly name: string };
 
 /** This function tells if a site is in a scope. A hidden site is in no scope. */
 export function inScope(site: SiteView, scope: RunScope): boolean {
   if (site.hidden) return false;
   if (scope.kind === "untagged") return site.tags.length === 0;
+  if (scope.kind === "list") return scope.ids.includes(site.id);
   return scope.kind === "without" ? !site.tags.includes(scope.tag) : true;
 }
 
-/** This function gives the ids of the sites of a scope, in the order of the state. */
+/** This function gives the ids of the sites of a scope, in the order of the state. A list keeps its own order. */
 export function runOf(view: StateView, scope: RunScope): string[] {
+  if (scope.kind === "list") {
+    const shown = new Set(view.sites.flatMap((site) => (site.hidden ? [] : [site.id])));
+    return scope.ids.filter((id) => shown.has(id));
+  }
   return view.sites.filter((site) => inScope(site, scope)).map((site) => site.id);
 }
 
@@ -29,7 +41,7 @@ export function isDone(site: SiteView, scope: RunScope): boolean {
   return scope.kind === "without" ? site.tags.includes(scope.tag) : false;
 }
 
-/** This function gives the text of the value of a scope in a list of choices. `scopeOf` reads it. */
+/** This function gives the text of the value of a scope in a list of choices. `scopeOf` reads it, except for a list. */
 export function scopeValue(scope: RunScope): string {
   return scope.kind === "without" ? `without:${scope.tag}` : scope.kind;
 }
@@ -45,6 +57,7 @@ export function scopeOf(value: string): RunScope {
 export function scopeName(scope: RunScope, tags: readonly TagView[]): string {
   if (scope.kind === "untagged") return "Sites with no tags";
   if (scope.kind === "all") return "All sites";
+  if (scope.kind === "list") return scope.name;
   return `Sites without ${tags.find((tag) => tag.id === scope.tag)?.name ?? "a deleted tag"}`;
 }
 

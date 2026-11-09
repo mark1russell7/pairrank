@@ -26,6 +26,14 @@ describe("the scope of a run", () => {
     expect(inScope(site("d", [], true), { kind: "all" })).toBe(false);
   });
 
+  it("keeps the order of a list of the viewer, with no hidden site and no done site", () => {
+    const list = { kind: "list", ids: ["c", "d", "a"], name: "Sites of the viewer" } as const;
+    expect(runOf(view(sites), list)).toEqual(["c", "a"]);
+    expect([inScope(site("a"), list), inScope(site("b"), list)]).toEqual([true, false]);
+    expect(isDone(site("a", ["t"]), list)).toBe(false);
+    expect(scopeName(list, [tag])).toBe("Sites of the viewer");
+  });
+
   it("tells when a site of a run is done", () => {
     expect(isDone(site("a", ["x"]), { kind: "untagged" })).toBe(true);
     expect(isDone(site("a", ["x"]), { kind: "without", tag: "t" })).toBe(false);

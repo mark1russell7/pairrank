@@ -208,6 +208,90 @@ nav button[aria-pressed="true"] {
   margin-left: 0.25rem;
 }
 
+/* The viewer: the tag query, the order and the search on one line, which wraps on a narrow window */
+.viewer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem 1rem;
+}
+
+.viewer-bar .query {
+  flex: 2 1 16rem;
+}
+
+.viewer-bar .query input {
+  width: 100%;
+  min-width: 0;
+}
+
+.viewer-bar .query input[aria-invalid="true"] {
+  border-color: var(--pencil);
+}
+
+.viewer-bar .search {
+  flex: 1 1 12rem;
+  width: auto;
+}
+
+.sites > .help {
+  color: var(--quiet);
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0;
+}
+
+.sites > .problem {
+  font-size: 0.85rem;
+}
+
+.mean-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.mean-tags .help {
+  color: var(--quiet);
+  font-size: 0.85rem;
+}
+
+.list-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.list-bar .which {
+  margin-top: 0;
+}
+
+.listed {
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 0.3rem;
+}
+
+.list-bar .grow {
+  flex: 1;
+}
+
+.site-list[data-rated="true"] button {
+  grid-template-columns: minmax(10rem, 1fr) minmax(8rem, 1.2fr) auto 7rem;
+}
+
+.site-score {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.site-score[data-none="true"] {
+  color: var(--quiet);
+}
+
 .hidden-sites .hint {
   color: var(--quiet);
   margin: 0.75rem 0 0;
@@ -939,9 +1023,14 @@ input[type="checkbox"] {
 
 @media (max-width: 40rem) {
   .site-list button,
+  .site-list[data-rated="true"] button,
   .hidden-list li {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  .site-score {
+    text-align: left;
   }
 
   .hidden-list button {
