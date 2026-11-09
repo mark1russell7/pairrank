@@ -5,7 +5,7 @@
 import type { CaptureResult } from "@pairrank/surfaces";
 import { BrowserWindow, type NativeImage } from "electron";
 import { CAPTURE_FRAME_RATE, allowsSiteNavigation, captureWindowOptions, failureOf } from "./index.ts";
-import type { StoppableCapture } from "./pictures.ts";
+import type { StoppableCapture } from "@pairrank/host/pictures";
 
 /** The options of `electronCapture`. */
 export interface ElectronCaptureOptions {

@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, contentType, failureOf, pageFile, returnsKeys, siteViewPreferences, viewBounds, windowOptions } from "./index.ts";
+import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, captureWindowOptions, contentType, failureOf, pageFile, returnsKeys, siteViewPreferences, viewBounds, windowOptions } from "./index.ts";
 
 const root = resolve("build", "page");
 
@@ -113,5 +113,13 @@ describe("the views of the sites", () => {
     expect(returnsKeys({ ...key, type: "keyUp" })).toBe(false);
     expect(returnsKeys({ ...key, control: true })).toBe(false);
     expect(returnsKeys({ ...key, key: "ArrowLeft" })).toBe(false);
+  });
+});
+
+describe("captureWindowOptions", () => {
+  it("renders off the screen, with the size of the capture and the rules of the views of the sites", () => {
+    const options = captureWindowOptions({ w: 1280, h: 800 });
+    expect(options).toMatchObject({ width: 1280, height: 800, useContentSize: true, show: false, skipTaskbar: true, focusable: false });
+    expect(options.webPreferences).toEqual({ ...siteViewPreferences(), offscreen: true });
   });
 });

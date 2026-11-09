@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./bookmarks": "./src/bookmarks.ts",
+    "./pictures": "./src/pictures.ts",
     "./views": "./src/views.ts"
   },
   "scripts": {
@@ -24,12 +25,14 @@
   "dependencies": {
     "@mark1russell7/rigor-generators": "^0.1.12",
     "@mark1russell7/rigor-statistics": "^0.1.21",
+    "@mark1russell7/service": "^0.8.5",
     "@mark1russell7/vex": "^0.18.0",
     "@mark1russell7/vex-domains": "^0.18.0",
     "@pairrank/core": "workspace:*",
     "@pairrank/input": "workspace:*",
     "@pairrank/ratings": "workspace:*",
     "@pairrank/store": "workspace:*",
+    "@pairrank/surfaces": "workspace:*",
     "@procedures/client": "^0.53.1"
   }
 }

@@ -1,8 +1,6 @@
 import type { CaptureResult, PictureSize } from "@pairrank/surfaces";
-import { captureApiOf } from "@pairrank/ui";
 import { callerOf } from "@procedures/client";
 import { describe, expect, it } from "vitest";
-import { MAX_CAPTURES, captureWindowOptions, siteViewPreferences } from "./index.ts";
 import { REPLACED, STOPPED, type StoppableCapture, capturePool, picturesModule } from "./pictures.ts";
 
 const size: PictureSize = { w: 1280, h: 800 };
@@ -43,7 +41,7 @@ describe("capturePool", () => {
 
   it("stops each capture, and gives a failure for a capture that throws", async () => {
     const { run, calls } = handRun();
-    const pool = capturePool(run, MAX_CAPTURES);
+    const pool = capturePool(run, 2);
     const open = pool.capture("https://a.example/", size);
     pool.stop();
     expect(await open).toEqual({ ok: false, reason: "network", detail: STOPPED });
@@ -58,7 +56,7 @@ describe("capturePool", () => {
 });
 
 describe("picturesModule", () => {
-  it("gives the capture to the page through the procedure that the interface calls", async () => {
+  it("gives the capture of the host to the caller of the procedure pictures.capture", async () => {
     const asked: [string, PictureSize][] = [];
     const caller = callerOf(
       picturesModule(async (url, at) => {
@@ -66,8 +64,7 @@ describe("picturesModule", () => {
         return { ok: true, picture: PICTURE, title: "A" };
       }),
     );
-    const capture = captureApiOf((path, input) => caller(path, input));
-    expect(await capture("https://a.example/", size)).toEqual({ ok: true, picture: PICTURE, title: "A" });
+    expect(await caller(["pictures", "capture"], { url: "https://a.example/", size })).toEqual({ ok: true, picture: PICTURE, title: "A" });
     expect(asked).toEqual([["https://a.example/", size]]);
   });
 
@@ -78,13 +75,5 @@ describe("picturesModule", () => {
     await expect(caller(["pictures", "capture"], { url: "https://a.example/", size: { w: 10, h: 800 } })).rejects.toThrow("integers from 64 to 4096");
     await expect(caller(["pictures", "capture"], { url: "https://a.example/", size: { w: 1280.5, h: 800 } })).rejects.toThrow("integers");
     await expect(caller(["pictures", "capture"], { url: "https://a.example/" })).rejects.toThrow("integers");
-  });
-});
-
-describe("captureWindowOptions", () => {
-  it("renders off the screen, with the size of the capture and the rules of the views of the sites", () => {
-    const options = captureWindowOptions(size);
-    expect(options).toMatchObject({ width: 1280, height: 800, useContentSize: true, show: false, skipTaskbar: true, focusable: false });
-    expect(options.webPreferences).toEqual({ ...siteViewPreferences(), offscreen: true });
   });
 });

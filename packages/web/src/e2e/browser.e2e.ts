@@ -1,9 +1,10 @@
 /**
  * The browser check of the browser host. It starts the host with the built page and two local sites, and opens the page
- * in a headless Chrome. Site A shows in a frame. Site B sends `X-Frame-Options: DENY`, so its slot shows the refusal.
+ * in a headless Chrome. Site A shows in a frame. Site B sends `X-Frame-Options: DENY`, so its slot shows a still picture.
  *
  * - On the Look screen, the slot of site A is shown and tall, and its frame covers the slot.
- * - In the duel, one slot is shown, and the slot of site B failed with no frame.
+ * - In the duel, the two slots are shown. Site B has no frame, and its slot shows the picture of the capture.
+ * - The capture is a fake capture with a picture of one pixel. Thus the check examines the page, not a browser capture.
  * - The host reads the local sites: its `fetch` accepts `127.0.0.1` for this check only.
  *
  * CI starts it with `pnpm --filter @pairrank/web e2e`. The variable `CHROME_PATH` gives the browser. The default is
@@ -16,6 +17,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fakeProcess } from "@mark1russell7/service/testing";
+import { capturePool } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client";
 import { createHostFetch } from "@procedures/http";
@@ -95,12 +97,21 @@ const sites = createServer((request, response) => {
 await new Promise<void>((done) => sites.listen(0, "127.0.0.1", done));
 const origin = `http://127.0.0.1:${(sites.address() as AddressInfo).port}`;
 
+/** A PNG picture of one pixel: the picture of the fake capture. */
+const PIXEL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+/** The addresses that the fake capture took, in order. */
+const captured: string[] = [];
+const pictures = capturePool(async (url) => {
+  captured.push(url);
+  return { ok: true, picture: PIXEL, title: "Site B" };
+}, 2);
+
 const folder = mkdtempSync(join(tmpdir(), "pairrank-web-e2e-"));
 const store = openStore(join(folder, "store.sqlite"));
 const page = join(import.meta.dirname, "..", "..", "build", "page");
 const running = await runProcedureHost({
   name: "pairrank-web-e2e",
-  host: webHost({ store, page, port: 0, fetch: createHostFetch({ allow: ["127.0.0.1"] }) }),
+  host: webHost({ store, page, port: 0, fetch: createHostFetch({ allow: ["127.0.0.1"] }), pictures }),
   mode: "foreground",
   run: { process: fakeProcess() },
 });
@@ -131,7 +142,7 @@ const targets = async (): Promise<Target[]> => {
 type Page = Awaited<ReturnType<typeof connect>>;
 
 interface Seen {
-  readonly slots: readonly { state: string; box: Box; url: string }[];
+  readonly slots: readonly { state: string; box: Box; url: string; picture: string }[];
   readonly frames: readonly { src: string; box: Box; shown: boolean }[];
 }
 
@@ -139,7 +150,10 @@ interface Seen {
 const SEEN = `(() => {
   const boxOf = (e) => { const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; };
   return {
-    slots: Array.from(document.querySelectorAll('.slot')).map((s) => ({ state: s.dataset.state, box: boxOf(s), url: s.querySelector('.slot-url')?.textContent ?? '' })),
+    slots: Array.from(document.querySelectorAll('.slot')).map((s) => {
+      const img = s.querySelector('.slot-picture img');
+      return { state: s.dataset.state, box: boxOf(s), url: s.querySelector('.slot-url')?.textContent ?? '', picture: img && img.complete && img.naturalWidth > 0 ? img.src : '' };
+    }),
     frames: Array.from(document.querySelectorAll('iframe')).map((f) => ({ src: f.src, box: boxOf(f), shown: f.style.display !== 'none' })),
   };
 })()`;
@@ -161,9 +175,12 @@ async function settle(view: Page, screen: string, states: readonly string[]): Pr
   return seen;
 }
 
-/** This function examines one shown slot: it is tall, and the one shown frame of its site covers it. */
+/**
+ * This function examines the live slot: the shown slot with no still picture. It is tall, and the one shown frame of the
+ * site covers it. A shown slot has no text of its address, so the frame tells the site.
+ */
 function examineShown(screen: string, seen: Seen, url: string): void {
-  const slot = seen.slots.find((each) => each.state === "shown");
+  const slot = seen.slots.find((each) => each.state === "shown" && each.picture === "");
   if (slot === undefined) throw new Error(`${screen}: no slot is shown.`);
   if (slot.box.h < MIN_HEIGHT) throw new Error(`${screen}: the shown slot is ${slot.box.h} px tall. It must be ${MIN_HEIGHT} px or more.`);
   const shown = seen.frames.filter((frame) => frame.shown);
@@ -184,10 +201,11 @@ try {
   await click("Look");
   examineShown("Look", await settle(view, "Look", ["shown"]), `${origin}/a`);
   await click("Duel");
-  const duel = await settle(view, "Duel", ["shown", "failed"]);
+  const duel = await settle(view, "Duel", ["shown", "shown"]);
   examineShown("Duel", duel, `${origin}/a`);
-  const failed = duel.slots.find((slot) => slot.state === "failed");
-  if (failed?.url !== `${origin}/b`) throw new Error(`Duel: the failed slot is of ${failed?.url}. It must be of ${origin}/b.`);
+  const still = duel.slots.filter((slot) => slot.picture !== "");
+  if (still.length !== 1 || still[0]?.picture !== PIXEL) throw new Error(`Duel: one slot must show the picture of the capture: ${JSON.stringify(duel.slots)}.`);
+  if (captured.length === 0 || captured.some((url) => url !== `${origin}/b`)) throw new Error(`Duel: the capture took ${JSON.stringify(captured)}. It must take only ${origin}/b.`);
   if (duel.frames.some((frame) => frame.src === `${origin}/b`)) throw new Error("Duel: the site that refuses frames has a frame.");
   view.close();
   say("The browser check passed.");
@@ -198,6 +216,7 @@ try {
   chrome.kill();
   await running.life.shutdown("the check ended");
   await running.life.done;
+  pictures.stop();
   store.close();
   sites.close();
   await sleep(500);

@@ -31,15 +31,5 @@
     "publint": "^0.3.25",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
-  },
-  "conventions": {
-    "rules": {
-      "service-run-main": {
-        "ignore": [
-          "packages/desktop/src/pictures.ts"
-        ],
-        "reason": "pool.run() of preemptivePool from @mark1russell7/service/channel is not run() of a service. The rule reads each .run( in a file that imports any entry of the service package."
-      }
-    }
   }
 }
