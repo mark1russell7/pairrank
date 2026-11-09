@@ -35,7 +35,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R14 | The choice of pairs | done | R5 | Select the pairs with the least sure result and the sites with the fewest picks. Use a seed. The procedure is `pairrank.pair`. |
 | R15 | Duel presets | done | R13 | Save a combined mode: a rule for the pairs, and a list of the picks that each pair asks. The duel asks the picks of a pair one after another. |
 | R16 | The viewer | done | R5, R10 | The Sites screen filters the sites by a tag query with `and`, `or` and `not`. It orders them by date, title, one ladder or the mean over chosen tags. A list goes to the tag run. |
-| R17 | The temperature of the viewer | later | R16 | Mix the order of the viewer by a temperature, with a seeded random draw. |
+| R17 | The temperature of the viewer | done | R16 | A slider mixes an order by rating, from no mix to near random. A Gumbel draw for each site gives the Plackett-Luce law. "Shuffle again" draws again. |
 | R18 | Hidden sites | done | R13 | Show the hidden sites, and restore a site. The Sites screen lists them with the reason of each hide. |
 | R19 | The screenshot surface | done | R9 | When a view crashes, or a site refuses the view, the slot shows a still picture. The main process captures the site in a window off the screen. |
 | R20 | Security scans in a private repository | done | | The template security scan fails in a private repository. A pull request of the template corrects it. |

@@ -209,8 +209,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.1
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.8
-        version: 0.1.8
+        specifier: ^0.1.12
+        version: 0.1.12
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -269,6 +269,9 @@ importers:
 
   packages/host:
     dependencies:
+      '@mark1russell7/rigor-generators':
+        specifier: ^0.1.12
+        version: 0.1.12
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.21
         version: 0.1.21
@@ -297,9 +300,6 @@ importers:
       '@mark1russell7/cue':
         specifier: ^2.0.0
         version: 2.1.1
-      '@mark1russell7/rigor-generators':
-        specifier: ^0.1.8
-        version: 0.1.8
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -320,8 +320,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.1
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.8
-        version: 0.1.8
+        specifier: ^0.1.12
+        version: 0.1.12
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -335,8 +335,8 @@ importers:
   packages/ratings:
     dependencies:
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.8
-        version: 0.1.8
+        specifier: ^0.1.12
+        version: 0.1.12
       '@mark1russell7/rigor-statistics':
         specifier: ^0.1.21
         version: 0.1.21
@@ -761,6 +761,10 @@ packages:
 
   '@mark1russell7/rational@0.1.2':
     resolution: {integrity: sha512-hn2C5jjOFCGKJqFQPHt57C/Cn1l9Lb9MltVNtL71KSu+nRrfPOmg8ujYB5n3oDFFWNdNA4bE/8LLT4tG3lmrGA==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-generators@0.1.12':
+    resolution: {integrity: sha512-f9JzXfxcAHPMGvjKJJQYBUuICWeqikk/gZnf5f8Kmj5i06ViD+cstZ0xD+RGoRQVfd2SBf32UPcrMnzWlzUz5Q==}
     engines: {node: '>=22'}
 
   '@mark1russell7/rigor-generators@0.1.6':
@@ -2384,6 +2388,8 @@ snapshots:
 
   '@mark1russell7/rational@0.1.2': {}
 
+  '@mark1russell7/rigor-generators@0.1.12': {}
+
   '@mark1russell7/rigor-generators@0.1.6': {}
 
   '@mark1russell7/rigor-generators@0.1.8': {}
@@ -2394,7 +2400,7 @@ snapshots:
 
   '@mark1russell7/rigor-statistics@0.1.21':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.8
+      '@mark1russell7/rigor-generators': 0.1.12
 
   '@mark1russell7/service@0.6.7(ws@8.22.1)(zod@4.6.7)':
     dependencies:

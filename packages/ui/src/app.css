@@ -257,6 +257,40 @@ nav button[aria-pressed="true"] {
   font-size: 0.85rem;
 }
 
+/* The mix of an order by rating: a slider of five levels, the words of the level, and a new draw */
+.mix {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.mix-level {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--quiet);
+}
+
+.mix-level input {
+  width: 9rem;
+  accent-color: var(--pencil);
+}
+
+.mix-level output {
+  min-width: 6rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.mix .help {
+  flex: 1 1 16rem;
+  color: var(--quiet);
+  font-size: 0.85rem;
+}
+
 .list-bar {
   display: flex;
   flex-wrap: wrap;

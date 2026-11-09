@@ -76,10 +76,23 @@ export interface ImportResult extends ImportPreview {
 }
 
 /**
+ * The mix of an order by rating. A temperature of 0 keeps the strict order. At the temperature 1, the chance that a site
+ * comes first is in proportion to the strength of its rating. A higher temperature gives an order nearer to a uniform shuffle.
+ */
+export interface ViewerMix {
+  readonly temperature: number;
+  /** The seed of the random draws. The same seed and the same ratings give the same order. */
+  readonly seed: number;
+}
+
+/**
  * The order of the viewer. A `rating` order gives the mean rating of each site over the ladders of its scopes, from the
  * highest. A site with no rating in each of the scopes comes last. `added` gives the newest site first.
  */
-export type ViewerOrder = { readonly kind: "rating"; readonly scopes: readonly Scope[] } | { readonly kind: "title" } | { readonly kind: "added" };
+export type ViewerOrder =
+  | { readonly kind: "rating"; readonly scopes: readonly Scope[]; readonly mix?: ViewerMix }
+  | { readonly kind: "title" }
+  | { readonly kind: "added" };
 
 /** The input of the viewer: a query as data, and an order. */
 export interface ViewerInput {
