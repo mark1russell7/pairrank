@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "dependencies": {
-    "@mark1russell7/layout-contract": "^0.9.4",
+    "@mark1russell7/layout-contract": "^0.10.0",
     "@pairrank/input": "workspace:*"
   },
   "devDependencies": {
