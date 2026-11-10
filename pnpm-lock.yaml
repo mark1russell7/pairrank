@@ -249,7 +249,7 @@ importers:
         version: 0.53.1
       polite-crawler:
         specifier: ^0.5.1
-        version: 0.5.1
+        version: 0.5.2
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0
@@ -544,7 +544,7 @@ importers:
         version: 0.53.1(@opentelemetry/api@1.10.0)(ws@8.22.1)
       polite-crawler:
         specifier: ^0.5.1
-        version: 0.5.1
+        version: 0.5.2
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0
@@ -2036,8 +2036,8 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
-  polite-crawler@0.5.1:
-    resolution: {integrity: sha512-2ErlXIb6SN5lp3CS/EpVghS0g2LcKr0esTRX6Tqh0lqgTTHYLhq/kzh7yAYvbtq1gfC/vNLoYVya3ACCnYJ0rA==}
+  polite-crawler@0.5.2:
+    resolution: {integrity: sha512-jMPzaaT0ub/GPnsTT1niEFMYKf4hWlrMawYvWB6Ykm1e3LlSK7AcfCTxlKcm842gG4et5nESZSEwcVwWu9EIRg==}
     engines: {node: '>=22.19'}
     hasBin: true
     peerDependencies:
@@ -3525,7 +3525,7 @@ snapshots:
 
   picomatch@4.0.7: {}
 
-  polite-crawler@0.5.1:
+  polite-crawler@0.5.2:
     dependencies:
       '@mozilla/readability': 0.6.0
       linkedom: 0.18.15
