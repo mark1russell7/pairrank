@@ -34,6 +34,6 @@
     "@pairrank/ratings": "workspace:*",
     "@pairrank/store": "workspace:*",
     "@pairrank/surfaces": "workspace:*",
-    "@procedures/client": "^0.54.1"
+    "@procedures/client": "^0.55.0"
   }
 }
