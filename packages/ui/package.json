@@ -13,7 +13,7 @@
   "devDependencies": {
     "@mark1russell7/cue": "^2.0.0",
     "@pairrank/store": "workspace:*",
-    "@procedures/client": "^0.53.1",
+    "@procedures/client": "^0.54.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",

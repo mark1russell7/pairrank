@@ -18,10 +18,10 @@
     "@pairrank/store": "workspace:*",
     "@pairrank/surfaces": "workspace:*",
     "@pairrank/ui": "workspace:*",
-    "@procedures/client": "^0.53.1",
-    "@procedures/http": "^0.53.1",
-    "@procedures/peer": "^0.53.1",
-    "@procedures/server": "^0.53.1",
+    "@procedures/client": "^0.54.1",
+    "@procedures/http": "^0.54.1",
+    "@procedures/peer": "^0.54.1",
+    "@procedures/server": "^0.54.1",
     "polite-crawler": "^0.5.1"
   },
   "devDependencies": {
