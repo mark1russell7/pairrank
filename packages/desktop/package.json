@@ -32,6 +32,6 @@
     "@pairrank/surfaces": "workspace:*",
     "@pairrank/ui": "workspace:*",
     "@procedures/client": "^0.55.0",
-    "polite-crawler": "^0.5.1"
+    "polite-crawler": "^0.6.0"
   }
 }
