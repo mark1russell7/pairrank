@@ -379,6 +379,22 @@ importers:
         version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(@vitest/coverage-v8@5.1.0)(happy-dom@21.0.4)(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
 
   packages/site:
+    dependencies:
+      '@mark1russell7/rigor-generators':
+        specifier: ^0.1.12
+        version: 0.1.14
+      '@mark1russell7/rigor-statistics':
+        specifier: ^0.1.21
+        version: 0.1.27
+      '@pairrank/core':
+        specifier: workspace:*
+        version: link:../core
+      '@pairrank/ratings':
+        specifier: workspace:*
+        version: link:../ratings
+      '@pairrank/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0

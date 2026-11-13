@@ -12,6 +12,13 @@
     "dev": "vite",
     "build": "vite build"
   },
+  "dependencies": {
+    "@mark1russell7/rigor-generators": "^0.1.12",
+    "@mark1russell7/rigor-statistics": "^0.1.21",
+    "@pairrank/core": "workspace:*",
+    "@pairrank/ratings": "workspace:*",
+    "@pairrank/ui": "workspace:*"
+  },
   "devDependencies": {
     "@mark1russell7/cue": "^2.0.0",
     "@mark1russell7/site-pages": "^0.4.1",

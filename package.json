@@ -31,10 +31,5 @@
     "publint": "^0.3.25",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
-  },
-  "conventions": {
-    "rules": {
-      "pages-site": { "off": "The public site is the roadmap item R25, a live demo with sample sites. The rule starts again when R25 ships." }
-    }
   }
 }
