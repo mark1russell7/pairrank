@@ -76,7 +76,15 @@ describe("bookmarksModule", () => {
     await expect(call(["bookmarks", "read"], { source: "chrome:Default:Bookmarks" })).rejects.toThrow("does not know");
     await call(["bookmarks", "sources"], {});
     for (const source of [join(DATA, "Local State"), "chrome:Guest Profile:Bookmarks", "chrome:Default:Preferences"]) await expect(call(["bookmarks", "read"], { source })).rejects.toThrow("does not know");
-    await expect(call(["bookmarks", "read"], {})).rejects.toThrow();
+    await expect(call(["bookmarks", "read"], {})).rejects.toThrow("The input must have the id of a source.");
+  });
+
+  it("refuses an input of the wrong type, an empty source and an extra field", async () => {
+    const call = open(memory(FILES));
+    await expect(call(["bookmarks", "sources"], { folder: DATA })).rejects.toThrow(/Unrecognized key/);
+    await expect(call(["bookmarks", "read"], { source: 3 })).rejects.toThrow("The input must have the id of a source.");
+    await expect(call(["bookmarks", "read"], { source: "" })).rejects.toThrow("The input must have the id of a source.");
+    await expect(call(["bookmarks", "read"], { source: "chrome:Default:Bookmarks", path: DATA })).rejects.toThrow(/Unrecognized key/);
   });
 
   it("refuses a file that is not a bookmarks file, a very large file and a file that went away", async () => {

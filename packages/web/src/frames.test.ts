@@ -7,10 +7,12 @@
  * - The host policy refuses a private address. Then the check passes, and the browser decides.
  * - The end of the time limit gives `timeout`, and another error gives `network`.
  */
+import { MAX_URL } from "@pairrank/surfaces";
+import { callerOf } from "@procedures/client";
 import { createHostFetch } from "@procedures/http";
 import type { HostFetch, HostFetchInit, HostFetchResponse } from "@procedures/http";
 import { describe, expect, it } from "vitest";
-import { frameCheck } from "./frames.ts";
+import { frameCheck, framesModule } from "./frames.ts";
 
 const ANCESTOR = "http://127.0.0.1:4800";
 
@@ -87,5 +89,28 @@ describe("frameCheck", () => {
     await checkWith(fetch)("https://g.example/");
     expect(signals).toHaveLength(1);
     expect(signals[0]).toBeInstanceOf(AbortSignal);
+  });
+});
+
+describe("the input of frames.check", () => {
+  const checked: string[] = [];
+  const call = callerOf(
+    framesModule(async (url) => {
+      checked.push(url);
+      return { ok: true };
+    }),
+  );
+
+  it("passes an address of 1 to MAX_URL characters to the check", async () => {
+    expect(await call(["frames", "check"], { url: "https://a.example/" })).toEqual({ ok: true });
+    expect(checked).toEqual(["https://a.example/"]);
+  });
+
+  it("refuses a wrong type, a missing address, an empty or a very long address and an extra field", async () => {
+    const message = `The address of a frame check is a text of 1 to ${MAX_URL} characters.`;
+    for (const input of [{ url: 5 }, {}, { url: "" }, { url: `https://a.example/${"a".repeat(MAX_URL)}` }]) await expect(call(["frames", "check"], input), JSON.stringify(input).slice(0, 40)).rejects.toThrow(message);
+    await expect(call(["frames", "check"], "https://a.example/")).rejects.toThrow(/expected object/);
+    await expect(call(["frames", "check"], { url: "https://a.example/", ancestor: "https://b.example" })).rejects.toThrow(/Unrecognized key/);
+    expect(checked).toEqual(["https://a.example/"]);
   });
 });
