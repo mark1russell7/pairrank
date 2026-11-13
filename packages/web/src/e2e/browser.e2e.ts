@@ -6,6 +6,8 @@
  * - In the duel, the two slots are shown. Site B has no frame, and its slot shows the picture of the capture.
  * - The capture is a fake capture with a picture of one pixel. Thus the check examines the page, not a browser capture.
  * - The host reads the local sites: its `fetch` accepts `127.0.0.1` for this check only.
+ * - At the end, the capture of `src/main.ts` takes a real picture of a local page of one color. The page of the host
+ *   draws the picture on a canvas, and the check reads the color at its center (R22).
  *
  * CI starts it with `pnpm --filter @pairrank/web e2e`. The variable `CHROME_PATH` gives the browser. The default is
  * `google-chrome`.
@@ -19,10 +21,12 @@ import { join } from "node:path";
 import { fakeProcess } from "@mark1russell7/service/testing";
 import { capturePool } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
+import { renderScreenshot } from "@procedures/browser";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client";
 import { createHostFetch } from "@procedures/http";
 import { runProcedureHost } from "@procedures/server";
-import { API_PATH, webHost } from "../index.ts";
+import { headlessCapture } from "../headless.ts";
+import { API_PATH, LOAD_TIMEOUT_MS, webHost } from "../index.ts";
 
 /** The lowest height of a slot, in CSS pixels. A window of 1400 by 900 gives each slot more than this. */
 const MIN_HEIGHT = 200;
@@ -45,7 +49,7 @@ const sleep = (ms: number): Promise<void> => new Promise((done) => setTimeout(do
 const started = Date.now();
 const say = (text: string): void => console.log(`${String(Date.now() - started).padStart(6)} ms  ${text}`);
 
-/** A connection to one target of the debug port, with `Runtime.evaluate`. */
+/** A connection to one target of the debug port, with `Runtime.evaluate`. A promise gives its value. */
 async function connect(target: Target): Promise<{ evaluate: <T>(expression: string) => Promise<T>; close: () => void }> {
   const socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((done, fail) => {
@@ -63,7 +67,7 @@ async function connect(target: Target): Promise<{ evaluate: <T>(expression: stri
       new Promise<T>((done) => {
         const id = ++next;
         waiting.set(id, (value) => done(value as T));
-        socket.send(JSON.stringify({ id, method: "Runtime.evaluate", params: { expression, returnByValue: true } }));
+        socket.send(JSON.stringify({ id, method: "Runtime.evaluate", params: { expression, returnByValue: true, awaitPromise: true } }));
       }),
     close: () => socket.close(),
   };
@@ -89,7 +93,17 @@ async function freePort(): Promise<number> {
   return port;
 }
 
+/** The color of the page `/color`, for the real capture. */
+const COLOR = [0, 128, 255] as const;
+/** The largest difference of a channel of the picture from the color of the page. A JPEG changes the color a little. */
+const MAX_COLOR_ERROR = 12;
+
 const sites = createServer((request, response) => {
+  if (request.url === "/color") {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end(`<!doctype html><title>Color</title><body style="margin:0;background:rgb(${COLOR.join(",")})"></body>`);
+    return;
+  }
   const refuses = request.url === "/b";
   response.writeHead(200, { "content-type": "text/html; charset=utf-8", ...(refuses ? { "x-frame-options": "DENY" } : {}) });
   response.end(`<!doctype html><title>Site ${refuses ? "B" : "A"}</title><body style="margin:0;background:#cde"><h1>A site</h1></body>`);
@@ -158,6 +172,36 @@ const SEEN = `(() => {
   };
 })()`;
 
+/**
+ * This function takes a real picture of the page `/color` with the capture of `src/main.ts`. The page of the host draws
+ * the picture on a canvas. Thus the check reads the color at its center with no decoder of its own.
+ */
+async function examineCapture(view: Page): Promise<void> {
+  const executable = process.env["CHROME_PATH"];
+  const capture = headlessCapture({ render: (request) => renderScreenshot({ ...request, executable }), timeoutMs: LOAD_TIMEOUT_MS });
+  const result = await capture(`${origin}/color`, { w: 640, h: 400 }, new AbortController().signal);
+  if (!result.ok) throw new Error(`Capture: the real capture failed: ${result.reason}, ${result.detail ?? "no detail"}.`);
+  const center = await view.evaluate<{ w: number; h: number; rgb: number[] } | string>(`new Promise((done) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0);
+      const pixel = context.getImageData(canvas.width >> 1, canvas.height >> 1, 1, 1).data;
+      done({ w: canvas.width, h: canvas.height, rgb: [pixel[0], pixel[1], pixel[2]] });
+    };
+    image.onerror = () => done('The page cannot decode the picture.');
+    image.src = ${JSON.stringify(result.picture)};
+  })`);
+  if (typeof center === "string") throw new Error(`Capture: ${center}`);
+  say(`Capture: a picture of ${center.w} by ${center.h}, with the color ${center.rgb.join(", ")} at its center`);
+  if (center.rgb.some((value, index) => Math.abs(value - (COLOR[index] ?? 0)) > MAX_COLOR_ERROR)) {
+    throw new Error(`Capture: the center of the picture is ${center.rgb.join(", ")}. The page is ${COLOR.join(", ")}.`);
+  }
+}
+
 /** This function tells if two boxes are the same, with one pixel of tolerance for the rounding. */
 const same = (a: Box, b: Box): boolean => Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1 && Math.abs(a.w - b.w) <= 1 && Math.abs(a.h - b.h) <= 1;
 
@@ -207,6 +251,7 @@ try {
   if (still.length !== 1 || still[0]?.picture !== PIXEL) throw new Error(`Duel: one slot must show the picture of the capture: ${JSON.stringify(duel.slots)}.`);
   if (captured.length === 0 || captured.some((url) => url !== `${origin}/b`)) throw new Error(`Duel: the capture took ${JSON.stringify(captured)}. It must take only ${origin}/b.`);
   if (duel.frames.some((frame) => frame.src === `${origin}/b`)) throw new Error("Duel: the site that refuses frames has a frame.");
+  await examineCapture(view);
   view.close();
   say("The browser check passed.");
   code = 0;

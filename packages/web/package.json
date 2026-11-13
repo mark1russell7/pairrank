@@ -18,6 +18,7 @@
     "@pairrank/store": "workspace:*",
     "@pairrank/surfaces": "workspace:*",
     "@pairrank/ui": "workspace:*",
+    "@procedures/browser": "^0.55.0",
     "@procedures/client": "^0.55.0",
     "@procedures/http": "^0.55.0",
     "@procedures/peer": "^0.55.0",
