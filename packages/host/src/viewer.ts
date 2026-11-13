@@ -9,6 +9,7 @@ import { type Expr, type Space, app, axes, each, evaluate, let_, lit, ref, space
 import { BoolDomain, JsonDomain, NumDomain, TextDomain } from "@mark1russell7/vex-domains";
 import { type Site, type State, type TagQuery, scopeKey, tagsOfQuery } from "@pairrank/core";
 import { type LadderOptions, ladderOf } from "@pairrank/ratings";
+import type { LadderSource } from "./ladders.ts";
 import type { ViewerInput, ViewerMix, ViewerResult, ViewerRow } from "./views.ts";
 
 /** The record of one site in the space of the filter program: for each tag of the query, `true` when the site has the tag. */
@@ -115,13 +116,13 @@ export function sitesOfQuery(state: State, query: TagQuery): Site[] {
   });
 }
 
-/** This function gives the sites of the viewer. A hidden site is not in the viewer. */
-export function viewerOf(state: State, input: ViewerInput, options: LadderOptions = {}): ViewerResult {
+/** This function gives the sites of the viewer. A hidden site is not in the viewer. `source` gives the ladders. */
+export function viewerOf(state: State, input: ViewerInput, options: LadderOptions = {}, source: LadderSource = ladderOf): ViewerResult {
   const shown = [...state.sites.values()].filter((site) => !site.hidden).length;
   const sites = sitesOfQuery(state, input.query);
   const scopes = input.order.kind === "rating" ? input.order.scopes : [];
   const keys = scopes.map(scopeKey);
-  const ladders = scopes.map((scope) => new Map(ladderOf(state, scope, options).ratings.map((rating) => [rating.site, rating])));
+  const ladders = scopes.map((scope) => new Map(source(state, scope, options).ratings.map((rating) => [rating.site, rating])));
 
   const records: Record<string, SiteRecord> = {};
   for (const site of sites) {

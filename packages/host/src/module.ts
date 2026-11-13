@@ -6,8 +6,9 @@
  */
 import { type Draft, type ModeId, type Scope, type TagId, parseDraft, parseQuery, queryText, stamp } from "@pairrank/core";
 import { parseSiteList, planImport } from "@pairrank/input";
-import { type Ladder, type ModelChoice, type ModelSetting, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
+import { type Ladder, type ModelChoice, type ModelSetting, choosePair, pairableOf } from "@pairrank/ratings";
 import type { Store } from "@pairrank/store";
+import { ladderCache } from "./ladders.ts";
 import { modePair } from "./modes.ts";
 import { MAX_TEMPERATURE, viewerOf } from "./viewer.ts";
 import { type ApplyResult, type DuelPair, type ImportPreview, type ImportResult, type StateView, type ViewerAnswer, type ViewerMix, type ViewerOrder, viewOf } from "./views.ts";
@@ -138,6 +139,8 @@ const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent:
 export function pairrankModule(store: Store, options: ModuleOptions): ProcedureModule {
   const id = options.id ?? (() => crypto.randomUUID());
   const now = options.now ?? (() => new Date().toISOString());
+  // Each ladder and each model test stays in the cache until the store accepts a new event
+  const ladders = ladderCache();
 
   const plan = (value: unknown) => {
     const parsed = parseSiteList(value);
@@ -189,14 +192,14 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
       .input(LadderInput)
       .output(typed<Ladder>())
       .meta({ description: "Give the ladder of a scope", effects: reads })
-      .handler(async ({ scope, model }): Promise<Ladder> => ladderOf(store.state, scope, model === undefined ? {} : { model }))
+      .handler(async ({ scope, model }): Promise<Ladder> => ladders.ladder(store.state, scope, model === undefined ? {} : { model }))
       .build(),
     createProcedure()
       .path(["pairrank", "model"])
       .input(LadderInput)
       .output(typed<ModelChoice>())
       .meta({ description: "Compare the models of a scope by the log-loss on its last picks", effects: reads })
-      .handler(async ({ scope }): Promise<ModelChoice> => selectModel(store.state, scope))
+      .handler(async ({ scope }): Promise<ModelChoice> => ladders.model(store.state, scope))
       .build(),
     createProcedure()
       .path(["pairrank", "pair"])
@@ -208,9 +211,9 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
         if (mode !== undefined) {
           const saved = store.state.modes.get(mode);
           if (saved === undefined) throw new Error(`No mode has the id "${mode}".`);
-          return modePair(store.state, saved, { seed, recent }, options) ?? null;
+          return modePair(store.state, saved, { seed, recent }, options, ladders.ladder) ?? null;
         }
-        const choice = choosePair(ladderOf(store.state, scope, options), pairableOf(store.state, scope), { seed, recent });
+        const choice = choosePair(ladders.ladder(store.state, scope, options), pairableOf(store.state, scope), { seed, recent });
         return choice === undefined ? null : { ...choice, asks: [scope] };
       })
       .build(),
@@ -223,7 +226,7 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
         const names = new Map<string, TagId>([...store.state.tags.values()].map((tag) => [tag.name.toLowerCase(), tag.id]));
         const parsed = parseQuery(query, (name) => names.get(name.toLowerCase()));
         if (!parsed.ok) return parsed;
-        const result = viewerOf(store.state, { query: parsed.query, order }, model === undefined ? {} : { model });
+        const result = viewerOf(store.state, { query: parsed.query, order }, model === undefined ? {} : { model }, ladders.ladder);
         const text = queryText(parsed.query, (tag) => store.state.tags.get(tag)?.name ?? tag);
         return { ok: true, query: text, ...result };
       })
