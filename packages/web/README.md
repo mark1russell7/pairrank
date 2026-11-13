@@ -27,7 +27,7 @@ The command builds the page to `build/page/`, and then starts the host. Open the
 | Host | `@pairrank/host/bookmarks` | It finds the bookmarks files of the Chrome profiles, and reads only those files. The page cannot give a path. |
 | Host | `@pairrank/host/pictures` | It gives the procedure `pictures.capture` over the capture of the option `pictures`. A new capture stops the oldest capture. |
 | Host | `src/headless.ts` | It gives a capture with a headless browser of the system. The picture comes back as a JPEG `data:` address. |
-| Host | `src/main.ts` | It opens the log and starts the host. It is the only file that starts it. |
+| Host | `src/main.ts` | It opens the log, makes the pool of the captures and starts the host. It is the only file that starts it. |
 | Page | `src/page.ts` | It shows the interface, and sends the calls to the host over HTTP. |
 | Page | `src/dom-frames.ts` | It makes one hidden `iframe` for each load, in a sandbox, and puts it in the box of its slot. It changes the sandbox for the lock. |
 
@@ -45,4 +45,6 @@ The command builds the page to `build/page/`, and then starts the host. Open the
 - A site that refuses a frame shows as a still picture from the host. The page sends the refused load to `pictures.capture`.
 - The option `pictures` of `webHost` gives the capture. The caller makes the pool and stops it. The tests and the browser check give a fake capture.
 - `headlessCapture` writes each picture in a new temporary folder, and deletes the folder after the capture. The render is an option, so the tests start no browser.
-- `src/main.ts` gives no capture yet, so a refused site shows the refusal. The first release of `@procedures/browser` gives `renderScreenshot`, the render of `headlessCapture` (R22).
+- `src/main.ts` gives `headlessCapture` with the render `renderScreenshot` of `@procedures/browser`. At most `MAX_CAPTURES` captures operate. The pool stops when the host stops.
+- The capture needs Chrome, Chromium or Edge on the computer. With no browser, the slot of a refused site tells the failure of the capture.
+- At its end, the browser check takes a real picture of a local page of one color, and examines the color of the picture.

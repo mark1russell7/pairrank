@@ -530,6 +530,9 @@ importers:
       '@pairrank/ui':
         specifier: workspace:*
         version: link:../ui
+      '@procedures/browser':
+        specifier: ^0.55.0
+        version: 0.55.0
       '@procedures/client':
         specifier: ^0.55.0
         version: 0.55.0
@@ -982,6 +985,10 @@ packages:
   '@oxc-project/types@0.157.0':
     resolution: {integrity: sha512-95iTox1qdt6WGWce3xwNOVayByOfLaYAq+qGPpub6NWbBh9sv0GG3+zyfh9ZBCO/jVu5A0EWI+qQI7g6fevjxg==}
 
+  '@procedures/browser@0.55.0':
+    resolution: {integrity: sha512-pgPNmWtgjF6gioKOKem/qIfJZKfkn9Wdm8MOl2nuJZ9161rJZuMNxKmHAfeNMvIXqI+AaDV6d33SpfHjnV8/EQ==}
+    engines: {node: '>=22'}
+
   '@procedures/client@0.55.0':
     resolution: {integrity: sha512-+JU/TDgY9umJtX0XFR7X4v8pHRdseBGm7fSWRGJ7hoXkqBcQVszMP7OCZWdhNkK2rfUvBscrWTHCN0O8DaZYYw==}
     engines: {node: '>=22'}
@@ -1008,6 +1015,10 @@ packages:
     peerDependenciesMeta:
       '@procedures/fs':
         optional: true
+
+  '@procedures/shell@0.55.0':
+    resolution: {integrity: sha512-DpYaAgr3zfVlBsNW++VBF2IurWYdaxRxhL+5KWPkJpJdcixnUdP3CZU002tqIA8ysjPKc54ERfPM4OF/gvuiLQ==}
+    engines: {node: '>=22'}
 
   '@publint/pack@0.1.7':
     resolution: {integrity: sha512-4EDEmvxWtgsCnnVeBvtFIFZtUhPPt1+bA9JrSwU4Sa//6oKtzCSlGGXYJr44OD9aGISymbieJ4mCKHUygUDU+g==}
@@ -2672,6 +2683,19 @@ snapshots:
 
   '@oxc-project/types@0.157.0': {}
 
+  '@procedures/browser@0.55.0':
+    dependencies:
+      '@procedures/shell': 0.55.0
+    transitivePeerDependencies:
+      - '@grpc/grpc-js'
+      - amqplib
+      - bufferutil
+      - express
+      - ioredis
+      - mongodb
+      - pg
+      - utf-8-validate
+
   '@procedures/client@0.55.0':
     dependencies:
       '@mark1russell7/algebra': 0.8.4(zod@4.6.7)
@@ -2741,6 +2765,20 @@ snapshots:
       - pg
       - utf-8-validate
       - ws
+
+  '@procedures/shell@0.55.0':
+    dependencies:
+      '@procedures/client': 0.55.0
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - '@grpc/grpc-js'
+      - amqplib
+      - bufferutil
+      - express
+      - ioredis
+      - mongodb
+      - pg
+      - utf-8-validate
 
   '@publint/pack@0.1.7':
     dependencies:
