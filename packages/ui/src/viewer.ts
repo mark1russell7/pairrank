@@ -1,8 +1,11 @@
 /**
  * The settings of the viewer on the Sites screen, with no React. They are the text of the tag query, the order, the
- * tags of a mean, and the mix of an order by rating. The app keeps the settings while the user is on another screen.
+ * tags of a mean, the mix and the model of an order by rating. The app keeps the settings while the user is on another
+ * screen.
  */
+import { countOf } from "@mark1russell7/text";
 import type { TagView, ViewerOrder } from "@pairrank/host/views";
+import type { ModelChoice, ModelSetting } from "@pairrank/ratings";
 
 /** The settings of the viewer. The order is the value of a choice: `added`, `title`, `overall`, `tag:<id>` or `mean`. */
 export interface ViewerSettings {
@@ -14,10 +17,45 @@ export interface ViewerSettings {
   readonly temperature: number;
   /** The seed of the mix. The button "Shuffle again" adds 1. */
   readonly seed: number;
+  /** The model of the ratings, or `best` for the model that the test of each ladder chooses. */
+  readonly model: ModelSetting;
 }
 
-/** The settings at the start: no query, the newest sites first, and no mix. */
-export const FIRST_SETTINGS: ViewerSettings = { query: "", order: "added", mean: [], temperature: 0, seed: 1 };
+/** The settings at the start: no query, the newest sites first, no mix, and the best model of each ladder. */
+export const FIRST_SETTINGS: ViewerSettings = { query: "", order: "added", mean: [], temperature: 0, seed: 1, model: "best" };
+
+/** One choice of the model: its value and its name. */
+export interface ModelOption {
+  readonly value: ModelSetting;
+  readonly name: string;
+}
+
+/** The choices of the model, from the best model of each ladder. */
+export const MODEL_CHOICES: readonly ModelOption[] = [
+  { value: "best", name: "Best by test" },
+  { value: "bradley-terry", name: "Bradley-Terry" },
+  { value: "elo", name: "Elo" },
+  { value: "glicko2", name: "Glicko-2" },
+];
+
+/** This function gives the name of a model setting. */
+export function modelName(model: ModelSetting): string {
+  return MODEL_CHOICES.find((choice) => choice.value === model)?.name ?? model;
+}
+
+/**
+ * This function gives the words about the test of the models. `choice` is the test of the one ladder of the order. It
+ * is `undefined` for an order with more ladders, or before the test gives its result.
+ */
+export function modelHelp(setting: ModelSetting, ladders: number, choice: ModelChoice | undefined): string {
+  if (ladders > 1) return setting === "best" ? "The test of each tag chooses the model of its ladder." : `Each ladder uses ${modelName(setting)}.`;
+  if (choice === undefined) return "";
+  if (choice.tested === 0) {
+    return `The ladder has ${countOf(choice.trained, "pick")}. A test of the models needs more picks, so the best model is Bradley-Terry.`;
+  }
+  const losses = choice.scores.map((score) => `${modelName(score.model)} ${score.logLoss.toFixed(3)}`).join(", ");
+  return `The test chooses ${modelName(choice.model)}. The log-loss on the last ${countOf(choice.tested, "pick")} is ${losses}. A lower log-loss is better.`;
+}
 
 /** One level of the mix: its temperature, its name, and the words that tell what it does. */
 export interface MixLevel {
