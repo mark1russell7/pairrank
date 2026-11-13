@@ -20,14 +20,8 @@ import { systemResolver } from "@procedures/http";
 import { runProcedureHost } from "@procedures/server";
 import { LOAD_TIMEOUT_MS } from "./constants.ts";
 import { headlessCapture } from "./headless.ts";
-import { DEFAULT_PORT, STORE_FILE, webHost } from "./index.ts";
-
-/** This function gives the port from the environment, or the default port when the variable is not set. */
-function portOf(text: string | undefined): number {
-  const value = text === undefined ? DEFAULT_PORT : Number(text);
-  if (!Number.isInteger(value) || value < 0 || value > 65535) throw new Error(`PORT is not a port: ${text}`);
-  return value;
-}
+import { STORE_FILE, webHost } from "./index.ts";
+import { portOf } from "./port.ts";
 
 const file = process.env["PAIRRANK_STORE"] ?? join(homedir(), ".pairrank", STORE_FILE);
 mkdirSync(dirname(file), { recursive: true });
