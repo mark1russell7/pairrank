@@ -46,8 +46,8 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R24 | Add this page | done | R23 | The bar of a slot adds the page of the open tab to the list, with its title and no tags. The host compares the addresses by their key, so a page that the list has shows "In the list". |
 | R25 | A public site | done | R23 | A live demo of pairrank on GitHub Pages. It runs the code of the app in the browser on eight sample sites: the duel, the ranking of each model, and a hidden taste to compare with. |
 | R26 | Use the homes that have the code | done |  | The app uses the functions that its home packages already have: the path check, the content types, the clock and the emitter. One search replaces two copies. The text of an error stays, because no home has a function that gives the same text. |
-| R27 | Schemas at each boundary | active |  | Each procedure checks its input with a `zod` schema. The schemas replace the four copies of `as`, which accepted each value. |
-| R28 | A harder desktop app | active |  | The app refuses each download. Only a development run reads `PAGE_URL`. A still picture refuses the addresses of this computer and of the local network. |
+| R27 | Schemas at each boundary | done |  | Each procedure checks its input with a `zod` schema. The schemas replace the four copies of `as`, which accepted each value. |
+| R28 | A harder desktop app | done |  | The app refuses each download. Only a development run reads `PAGE_URL`. A still picture refuses the addresses of this computer and of the local network. |
 | R29 | The model on the screen | later | R5 | The ranking screen shows the model that the log-loss chose, and the log-loss of each model. The person can select a model. |
 | R30 | A cache of the ladders | later | R5 | The host keeps each ladder with the version of the log. A new event clears the cache, so a request does not fit all the picks again. |
 | R31 | A bench of the pair choice | later | R14 | Simulated tastes measure the picks that each rule of the pairs uses to find the order. CI holds the best rule. The bench also sets `FULL_SEARCH`. |
@@ -60,6 +60,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R38 | Word forms in text | later |  | A pull request of `text` adds the count of a noun, for example "1 site" and "2 sites". The import screen then uses it, and its TEMP note ends. |
 | R39 | One rule for the lock | later | R23 | The lock and its quiet time become one state machine as data, with `@mark1russell7/algebra`. The `iframe` surface and the desktop views use it. |
 | R40 | Homes for three general parts | later |  | The event log, the bookmark reader and the safety rules of an Electron window are general. The maintainer gives each a home, and the code moves. |
+| R41 | Captures stay off the local network | later |  | The capture filters each request, also each redirect and subresource, by its resolved address. Thus DNS rebinding cannot reach a local address. |
 | B1 | Sites load, then disappear | done | | The screen of each site had no height, so the app hid the view after each load. A layout check in CI holds the fix. |
 | B2 | A race in the duel tests | done | | The tests read the slots before React gave them their sites. The tests wait for the pair that the screen names. A slow run of the tests holds the fix. |
 | B3 | A failed write kept its events in the state | done | | A write that fails after its checks rolls back the file. The state kept the events of the write, so the screens showed them. After a failed write, the store replays the file. |
