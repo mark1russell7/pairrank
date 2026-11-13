@@ -2,9 +2,9 @@
  * The rules of the tag screen and the tag keys, with no React code. Each function gives the drafts of one change, and
  * the rules of the state examine them again in the host.
  */
+import { wordSearch } from "@mark1russell7/text";
 import type { Draft } from "@pairrank/core";
 import type { StateView, TagView } from "@pairrank/host/views";
-import { wordSearch } from "./search.ts";
 
 /** One color of a tag: a name for the screen readers, and a value that shows in the light and the dark mode. */
 export interface TagColor {

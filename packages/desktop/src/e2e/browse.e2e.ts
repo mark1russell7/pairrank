@@ -7,6 +7,7 @@
  * back, and a new window opens as a tab of the slot. "Add this page" adds the page of the slot to the list. At the end, a
  * click of the mouse soon after a load arms the lock at once.
  */
+import { errorMessage } from "@mark1russell7/text";
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
@@ -64,7 +65,7 @@ async function pagesAre(paths: readonly string[]): Promise<void> {
     });
   } catch (error) {
     const pages = found.map((url) => url.slice(origin.length)).join(", ") || "none";
-    throw new Error(`${error instanceof Error ? error.message : String(error)} The pages of the sites are ${pages}.`);
+    throw new Error(`${errorMessage(error)} The pages of the sites are ${pages}.`);
   }
   say(`the pages of the sites are ${paths.join(", ")}`);
 }
@@ -200,7 +201,7 @@ try {
   say("The check of the lock and the tabs passed.");
   code = 0;
 } catch (error) {
-  console.error(`The check of the lock and the tabs failed: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`The check of the lock and the tabs failed: ${errorMessage(error)}`);
 } finally {
   app.kill();
   sites.close();

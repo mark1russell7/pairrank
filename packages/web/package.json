@@ -14,6 +14,7 @@
     "e2e": "tsdown && node src/e2e/browser.e2e.ts"
   },
   "dependencies": {
+    "@mark1russell7/text": "^0.0.5",
     "@pairrank/host": "workspace:*",
     "@pairrank/store": "workspace:*",
     "@pairrank/surfaces": "workspace:*",

@@ -74,12 +74,3 @@ export function kindText(kind: BookmarkSource["kind"]): string {
   if (kind === "account") return "Account bookmarks, not synced";
   return kind === "file" ? "Chosen file" : "Bookmarks";
 }
-
-/**
- * This function gives a count with a noun, for example "1 site" or "3 sites".
- *
- * TEMP: this function moves to the English word forms of `@mark1russell7/text` (its item X7).
- */
-export function countOf(count: number, noun: string, plural = `${noun}s`): string {
-  return `${count.toLocaleString("en")} ${count === 1 ? noun : plural}`;
-}

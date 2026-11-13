@@ -3,6 +3,7 @@
  * live view of the site. The surface has no view of its own: its `shown` event has the picture, and the page draws it.
  */
 import { createEmitter } from "@mark1russell7/collections";
+import { errorMessage } from "@mark1russell7/text";
 import { type FailReason, type LoadId, type SlotId, type Surface, type SurfaceEvent, type SurfaceEvents, refusalOf } from "./surface.ts";
 
 /** The size of the window of a capture, in CSS pixels. */
@@ -83,7 +84,7 @@ export function pictureSurface(capture: Capture, { size = PICTURE_SIZE, kind = "
           else if (!isPicture(result.picture)) end(slot, load, { type: "failed", slot, load, url, reason: "network", detail: "The capture gave no PNG or JPEG picture." });
           else end(slot, load, { type: "shown", slot, load, url: result.url ?? url, picture: result.picture, ...(result.title === undefined ? {} : { title: result.title }) });
         },
-        (error: unknown) => end(slot, load, { type: "failed", slot, load, url, reason: "network", detail: error instanceof Error ? error.message : String(error) }),
+        (error: unknown) => end(slot, load, { type: "failed", slot, load, url, reason: "network", detail: errorMessage(error) }),
       );
       return load;
     },

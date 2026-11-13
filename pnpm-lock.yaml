@@ -232,6 +232,9 @@ importers:
       '@mark1russell7/layout-contract':
         specifier: ^0.10.0
         version: 0.10.0(zod@4.6.7)
+      '@mark1russell7/text':
+        specifier: ^0.0.5
+        version: 0.0.5
       '@pairrank/host':
         specifier: workspace:*
         version: link:../host
@@ -290,6 +293,9 @@ importers:
       '@mark1russell7/service':
         specifier: ^0.8.5
         version: 0.8.6(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@mark1russell7/text':
+        specifier: ^0.0.5
+        version: 0.0.5
       '@mark1russell7/vex':
         specifier: ^0.18.0
         version: 0.18.0
@@ -463,6 +469,9 @@ importers:
       '@mark1russell7/layout-contract':
         specifier: ^0.10.0
         version: 0.10.0(zod@4.6.7)
+      '@mark1russell7/text':
+        specifier: ^0.0.5
+        version: 0.0.5
       '@pairrank/input':
         specifier: workspace:*
         version: link:../input
@@ -488,6 +497,9 @@ importers:
       '@mark1russell7/layout-contract':
         specifier: ^0.10.0
         version: 0.10.0(zod@4.6.7)
+      '@mark1russell7/text':
+        specifier: ^0.0.5
+        version: 0.0.5
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -552,6 +564,9 @@ importers:
 
   packages/web:
     dependencies:
+      '@mark1russell7/text':
+        specifier: ^0.0.5
+        version: 0.0.5
       '@pairrank/host':
         specifier: workspace:*
         version: link:../host
@@ -989,6 +1004,10 @@ packages:
 
   '@mark1russell7/text@0.0.2':
     resolution: {integrity: sha512-m1aIB8X+PDekktzr1fYOp1/7gvlh9iL/2M7ktj/GnmPmVrWin0rTADgTm00dKFdWFRzXraCUYkjyCl3jQZHEVg==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/text@0.0.5':
+    resolution: {integrity: sha512-Ql1eBET3PgEBL5DWZHZ20GRZmorkq6mWdnfj21cqXfLvZdikO+GlvSAfbv1ld7YCnEqxOa7eg6ESfl+jzPGe9w==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/typeset@0.5.3':
@@ -2689,6 +2708,8 @@ snapshots:
       '@clack/prompts': 1.8.1
 
   '@mark1russell7/text@0.0.2': {}
+
+  '@mark1russell7/text@0.0.5': {}
 
   '@mark1russell7/typeset@0.5.3(zod@4.6.7)':
     dependencies:

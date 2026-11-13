@@ -9,6 +9,7 @@
  * of the debug port goes to the page and not to the menu. Thus the check clicks the item through the inspector of the
  * main process.
  */
+import { errorMessage } from "@mark1russell7/text";
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
@@ -161,7 +162,7 @@ try {
   say("The layout check passed.");
   code = 0;
 } catch (error) {
-  console.error(`The layout check failed: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`The layout check failed: ${errorMessage(error)}`);
 } finally {
   app.kill();
   sites.close();

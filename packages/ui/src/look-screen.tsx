@@ -2,10 +2,10 @@
  * The Look screen: the tag run. It shows the sites of a scope one at a time. The key of a tag puts the tag on the site
  * or removes it. The list of the run is fixed at its start, so a site stays in the run after a tag.
  */
+import { countOf } from "@mark1russell7/text";
 import type { SiteView, StateView, TagView } from "@pairrank/host/views";
 import type { Surface, SlotTracker } from "@pairrank/surfaces";
 import { type FormEvent, type ReactElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { countOf } from "./importing.ts";
 import {
   type RunScope,
   type RunStep,

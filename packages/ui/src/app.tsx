@@ -2,6 +2,7 @@
  * The interface of pairrank: a list of the sites, the tags, the import, the tag run and the duel. The tag run on the
  * Look screen shows one site at a time. The duel shows two sites side by side in the same frame.
  */
+import { countOf, errorMessage } from "@mark1russell7/text";
 import type { Draft } from "@pairrank/core";
 import type { SiteView, StateView } from "@pairrank/host/views";
 import { type Surface, trackSlots } from "@pairrank/surfaces";
@@ -11,7 +12,6 @@ import type { BookmarksApi, PairrankApi } from "./api.ts";
 import { DuelScreen } from "./duel-screen.tsx";
 import { ImportScreen } from "./import-screen.tsx";
 import { pageListOf } from "./page-list.ts";
-import { countOf } from "./importing.ts";
 import { LookScreen } from "./look-screen.tsx";
 import { type SiteList, SitesScreen } from "./sites-screen.tsx";
 import { TagsScreen, type Write } from "./tags.tsx";
@@ -35,10 +35,6 @@ export interface AppProps {
 /** This function gives the sites that are not hidden, in the order of the state. */
 export function visibleSites(view: StateView): readonly SiteView[] {
   return view.sites.filter((site) => !site.hidden);
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 /** The interface of pairrank. */
@@ -72,7 +68,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
       setView(await api.view());
       setError(undefined);
     } catch (failure) {
-      setError(messageOf(failure));
+      setError(errorMessage(failure));
     }
   }, [api]);
   useEffect(() => void reload(), [reload]);
@@ -84,7 +80,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
         await reload();
         return result.problems[0]?.message;
       } catch (failure) {
-        return messageOf(failure);
+        return errorMessage(failure);
       }
     },
     [api, reload],

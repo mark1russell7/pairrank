@@ -4,6 +4,7 @@
  * site refuses the frame. A site that refuses the frame shows as a still picture from the host.
  */
 /// <reference lib="dom" />
+import { errorMessage } from "@mark1russell7/text";
 import { type FrameCheckResult, iframeSurface, pictureSurface, withFallback, withLoadTimeout } from "@pairrank/surfaces";
 import { type Call, apiOf, bookmarksApiOf, captureApiOf, mount } from "@pairrank/ui";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client/browser";
@@ -18,7 +19,7 @@ async function check(url: string): Promise<FrameCheckResult> {
   try {
     return await call<FrameCheckResult>(["frames", "check"], { url });
   } catch (error) {
-    return { ok: false, reason: "network", detail: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: "network", detail: errorMessage(error) };
   }
 }
 

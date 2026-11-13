@@ -1,6 +1,6 @@
 import { MAX_BOOKMARKS_BYTES, parseChromeBookmarks } from "@pairrank/input";
 import { describe, expect, it } from "vitest";
-import { boxState, clickChoice, countOf, everyFolder, kindText, readChosenFile, rootsOf } from "./importing.ts";
+import { boxState, clickChoice, everyFolder, kindText, readChosenFile, rootsOf } from "./importing.ts";
 
 const FILE = {
   roots: {
@@ -49,8 +49,7 @@ describe("readChosenFile", () => {
 });
 
 describe("the words", () => {
-  it("gives a count with its noun, and the kind of a file", () => {
-    expect([countOf(1, "site"), countOf(0, "site"), countOf(1234, "site")]).toEqual(["1 site", "0 sites", "1,234 sites"]);
+  it("gives the kind of a file", () => {
     expect([kindText("profile"), kindText("account"), kindText("file")]).toEqual(["Bookmarks", "Account bookmarks, not synced", "Chosen file"]);
     expect(everyFolder("exclude")).toEqual({ otherwise: "exclude", folders: {} });
   });

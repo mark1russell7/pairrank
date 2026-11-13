@@ -2,11 +2,12 @@
  * The import of the Chrome bookmarks, in three steps. First the user chooses the files. Then the user includes or
  * excludes folders. Then the user reviews the import. The folders choose the sites, and they do not become tags.
  */
+import { countOf, errorMessage } from "@mark1russell7/text";
 import type { ImportPreview, ImportResult } from "@pairrank/host/views";
 import { type BookmarkFolder, type BookmarkSource, type FolderChoice, type FolderSelection, ALL_FOLDERS, choicesOf, choose, chromeSiteList, includedCounts } from "@pairrank/input";
 import { type ChangeEvent, type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import type { BookmarksApi, PairrankApi } from "./api.ts";
-import { type Book, type BoxState, boxState, clickChoice, countOf, everyFolder, kindText, readChosenFile, rootsOf } from "./importing.ts";
+import { type Book, type BoxState, boxState, clickChoice, everyFolder, kindText, readChosenFile, rootsOf } from "./importing.ts";
 
 /** The properties of the import screen. */
 export interface ImportProps {
@@ -26,10 +27,6 @@ const STEPS: readonly { readonly step: Step; readonly name: string }[] = [
   { step: "folders", name: "Choose the folders" },
   { step: "review", name: "Review and import" },
 ];
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /** The list of the steps, with the current step. */
 function Steps({ step }: { readonly step: Step }): ReactElement {
@@ -128,7 +125,7 @@ export function ImportScreen({ api, bookmarks, reload, leave }: ImportProps): Re
       (error: unknown) => {
         if (!live) return;
         setSources([]);
-        setProblems([`The app could not look for the Chrome profiles. ${messageOf(error)}`]);
+        setProblems([`The app could not look for the Chrome profiles. ${errorMessage(error)}`]);
       },
     );
     return () => {
@@ -159,7 +156,7 @@ export function ImportScreen({ api, bookmarks, reload, leave }: ImportProps): Re
         setPicked((now) => [...now, book]);
         setChosen((now) => new Set([...now, book.source.id]));
       } catch (error) {
-        found.push(messageOf(error));
+        found.push(errorMessage(error));
       }
     }
     setProblems(found);
@@ -178,7 +175,7 @@ export function ImportScreen({ api, bookmarks, reload, leave }: ImportProps): Re
       try {
         read.push({ source, read: await (bookmarks as BookmarksApi).read(source.id) });
       } catch (error) {
-        found.push(`${source.name}: ${messageOf(error)}`);
+        found.push(`${source.name}: ${errorMessage(error)}`);
       }
     }
     setBusy(false);
@@ -197,7 +194,7 @@ export function ImportScreen({ api, bookmarks, reload, leave }: ImportProps): Re
       setProblems([]);
       setStep("review");
     } catch (error) {
-      setProblems([`The app could not prepare the import. ${messageOf(error)}`]);
+      setProblems([`The app could not prepare the import. ${errorMessage(error)}`]);
     }
     setBusy(false);
   };
@@ -211,7 +208,7 @@ export function ImportScreen({ api, bookmarks, reload, leave }: ImportProps): Re
       await reload();
       setStep("done");
     } catch (error) {
-      setProblems([`The app did not import the sites. ${messageOf(error)}`]);
+      setProblems([`The app did not import the sites. ${errorMessage(error)}`]);
     }
     setBusy(false);
   };

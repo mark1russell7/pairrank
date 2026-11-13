@@ -4,6 +4,7 @@
  * module, and it has no code of a host.
  */
 import { PreemptedError, preemptivePool } from "@mark1russell7/service/channel";
+import { errorMessage } from "@mark1russell7/text";
 import { type Capture, type CaptureResult, MAX_URL, type PictureSize } from "@pairrank/surfaces";
 import { isWebUrl } from "@pairrank/input";
 import { type ProcedureModule, createProcedure, defineModule, typed } from "@procedures/client";
@@ -30,9 +31,6 @@ export const REPLACED = "A newer capture replaced this capture.";
 /** The detail of a capture that the host stopped. */
 export const STOPPED = "The host stopped the capture.";
 
-/** This function gives the text of an error. */
-const textOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
 /**
  * This function gives captures that operate `max` at a time. A new capture stops the oldest capture, because the page
  * ignores the picture of an earlier load. Thus a fast change of sites does not start many windows or browsers. The pool is
@@ -45,7 +43,7 @@ export function capturePool(run: StoppableCapture, max: number): CapturePool {
   const pool = preemptivePool(max);
   const failure = (error: unknown): CaptureResult => {
     // The pool stops the oldest capture with its own error. The page gets the text of this app.
-    return { ok: false, reason: "network", detail: error instanceof PreemptedError ? REPLACED : textOf(error) };
+    return { ok: false, reason: "network", detail: error instanceof PreemptedError ? REPLACED : errorMessage(error) };
   };
   return {
     capture: (url, size) => pool.run((signal) => run(url, size, signal)).catch(failure),

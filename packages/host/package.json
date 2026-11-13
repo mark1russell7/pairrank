@@ -27,6 +27,7 @@
     "@mark1russell7/rigor-generators": "^0.1.12",
     "@mark1russell7/rigor-statistics": "^0.1.27",
     "@mark1russell7/service": "^0.8.5",
+    "@mark1russell7/text": "^0.0.5",
     "@mark1russell7/vex": "^0.18.0",
     "@mark1russell7/vex-domains": "^0.18.0",
     "@pairrank/core": "workspace:*",

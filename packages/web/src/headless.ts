@@ -9,6 +9,7 @@
  * - A headless browser also writes a picture of its own error page. The page sends only a refused site to the capture,
  *   and a refused site answered the frame check. Thus the site is on the network.
  */
+import { errorMessage } from "@mark1russell7/text";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -51,9 +52,6 @@ export interface HeadlessCaptureOptions {
   readonly now?: () => number;
 }
 
-/** This function gives the text of an error. */
-const textOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
 /**
  * This function gives a capture with a headless browser. Each capture writes its picture in a new temporary folder,
  * and deletes the folder when it ends, also after a failure or a stop.
@@ -76,7 +74,7 @@ export function headlessCapture({ render, timeoutMs, budgetMs = CAPTURE_BUDGET_M
     } catch (error) {
       if (signal.aborted) return stopped();
       if (now() - start >= timeoutMs) return { ok: false, reason: "timeout", detail: `No picture in ${timeoutMs} ms.` };
-      return { ok: false, reason: "network", detail: textOf(error) };
+      return { ok: false, reason: "network", detail: errorMessage(error) };
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

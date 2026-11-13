@@ -2,6 +2,7 @@
  * The mode editor of the duel screen. A mode has a name, a pool of sites (a tag query) and the picks that each pair
  * asks. The editor takes the place of the two sites, because the views of the sites cover each panel above them.
  */
+import { errorMessage } from "@mark1russell7/text";
 import type { Ask, ModeId } from "@pairrank/core";
 import type { ModeView, StateView, TagView } from "@pairrank/host/views";
 import { type ReactElement, useEffect, useId, useMemo, useState } from "react";
@@ -71,7 +72,7 @@ export function ModeEditor({ api, view, mode, newId, close, reload }: ModeEditor
       await reload();
       close(after);
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : String(error));
+      setFailure(errorMessage(error));
     } finally {
       setBusy(false);
     }
