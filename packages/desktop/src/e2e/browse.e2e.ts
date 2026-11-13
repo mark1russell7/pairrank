@@ -23,7 +23,7 @@ import { type Connection, connect, freePort, say, sleep, targetsOf, until } from
 /** The pages of the site. The first page goes to `/a` with a script, and `/a` has a link and a link to a new window. */
 const PAGES: Readonly<Record<string, string>> = {
   "/start": `<title>Start</title><script>location.replace("/a")</script>`,
-  "/a": `<title>Site A</title><a id="next" href="/b" onclick="window.clicks = (window.clicks ?? 0) + 1">Next</a> <a id="win" href="/c" target="_blank">Window</a>`,
+  "/a": `<title>Site A</title><a id="next" href="/b" onclick="window.clicks = (window.clicks ?? 0) + 1; window.clickedAt = window.clickedAt ?? performance.now()">Next</a> <a id="win" href="/c" target="_blank">Window</a>`,
   "/b": `<title>Site B</title><h1>B</h1>`,
   "/c": `<title>Site C</title><h1>C</h1>`,
 };
@@ -95,22 +95,42 @@ async function follow(id: string): Promise<void> {
   site.close();
 }
 
-/** This function clicks a link of the site with the mouse. Electron sees the input, so the lock arms at once. */
-async function mouseClick(id: string): Promise<void> {
-  const site = await siteA();
-  const { x, y } = await site.evaluate<{ x: number; y: number }>(
-    `(() => { const r = document.getElementById(${JSON.stringify(id)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`,
-  );
-  for (const type of ["mousePressed", "mouseReleased"]) await site.send("Input.dispatchMouseEvent", { type, x, y, button: "left", clickCount: 1 });
-  site.close();
-}
+/** The most clicks of the mouse that `mouseClick` sends. Chromium ignores the input of a page until its first paint. */
+const CLICK_TRIES = 5;
 
-/** This function gives the count of the clicks on the link `next` of the page `/a`. */
-async function clicks(): Promise<unknown> {
+/**
+ * This function clicks a link of the site with the mouse. Electron sees the input, so the lock arms at once. The function
+ * waits for two frames of the loaded page, because Chromium ignores the input before the first paint. It clicks again
+ * until the link counts a click. It gives the time of the first click from the start of the load of the page.
+ */
+async function mouseClick(id: string): Promise<number> {
   const site = await siteA();
-  const count = await site.evaluate<unknown>("window.clicks ?? 0");
-  site.close();
-  return count;
+  try {
+    const center = await until(`the link ${id} of a painted page`, async () => {
+      const value = await site.send("Runtime.evaluate", {
+        expression: `new Promise((done) => {
+          const link = document.getElementById(${JSON.stringify(id)});
+          if (document.readyState !== 'complete' || !link) return done(undefined);
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            const r = link.getBoundingClientRect();
+            done({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
+          }));
+        })`,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+      return (value ?? undefined) as { x: number; y: number } | undefined;
+    });
+    for (let tries = 1; tries <= CLICK_TRIES; tries++) {
+      for (const type of ["mousePressed", "mouseReleased"]) await site.send("Input.dispatchMouseEvent", { type, ...center, button: "left", clickCount: 1 });
+      const at = await site.evaluate<unknown>("window.clickedAt");
+      if (typeof at === "number") return at;
+      await sleep(200);
+    }
+    throw new Error(`The link ${id} counted no click of the mouse in ${CLICK_TRIES} tries.`);
+  } finally {
+    site.close();
+  }
 }
 
 const LOCK = ".slot-bar [role=switch]";
@@ -170,10 +190,11 @@ try {
   await pagesAre(["/a"]);
 
   // A click of the mouse arms the lock at once, before the quiet time ends
-  await mouseClick("next");
+  const clickedAt = Math.round(await mouseClick("next"));
+  say(`the click of the mouse came ${String(clickedAt)} ms after the start of the load`);
+  if (clickedAt >= SETTLE_MS) throw new Error(`The click came after the quiet time (${String(clickedAt)} ms), so it does not examine the arm at a click.`);
   await sleep(1000);
   await pagesAre(["/a"]);
-  await until("click on the link", async () => ((await clicks()) === 1 ? true : undefined));
   await appShows(page, "the notice", `(${text(".slot-notice-text")} ?? "").startsWith("The lock kept the site on its page")`, true);
   page.close();
   say("The check of the lock and the tabs passed.");
