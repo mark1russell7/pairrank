@@ -257,8 +257,10 @@ nav button[aria-pressed="true"] {
   font-size: 0.85rem;
 }
 
-/* The mix of an order by rating: a slider of five levels, the words of the level, and a new draw */
-.mix {
+/* The mix of an order by rating: a slider of five levels, the words of the level, and a new draw.
+   The model of an order by rating: a choice, and the result of the test of the models. */
+.mix,
+.model {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -285,7 +287,25 @@ nav button[aria-pressed="true"] {
   font-weight: 600;
 }
 
-.mix .help {
+.model-setting {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--quiet);
+}
+
+.model-setting select {
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--mat);
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+}
+
+.mix .help,
+.model .help {
   flex: 1 1 16rem;
   color: var(--quiet);
   font-size: 0.85rem;

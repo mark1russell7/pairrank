@@ -6,7 +6,7 @@
  */
 import { type Draft, type ModeId, type Scope, type TagId, parseDraft, parseQuery, queryText, stamp } from "@pairrank/core";
 import { parseSiteList, planImport } from "@pairrank/input";
-import { type Ladder, type ModelChoice, type ModelName, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
+import { type Ladder, type ModelChoice, type ModelSetting, choosePair, ladderOf, pairableOf, selectModel } from "@pairrank/ratings";
 import type { Store } from "@pairrank/store";
 import { modePair } from "./modes.ts";
 import { MAX_TEMPERATURE, viewerOf } from "./viewer.ts";
@@ -24,10 +24,10 @@ export interface ModuleOptions {
   readonly now?: () => string;
 }
 
-const MODEL_ERROR = "The model must be bradley-terry, elo or glicko2.";
+const MODEL_ERROR = "The model must be best, bradley-terry, elo or glicko2.";
 
-/** The name of a rating model. */
-const ModelSchema: z.ZodType<ModelName> = z.enum(["bradley-terry", "elo", "glicko2"], { error: MODEL_ERROR });
+/** The model setting: the name of a rating model, or `best` for the model that the test of the scope chooses. */
+const ModelSchema: z.ZodType<ModelSetting> = z.enum(["best", "bradley-terry", "elo", "glicko2"], { error: MODEL_ERROR });
 
 const SCOPE_ERROR = "The scope must be { kind: overall } or { kind: tag, tag }, with the id of a tag.";
 
@@ -58,7 +58,7 @@ const LadderInput = z.strictObject({ scope: ScopeSchema, model: ModelSchema.exac
 const MAX_RECENT = 200;
 
 /** The input of `pairrank.pair`: a scope, or the id of a saved mode. */
-type PairInputValue = ({ scope: Scope; mode?: undefined } | { mode: ModeId; scope?: undefined }) & { seed: number | string; recent: [string, string][]; model?: ModelName };
+type PairInputValue = ({ scope: Scope; mode?: undefined } | { mode: ModeId; scope?: undefined }) & { seed: number | string; recent: [string, string][]; model?: ModelSetting };
 
 const PairInput = z
   .strictObject({

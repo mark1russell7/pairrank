@@ -5,7 +5,7 @@
 import type { Draft, ModeId, Scope } from "@pairrank/core";
 import type { BookmarkSource, ChromeBookmarks } from "@pairrank/input";
 import type { ApplyResult, DuelPair, ImportPreview, ImportResult, StateView, ViewerAnswer, ViewerOrder } from "@pairrank/host/views";
-import type { Ladder, ModelChoice, ModelName } from "@pairrank/ratings";
+import type { Ladder, ModelChoice, ModelSetting } from "@pairrank/ratings";
 import type { Capture, CaptureResult } from "@pairrank/surfaces";
 
 /** A function that calls the procedure at a path with an input, and gives its value. */
@@ -21,8 +21,8 @@ export interface PairrankApi {
   planImport(list: unknown): Promise<ImportPreview>;
   /** This function imports a site list. */
   importList(list: unknown): Promise<ImportResult>;
-  /** This function gives the ladder of a scope. */
-  ladder(scope: Scope, model?: ModelName): Promise<Ladder>;
+  /** This function gives the ladder of a scope with a model, or with the best model of its test. The default is Bradley-Terry. */
+  ladder(scope: Scope, model?: ModelSetting): Promise<Ladder>;
   /** This function compares the models of a scope by the log-loss on its last picks. */
   model(scope: Scope): Promise<ModelChoice>;
   /**
@@ -30,8 +30,11 @@ export interface PairrankApi {
    * there is no pair.
    */
   pair(source: Scope | ModeId, seed: number | string, recent?: readonly (readonly [string, string])[]): Promise<DuelPair | null>;
-  /** This function gives the sites that agree with the text of a tag query, in an order, or the problem of the text. */
-  viewer(query: string, order: ViewerOrder): Promise<ViewerAnswer>;
+  /**
+   * This function gives the sites that agree with the text of a tag query, in an order, or the problem of the text. An
+   * order by rating uses the model. The default is Bradley-Terry.
+   */
+  viewer(query: string, order: ViewerOrder, model?: ModelSetting): Promise<ViewerAnswer>;
 }
 
 /** This function gives the procedures of the host over one function `call`. */
@@ -44,7 +47,7 @@ export function apiOf(call: Call): PairrankApi {
     ladder: (scope, model) => call<Ladder>(["pairrank", "ladder"], model === undefined ? { scope } : { scope, model }),
     model: (scope) => call<ModelChoice>(["pairrank", "model"], { scope }),
     pair: (source, seed, recent = []) => call<DuelPair | null>(["pairrank", "pair"], { ...(typeof source === "string" ? { mode: source } : { scope: source }), seed, recent }),
-    viewer: (query, order) => call<ViewerAnswer>(["pairrank", "viewer"], { query, order }),
+    viewer: (query, order, model) => call<ViewerAnswer>(["pairrank", "viewer"], model === undefined ? { query, order } : { query, order, model }),
   };
 }
 

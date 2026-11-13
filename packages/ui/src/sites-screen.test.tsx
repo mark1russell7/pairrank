@@ -8,7 +8,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, describe, expect, it } from "vitest";
 import { type Call, type PairrankApi, apiOf } from "./api.ts";
 import { App } from "./app.tsx";
-import { FIRST_SETTINGS, MIX_LEVELS, mixLevelOf, orderChoices, orderOf, ratingText } from "./viewer.ts";
+import { FIRST_SETTINGS, MIX_LEVELS, mixLevelOf, modelHelp, orderChoices, orderOf, ratingText } from "./viewer.ts";
 
 afterEach(cleanup);
 
@@ -19,12 +19,15 @@ const SEED = 1;
 const [ALPHA, BETA, GAMMA] = ["id1", "id2", "id3"];
 const [NEWS, LATER] = ["news", "later"];
 
-/** The host with four sites and two tags. Alpha and Beta have News, and Beta and Gamma have Read later. */
-async function setup(more: readonly Draft[] = []): Promise<{ api: PairrankApi; memory: Memory }> {
+/**
+ * The host with four sites and two tags. Alpha and Beta have News, and Beta and Gamma have Read later. The drafts
+ * `more` follow. A call of a path in `refuse` fails with the text "The host is busy.".
+ */
+async function setup(more: readonly Draft[] = [], refuse: readonly string[] = []): Promise<{ api: PairrankApi; memory: Memory }> {
   const store = openStore(":memory:");
   let n = 0;
   const caller = callerOf(pairrankModule(store, { key: (address) => address.replace(/\/$/, ""), id: () => `id${++n}`, now: () => "2026-11-08T12:00:00Z" }));
-  const call: Call = (path, input) => caller(path, input);
+  const call: Call = (path, input) => (refuse.includes(path.join(".")) ? Promise.reject(new Error("The host is busy.")) : caller(path, input));
   const api = apiOf(call);
   const sites = ["Alpha", "Beta", "Gamma", "Delta"].map((title) => ({ url: `https://${title.toLowerCase()}.example/`, title }));
   await api.importList({ format: "pairrank.sites", version: 1, source: "test", sites });
@@ -48,6 +51,12 @@ const names = () => within(screen.getByRole("list")).queryAllByRole("button").ma
 const query = () => screen.getByRole("textbox", { name: "Filter by tags" }) as HTMLInputElement;
 const order = () => screen.getByRole("combobox", { name: "Order of the sites" }) as HTMLSelectElement;
 const pick = (a: string, b: string, tag?: string): Draft => ({ type: "pick", a, b, scope: tag === undefined ? { kind: "overall" } : { kind: "tag", tag }, outcome: "a" });
+/** Picks of the overall ladder, enough for a test of the models: Alpha beats Beta and Gamma, and Beta beats Gamma, with some upsets. */
+const tested = (count: number): Draft[] =>
+  Array.from({ length: count }, (_, i): Draft => {
+    const [a, b] = ([[ALPHA, BETA], [BETA, GAMMA], [ALPHA, GAMMA]] as const)[i % 3] as readonly [string, string];
+    return { type: "pick", a, b, scope: { kind: "overall" }, outcome: i % 7 === 6 ? "b" : "a" };
+  });
 
 describe("the settings of the viewer", () => {
   it("gives the order of each choice", () => {
@@ -88,6 +97,24 @@ describe("the settings of the viewer", () => {
     ];
     expect(orderChoices(tags).map((choice) => choice.name)).toEqual(["Newest first", "Title", "Rating overall", "Rating in Apple", "Rating in Zebra", "Mean rating of tags"]);
     expect([ratingText(1623.4, 44.6), ratingText(1500, undefined)]).toEqual(["1623 ± 45", "1500"]);
+  });
+
+  it("tells the test of the models, for one ladder and for more ladders", () => {
+    expect(FIRST_SETTINGS.model).toBe("best");
+    expect(modelHelp("best", 2, undefined)).toBe("The test of each tag chooses the model of its ladder.");
+    expect(modelHelp("elo", 3, undefined)).toBe("Each ladder uses Elo.");
+    expect(modelHelp("best", 1, undefined)).toBe("");
+    expect(modelHelp("best", 1, { model: "bradley-terry", scores: [], trained: 1, tested: 0 })).toBe(
+      "The ladder has 1 pick. A test of the models needs more picks, so the best model is Bradley-Terry.",
+    );
+    const scores = [
+      { model: "glicko2", logLoss: 0.5 },
+      { model: "elo", logLoss: 0.61234 },
+      { model: "bradley-terry", logLoss: 0.7 },
+    ] as const;
+    expect(modelHelp("elo", 1, { model: "glicko2", scores: [...scores], trained: 48, tested: 12 })).toBe(
+      "The test chooses Glicko-2. The log-loss on the last 12 picks is Glicko-2 0.500, Elo 0.612, Bradley-Terry 0.700. A lower log-loss is better.",
+    );
   });
 });
 
@@ -150,6 +177,40 @@ describe("the viewer on the Sites screen", () => {
 
     fireEvent.change(slider, { target: { value: "0" } });
     await waitFor(() => expect(names()).toEqual(["Beta", "Alpha", "Gamma", "Delta"]));
+  });
+
+  it("shows the test of the models of a ladder, and orders by the model of a choice", async () => {
+    await setup([...tested(36), pick(BETA, ALPHA, NEWS), pick(BETA, ALPHA, NEWS)]);
+    expect(screen.queryByRole("combobox", { name: "Model" })).toBeNull();
+    fireEvent.change(order(), { target: { value: "overall" } });
+    const model = (await screen.findByRole("combobox", { name: "Model" })) as HTMLSelectElement;
+    expect(model.value).toBe("best");
+    await screen.findByText(/^The test chooses (Bradley-Terry|Elo|Glicko-2)\. The log-loss on the last \d+ picks is /);
+    await waitFor(() => expect(names()[0]).toBe("Alpha"));
+
+    // Bradley-Terry gives a standard error, and Elo gives none, so no rating of Elo has a ±
+    const scores = () => [...document.querySelectorAll(".site-score")].map((each) => each.textContent);
+    fireEvent.change(model, { target: { value: "bradley-terry" } });
+    await waitFor(() => expect(scores().every((score) => score?.includes("±"))).toBe(true));
+    fireEvent.change(model, { target: { value: "elo" } });
+    await waitFor(() => expect(scores().every((score) => /^\d+$/.test(score ?? ""))).toBe(true));
+    // The test does not change with the choice
+    expect(screen.getByText(/^The test chooses /)).toBeTruthy();
+
+    fireEvent.change(order(), { target: { value: `tag:${NEWS}` } });
+    await screen.findByText("The ladder has 2 picks. A test of the models needs more picks, so the best model is Bradley-Terry.");
+    fireEvent.change(order(), { target: { value: "mean" } });
+    fireEvent.click(within(screen.getByRole("group", { name: "Tags of the mean" })).getByRole("button", { name: "News" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Tags of the mean" })).getByRole("button", { name: "Read later" }));
+    expect(await screen.findByText("Each ladder uses Elo.")).toBeTruthy();
+  });
+
+  it("tells a failure of the test of the models", async () => {
+    await setup([pick(BETA, ALPHA)], ["pairrank.model"]);
+    fireEvent.change(order(), { target: { value: "overall" } });
+    const help = await screen.findByText("The test of the models failed. The host is busy.");
+    expect(help.getAttribute("role")).toBe("alert");
+    await waitFor(() => expect(names()[0]).toBe("Beta"));
   });
 
   it("orders by the mean over the chosen tags, and by title until a tag is chosen", async () => {
