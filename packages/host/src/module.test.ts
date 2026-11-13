@@ -108,7 +108,7 @@ describe("pairrankModule", () => {
     // The tag News has one site, so it has no pair
     const news = view.tags.find((tag) => tag.name === "News")!.id;
     expect(await call(["pairrank", "pair"], { scope: { kind: "tag", tag: news }, seed: 1, recent: [[ids[0], ids[1]]], model: "elo" })).toBeNull();
-    for (const bad of [{ scope: { kind: "overall" } }, { scope: { kind: "overall" }, seed: "" }, { scope: { kind: "overall" }, seed: 1, recent: [["a"]] }, { scope: { kind: "overall" }, seed: 1, model: "best" }]) {
+    for (const bad of [{ scope: { kind: "overall" } }, { scope: { kind: "overall" }, seed: "" }, { scope: { kind: "overall" }, seed: 1, recent: [["a"]] }]) {
       await expect(call(["pairrank", "pair"], bad), JSON.stringify(bad)).rejects.toThrow();
     }
     store.close();

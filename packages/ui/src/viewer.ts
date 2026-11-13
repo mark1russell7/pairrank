@@ -30,17 +30,15 @@ export interface ModelOption {
   readonly name: string;
 }
 
+/** The name of each model setting. */
+const MODEL_NAMES: Readonly<Record<ModelSetting, string>> = { best: "Best by test", "bradley-terry": "Bradley-Terry", elo: "Elo", glicko2: "Glicko-2" };
+
 /** The choices of the model, from the best model of each ladder. */
-export const MODEL_CHOICES: readonly ModelOption[] = [
-  { value: "best", name: "Best by test" },
-  { value: "bradley-terry", name: "Bradley-Terry" },
-  { value: "elo", name: "Elo" },
-  { value: "glicko2", name: "Glicko-2" },
-];
+export const MODEL_CHOICES: readonly ModelOption[] = Object.entries(MODEL_NAMES).map(([value, name]) => ({ value: value as ModelSetting, name }));
 
 /** This function gives the name of a model setting. */
 export function modelName(model: ModelSetting): string {
-  return MODEL_CHOICES.find((choice) => choice.value === model)?.name ?? model;
+  return MODEL_NAMES[model];
 }
 
 /**

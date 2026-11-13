@@ -19,12 +19,15 @@ const SEED = 1;
 const [ALPHA, BETA, GAMMA] = ["id1", "id2", "id3"];
 const [NEWS, LATER] = ["news", "later"];
 
-/** The host with four sites and two tags. Alpha and Beta have News, and Beta and Gamma have Read later. */
-async function setup(more: readonly Draft[] = []): Promise<{ api: PairrankApi; memory: Memory }> {
+/**
+ * The host with four sites and two tags. Alpha and Beta have News, and Beta and Gamma have Read later. The drafts
+ * `more` follow. A call of a path in `refuse` fails with the text "The host is busy.".
+ */
+async function setup(more: readonly Draft[] = [], refuse: readonly string[] = []): Promise<{ api: PairrankApi; memory: Memory }> {
   const store = openStore(":memory:");
   let n = 0;
   const caller = callerOf(pairrankModule(store, { key: (address) => address.replace(/\/$/, ""), id: () => `id${++n}`, now: () => "2026-11-08T12:00:00Z" }));
-  const call: Call = (path, input) => caller(path, input);
+  const call: Call = (path, input) => (refuse.includes(path.join(".")) ? Promise.reject(new Error("The host is busy.")) : caller(path, input));
   const api = apiOf(call);
   const sites = ["Alpha", "Beta", "Gamma", "Delta"].map((title) => ({ url: `https://${title.toLowerCase()}.example/`, title }));
   await api.importList({ format: "pairrank.sites", version: 1, source: "test", sites });
@@ -200,6 +203,14 @@ describe("the viewer on the Sites screen", () => {
     fireEvent.click(within(screen.getByRole("group", { name: "Tags of the mean" })).getByRole("button", { name: "News" }));
     fireEvent.click(within(screen.getByRole("group", { name: "Tags of the mean" })).getByRole("button", { name: "Read later" }));
     expect(await screen.findByText("Each ladder uses Elo.")).toBeTruthy();
+  });
+
+  it("tells a failure of the test of the models", async () => {
+    await setup([pick(BETA, ALPHA)], ["pairrank.model"]);
+    fireEvent.change(order(), { target: { value: "overall" } });
+    const help = await screen.findByText("The test of the models failed. The host is busy.");
+    expect(help.getAttribute("role")).toBe("alert");
+    await waitFor(() => expect(names()[0]).toBe("Beta"));
   });
 
   it("orders by the mean over the chosen tags, and by title until a tag is chosen", async () => {
