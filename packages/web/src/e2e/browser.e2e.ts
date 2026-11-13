@@ -21,6 +21,7 @@ import { join } from "node:path";
 import { fakeProcess } from "@mark1russell7/service/testing";
 import { capturePool } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
+import { SETTLE_MS } from "@pairrank/surfaces";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client";
 import { createHostFetch } from "@procedures/http";
 import { runProcedureHost } from "@procedures/server";
@@ -57,8 +58,13 @@ async function connect(target: Target): Promise<{ evaluate: <T>(expression: stri
   let next = 0;
   const waiting = new Map<number, (value: unknown) => void>();
   socket.addEventListener("message", (message) => {
-    const data = JSON.parse(String(message.data)) as { id?: number; result?: { result?: { value?: unknown } } };
-    if (data.id !== undefined) waiting.get(data.id)?.(data.result?.result?.value);
+    const data = JSON.parse(String(message.data)) as { id?: unknown; result?: { result?: { value?: unknown } } };
+    // The message comes from outside, so only a number of a waiting call gives a function
+    if (typeof data.id !== "number") return;
+    const done = waiting.get(data.id);
+    if (typeof done !== "function") return;
+    waiting.delete(data.id);
+    done(data.result?.result?.value);
   });
   return {
     evaluate: <T>(expression: string) =>
@@ -175,6 +181,8 @@ const NOTICE = `document.querySelector('.slot-notice-text')?.textContent ?? ''`;
 async function examineLock(view: Page): Promise<void> {
   const lock = `document.querySelector('.slot-bar [role=switch]')`;
   await until("locked slot", async () => ((await view.evaluate<string | null>(`${lock}?.getAttribute('aria-checked') ?? null`)) === "true" ? true : undefined));
+  // A load soon after the last load is a redirect of the site, so the move waits for the quiet time
+  await sleep(SETTLE_MS + 500);
   await view.evaluate(moveTo("/a?moved"));
   await until("return of the frame to the site", async () => (requests.slice(requests.indexOf("/a?moved") + 1).includes("/a") && requests.includes("/a?moved") ? true : undefined));
   await until("notice of the lock", async () => ((await view.evaluate<string>(NOTICE)).startsWith("The lock kept the site on its page") ? true : undefined));

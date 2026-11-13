@@ -137,6 +137,14 @@ export const MAX_TABS = 8;
  */
 export type NavigationDecision = "allow" | "refuse" | "block";
 
+/** The inputs that arm the lock at once. Each is a press of a key, a mouse button, a finger or a pen. */
+const ARMING_INPUTS: ReadonlySet<string> = new Set(["mouseDown", "rawKeyDown", "keyDown", "touchStart", "gestureTapDown", "pointerDown"]);
+
+/** This function tells if an input event of a view arms the lock of its tab. A move or a scroll does not arm it. */
+export function armsLock(type: string): boolean {
+  return ARMING_INPUTS.has(type);
+}
+
 /**
  * This function decides a navigation that a site starts in its view: a click, a script or a form. A tab that is still
  * in its first load is not armed, so the redirects of that load go on. After the first load, a locked slot blocks each

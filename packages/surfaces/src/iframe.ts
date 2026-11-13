@@ -4,7 +4,7 @@
  * response of the site, and tells if the site refuses a frame.
  */
 import type { Rect } from "@mark1russell7/layout-contract";
-import { type BrowseState, type FailReason, type LoadId, type SlotId, type Surface, type SurfaceEvent, type SurfaceListener, refusalOf } from "./surface.ts";
+import { type BrowseState, type FailReason, type LoadId, SETTLE_MS, type SlotId, type Surface, type SurfaceEvent, type SurfaceListener, refusalOf } from "./surface.ts";
 
 /** The result of a check of a site: the site accepts a frame, or the reason of a failure. */
 export type FrameCheckResult =
@@ -46,6 +46,8 @@ export interface IframeOptions {
   /** The function that makes the frames. The host gives it, because this package has no DOM. */
   readonly frames: MakeFrame;
   readonly kind?: string;
+  /** The clock of the lock, in milliseconds. The default is `Date.now`. */
+  readonly now?: () => number;
 }
 
 /** The most times that a locked frame goes back to its site in one load. A site that leaves again after that stays where it went. */
@@ -61,6 +63,10 @@ interface Entry {
   returns: number;
   /** The count of the `load` events still to come from these loads and from `home`. They are not navigations of the site. */
   skip: number;
+  /** The first load of the site ended, so a later `load` event is a navigation of the site. A load by the surface makes it false again. */
+  armed: boolean;
+  /** The time of the last `load` event of the frame. */
+  last: number;
 }
 
 /** The lock of the open load of a slot. */
@@ -80,12 +86,14 @@ function browseOf({ url, locked }: Lock): BrowseState {
  * gives `failed`. Else the surface makes a frame of the address, and its first `load` event gives `shown`. The page
  * of a cross-origin frame is not visible to the surface, so `shown` has no title, and a navigation gives no event.
  *
- * Each load starts locked. A locked frame opens no window. A later `load` event of a locked frame is a navigation of the
- * site. Then the surface loads the address of the site again, and sends `blocked`. The action `lock` changes the lock,
- * and `home` loads the site again. The surface ignores the other actions, because a frame of another origin hides its
+ * Each load starts locked. A locked frame opens no window. A `load` event within `SETTLE_MS` of the last `load` event is
+ * a redirect of a script, until the first quiet time. After that, a `load` event of a locked frame is a navigation of the
+ * site. Then the surface loads the address of the site again, and sends `blocked`.
+ *
+ * The action `lock` changes the lock, and `home` loads the site again. The surface ignores the other actions, because a frame of another origin hides its
  * tabs and its history.
  */
-export function iframeSurface({ check, frames, kind = "iframe" }: IframeOptions): Surface {
+export function iframeSurface({ check, frames, kind = "iframe", now = Date.now }: IframeOptions): Surface {
   const listeners = new Set<SurfaceListener>();
   const counts = new Map<SlotId, LoadId>();
   /** The open check of each slot, by its load. */
@@ -108,6 +116,9 @@ export function iframeSurface({ check, frames, kind = "iframe" }: IframeOptions)
     const frame = frames(url, () => {
       const entry = entries.get(slot);
       if (entry?.load !== load) return;
+      const time = now();
+      const quiet = time - entry.last;
+      entry.last = time;
       if (!entry.ended) {
         entry.ended = true;
         emit({ type: "shown", slot, load, url: shownUrl });
@@ -120,14 +131,18 @@ export function iframeSurface({ check, frames, kind = "iframe" }: IframeOptions)
         entry.skip -= 1;
         return;
       }
+      // A load soon after the last load is a redirect of a script, so it is a part of the first load
+      if (!entry.armed && quiet < SETTLE_MS) return;
+      entry.armed = true;
       const lock = locks.get(slot);
       if (lock?.load !== load || !lock.locked || entry.returns >= MAX_RETURNS) return;
       entry.returns += 1;
       entry.skip += 1;
+      entry.armed = false;
       entry.frame.reload();
       emit({ type: "blocked", slot, load, blocked: { kind: "page" } });
     });
-    entries.set(slot, { frame, load, ended: false, returns: 0, skip: 0 });
+    entries.set(slot, { frame, load, ended: false, returns: 0, skip: 0, armed: false, last: now() });
     if (locks.get(slot)?.locked === false) frame.lock(false);
     frame.place(boxes.get(slot));
   };
@@ -186,6 +201,7 @@ export function iframeSurface({ check, frames, kind = "iframe" }: IframeOptions)
         emit({ type: "browse", slot, load: lock.load, browse: browseOf(lock) });
       } else if (action.type === "home" && entry?.load === lock.load && entry.ended) {
         entry.skip += 1;
+        entry.armed = false;
         entry.frame.reload();
       }
     },

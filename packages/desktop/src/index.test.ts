@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, captureWindowOptions, contentType, failureOf, navigationOf, pageFile, returnsKeys, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
+import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, armsLock, captureWindowOptions, contentType, failureOf, navigationOf, pageFile, returnsKeys, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
 
 const root = resolve("build", "page");
 
@@ -85,6 +85,11 @@ describe("the views of the sites", () => {
     expect(navigationOf(next, false, true)).toBe("allow");
     // A target that is not a web address is refused, locked or not
     for (const [locked, armed] of [[true, true], [false, false]] as const) expect(navigationOf("file:///C:/secret.txt", locked, armed)).toBe("refuse");
+  });
+
+  it("arm the lock at a press of the person, and not at a move or a scroll", () => {
+    for (const type of ["mouseDown", "rawKeyDown", "keyDown", "touchStart", "gestureTapDown", "pointerDown"]) expect(armsLock(type), type).toBe(true);
+    for (const type of ["mouseMove", "mouseEnter", "mouseWheel", "mouseUp", "keyUp", "gestureScrollBegin", "undefined"]) expect(armsLock(type), type).toBe(false);
   });
 
   it("show the tab before a closed open tab, and keep the site tab", () => {

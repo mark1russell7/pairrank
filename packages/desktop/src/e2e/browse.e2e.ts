@@ -2,9 +2,10 @@
  * The check of the lock and the tabs of the desktop app (R23, R24). It starts the built app with one local site, and
  * opens the Look screen. CI starts it with `pnpm --filter @pairrank/desktop e2e`.
  *
- * The site goes to its page with a script in its first load, and the lock lets that go. Then the locked slot keeps the
- * site on its page, and opens no window. After an unlock, a link goes to another page, Back comes back, and a new window
- * opens as a tab of the slot. "Add this page" adds the page of the slot to the list.
+ * The site goes to its page with a script in its first load, and the lock lets that go. After `SETTLE_MS` of quiet, the
+ * locked slot keeps the site on its page, and opens no window. After an unlock, a link goes to another page, Back comes
+ * back, and a new window opens as a tab of the slot. "Add this page" adds the page of the slot to the list. At the end, a
+ * click of the mouse soon after a load arms the lock at once.
  */
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -14,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pairrankModule } from "@pairrank/host";
 import { openStore } from "@pairrank/store";
+import { SETTLE_MS } from "@pairrank/surfaces";
 import { callerOf } from "@procedures/client";
 import electron from "electron";
 import { type Connection, connect, freePort, say, sleep, targetsOf, until } from "./debug.ts";
@@ -21,7 +23,7 @@ import { type Connection, connect, freePort, say, sleep, targetsOf, until } from
 /** The pages of the site. The first page goes to `/a` with a script, and `/a` has a link and a link to a new window. */
 const PAGES: Readonly<Record<string, string>> = {
   "/start": `<title>Start</title><script>location.replace("/a")</script>`,
-  "/a": `<title>Site A</title><a id="next" href="/b">Next</a> <a id="win" href="/c" target="_blank">Window</a>`,
+  "/a": `<title>Site A</title><a id="next" href="/b" onclick="window.clicks = (window.clicks ?? 0) + 1">Next</a> <a id="win" href="/c" target="_blank">Window</a>`,
   "/b": `<title>Site B</title><h1>B</h1>`,
   "/c": `<title>Site C</title><h1>C</h1>`,
 };
@@ -54,10 +56,16 @@ const sitePages = async (): Promise<string[]> => (await targetsOf(debugPort)).fi
 /** This function waits until the pages of the sites are the pages of the addresses, in any order. */
 async function pagesAre(paths: readonly string[]): Promise<void> {
   const want = paths.map((path) => `${origin}${path}`).sort();
-  await until(`pages ${paths.join(", ")}`, async () => {
-    const found = (await sitePages()).sort();
-    return found.length === want.length && found.every((url, index) => url === want[index]) ? true : undefined;
-  });
+  let found: string[] = [];
+  try {
+    await until(`pages ${paths.join(", ")}`, async () => {
+      found = (await sitePages()).sort();
+      return found.length === want.length && found.every((url, index) => url === want[index]) ? true : undefined;
+    });
+  } catch (error) {
+    const pages = found.map((url) => url.slice(origin.length)).join(", ") || "none";
+    throw new Error(`${error instanceof Error ? error.message : String(error)} The pages of the sites are ${pages}.`);
+  }
   say(`the pages of the sites are ${paths.join(", ")}`);
 }
 
@@ -74,12 +82,35 @@ async function press(page: Connection, selector: string): Promise<void> {
   );
 }
 
-/** This function clicks a link of the site, as a person does. */
-async function follow(id: string): Promise<void> {
+/** This function connects to the page `/a` of the site. */
+async function siteA(): Promise<Connection> {
   const target = await until("page of the site", async () => (await targetsOf(debugPort)).find((each) => each.type === "page" && each.url === `${origin}/a`));
-  const site = await connect(target);
+  return connect(target);
+}
+
+/** This function clicks a link of the site with a script, as a person does. Electron sees no input of the person. */
+async function follow(id: string): Promise<void> {
+  const site = await siteA();
   await site.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`, true);
   site.close();
+}
+
+/** This function clicks a link of the site with the mouse. Electron sees the input, so the lock arms at once. */
+async function mouseClick(id: string): Promise<void> {
+  const site = await siteA();
+  const { x, y } = await site.evaluate<{ x: number; y: number }>(
+    `(() => { const r = document.getElementById(${JSON.stringify(id)}).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`,
+  );
+  for (const type of ["mousePressed", "mouseReleased"]) await site.send("Input.dispatchMouseEvent", { type, x, y, button: "left", clickCount: 1 });
+  site.close();
+}
+
+/** This function gives the count of the clicks on the link `next` of the page `/a`. */
+async function clicks(): Promise<unknown> {
+  const site = await siteA();
+  const count = await site.evaluate<unknown>("window.clicks ?? 0");
+  site.close();
+  return count;
 }
 
 const LOCK = ".slot-bar [role=switch]";
@@ -98,7 +129,8 @@ try {
   await appShows(page, "the state of the slot", `document.querySelector('.slot')?.dataset.state`, "shown");
   await appShows(page, "the lock", `document.querySelector(${JSON.stringify(LOCK)})?.getAttribute('aria-checked')`, "true");
 
-  // The lock keeps the site on its page, and opens no window
+  // After the quiet time, the lock keeps the site on its page, and opens no window
+  await sleep(SETTLE_MS + 500);
   await follow("next");
   await appShows(page, "the notice", `(${text(".slot-notice-text")} ?? "").startsWith("The lock kept the site on its page")`, true);
   await follow("win");
@@ -131,9 +163,18 @@ try {
   await appShows(page, "the button", text(".slot-add"), "Added");
   await appShows(page, "the count", `(${text("header .count")} ?? "").startsWith("2 sites")`, true);
 
-  // "Return to the site" loads the site again
+  // "Return to the site" loads the site again, and its redirect goes on in the locked slot
+  await press(page, LOCK);
+  await appShows(page, "the lock", `document.querySelector(${JSON.stringify(LOCK)})?.getAttribute('aria-checked')`, "true");
   await press(page, ".slot-home");
   await pagesAre(["/a"]);
+
+  // A click of the mouse arms the lock at once, before the quiet time ends
+  await mouseClick("next");
+  await sleep(1000);
+  await pagesAre(["/a"]);
+  await until("click on the link", async () => ((await clicks()) === 1 ? true : undefined));
+  await appShows(page, "the notice", `(${text(".slot-notice-text")} ?? "").startsWith("The lock kept the site on its page")`, true);
   page.close();
   say("The check of the lock and the tabs passed.");
   code = 0;

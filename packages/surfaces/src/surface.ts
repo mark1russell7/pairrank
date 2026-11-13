@@ -30,6 +30,13 @@ export type FailReason =
   /** The address is not an `http` or `https` address. The adapter does not open it. */
   | "not-web";
 
+/**
+ * The quiet time after a load of a page, in milliseconds. A navigation of the site in this time is a part of the first
+ * load, as a redirect of a script. After it, the lock holds. The first input of the person ends it earlier, where an
+ * adapter sees the input.
+ */
+export const SETTLE_MS = 2_000;
+
 /** The number of a tab in its slot. The tab 0 is the tab of the site of the load. Each new tab gets a new number. */
 export type TabId = number;
 

@@ -4,13 +4,14 @@
  * the open tab of each slot on its box, and sends the events of each load and the pages of each slot.
  *
  * Each load starts locked. After the first load of a tab, a locked slot blocks each navigation of the site to another
- * page, and each new window. An unlocked slot lets the site navigate, and opens each new window of the site as a new
+ * page, and each new window. The first load ends at the first input of the person in the tab, or after `SETTLE_MS` of
+ * quiet after the load of a page. Thus a redirect of a script is a part of the first load. An unlocked slot lets the site navigate, and opens each new window of the site as a new
  * tab of the slot. The actions of the person (Back, Forward, Return to the site, tabs) work in the two states.
  */
 import type { Rect } from "@mark1russell7/layout-contract";
-import { type BrowseState, type LoadId, type SlotAction, type SlotHost, type SlotId, type SurfaceEvent, type TabId, refusalOf } from "@pairrank/surfaces";
-import { type BaseWindow, type WebContents, WebContentsView } from "electron";
-import { MAX_TABS, allowsSiteNavigation, failureOf, navigationOf, returnsKeys, siteViewPreferences, tabAfterClose, viewBounds } from "./index.ts";
+import { type BrowseState, type LoadId, SETTLE_MS, type SlotAction, type SlotHost, type SlotId, type SurfaceEvent, type TabId, refusalOf } from "@pairrank/surfaces";
+import { type BaseWindow, WebContentsView } from "electron";
+import { MAX_TABS, allowsSiteNavigation, armsLock, failureOf, navigationOf, returnsKeys, siteViewPreferences, tabAfterClose, viewBounds } from "./index.ts";
 
 /** The views of the sites of one window. */
 export interface SiteViews extends SlotHost {
@@ -22,8 +23,13 @@ export interface SiteViews extends SlotHost {
 interface Tab {
   readonly id: TabId;
   readonly view: WebContentsView;
-  /** The tab ended its first load, so the lock holds for it. A load that the person starts makes it false again. */
+  /**
+   * The first load of the tab ended, so the lock holds for it. The person pressed in the tab, or the tab was quiet for
+   * `SETTLE_MS`. A load that the person starts makes it false again.
+   */
   armed: boolean;
+  /** The timer that arms the tab after `SETTLE_MS` of quiet. */
+  timer: ReturnType<typeof setTimeout> | undefined;
 }
 
 /** A slot: its tabs and its open load. */
@@ -39,6 +45,8 @@ interface Entry {
   url: string | undefined;
   /** The open load sent `shown` or `failed`, so a later address change is a navigation. */
   ended: boolean;
+  /** The tab of the site is armed after the open load. Until then, the history of the tab starts at its last page. */
+  settled: boolean;
   /** The last box of the slot, or `undefined` for a hidden slot. */
   box: Rect | undefined;
 }
@@ -57,7 +65,7 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
   const browseOf = (entry: Entry): BrowseState => {
     const history = activeOf(entry).view.webContents.navigationHistory;
     // The tab of the site keeps the pages of the earlier site until the first load of the new site ends
-    const fresh = entry.active === 0 && !entry.ended;
+    const fresh = entry.active === 0 && !entry.settled;
     return {
       locked: entry.locked,
       tabs: entry.tabs.map(({ id, view }) => {
@@ -94,6 +102,7 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
 
   /** This function removes a tab from the window, and closes its page. */
   const destroy = (tab: Tab): void => {
+    clearTimeout(tab.timer);
     if (!window.isDestroyed()) window.contentView.removeChildView(tab.view);
     if (!tab.view.webContents.isDestroyed()) tab.view.webContents.close();
   };
@@ -108,6 +117,8 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
   /** This function starts a load that the person asked for. The tab is not armed until the load ends. */
   const navigate = (tab: Tab, url: string): void => {
     tab.armed = false;
+    clearTimeout(tab.timer);
+    tab.timer = undefined;
     // A failure comes as did-fail-load, so the promise of loadURL changes nothing
     void tab.view.webContents.loadURL(url).catch(() => undefined);
   };
@@ -129,24 +140,46 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
     focusPage();
   };
 
-  /**
-   * This function ends the first load of a slot. The history of the tab of the site starts again at the page of the site.
-   * Thus Back does not go to the site of an earlier load.
-   */
-  const end = (contents: WebContents, entry: Entry): void => {
-    entry.ended = true;
-    contents.navigationHistory.clear();
-  };
-
   /** This function makes a tab of a slot, with the rules of the lock. Only the tab of the site sends the events of the load. */
   const makeTab = (slot: SlotId, entry: Entry, id: TabId): Tab => {
     const view = new WebContentsView({ webPreferences: siteViewPreferences() });
     view.setVisible(false);
-    const tab: Tab = { id, view, armed: false };
+    const tab: Tab = { id, view, armed: false, timer: undefined };
     const contents = view.webContents;
     const first = id === 0;
     /** This function tells if an event of the tab is for the open load. */
     const current = (): boolean => open(entry) && entry.tabs.includes(tab);
+
+    /** This function arms the tab. After the first arm of the tab of the site, its history keeps each new page. */
+    const arm = (): void => {
+      clearTimeout(tab.timer);
+      tab.timer = undefined;
+      if (tab.armed) return;
+      tab.armed = true;
+      if (first && open(entry) && !entry.settled) {
+        entry.settled = true;
+        if (current()) changed(slot, entry);
+      }
+    };
+    /**
+     * This function arms the tab after `SETTLE_MS` of quiet. The tab starts the time at each stop of its loads. A tab that
+     * loads at the end of the time stays unarmed, because its next stop starts the time again.
+     */
+    const settle = (): void => {
+      clearTimeout(tab.timer);
+      if (tab.armed) return;
+      tab.timer = setTimeout(() => {
+        tab.timer = undefined;
+        if (!contents.isDestroyed() && !contents.isLoading()) arm();
+      }, SETTLE_MS);
+    };
+    /**
+     * This function ends a load of the main frame of the tab. Until the tab of the site is armed, its history starts at
+     * the last page. Thus Back does not go to the site of an earlier load, or to the page before a redirect.
+     */
+    const loaded = (): void => {
+      if (first && open(entry) && !entry.settled) contents.navigationHistory.clear();
+    };
 
     contents.setWindowOpenHandler(({ url, disposition }) => {
       if (!current() || !allowsSiteNavigation(url)) return { action: "deny" };
@@ -162,9 +195,11 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
       if (decision === "block" && current()) send({ type: "blocked", slot, load: entry.load, blocked: { kind: "page", url } });
     });
     contents.on("did-finish-load", () => {
-      tab.armed = true;
+      // The tab waits for a newer page, so this end is old: the end of an earlier site, or of a page that a script left
+      if (contents.isWaitingForResponse()) return;
+      loaded();
       if (first && open(entry) && !entry.ended) {
-        end(contents, entry);
+        entry.ended = true;
         send({ type: "shown", slot, load: entry.load, url: contents.getURL(), title: contents.getTitle() });
       }
       if (current()) changed(slot, entry);
@@ -172,9 +207,9 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
     contents.on("did-fail-load", (_event, code, text, url, mainFrame) => {
       const reason = failureOf(code);
       if (!mainFrame || reason === undefined) return;
-      tab.armed = true;
+      loaded();
       if (first && open(entry) && !entry.ended) {
-        end(contents, entry);
+        entry.ended = true;
         send({ type: "failed", slot, load: entry.load, url, reason, detail: `${text} (${code})` });
       }
       if (current()) changed(slot, entry);
@@ -195,7 +230,10 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
       if (current()) changed(slot, entry);
     };
     contents.on("did-start-loading", update);
-    contents.on("did-stop-loading", update);
+    contents.on("did-stop-loading", () => {
+      settle();
+      update();
+    });
     contents.on("render-process-gone", (_event, details) => {
       if (!open(entry)) return;
       if (first) {
@@ -204,6 +242,10 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
       } else if (current()) {
         changed(slot, entry);
       }
+    });
+    // A press of the person ends the first load at once, so the lock stops the next click on a link
+    contents.on("input-event", (_event, input) => {
+      if (armsLock(input.type)) arm();
     });
     contents.on("before-input-event", (event, input) => {
       if (!returnsKeys(input)) return;
@@ -218,7 +260,7 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
   const entryOf = (slot: SlotId): Entry => {
     const found = entries.get(slot);
     if (found !== undefined) return found;
-    const entry: Entry = { tabs: [], active: 0, next: 1, locked: true, load: 0, url: undefined, ended: false, box: undefined };
+    const entry: Entry = { tabs: [], active: 0, next: 1, locked: true, load: 0, url: undefined, ended: false, settled: false, box: undefined };
     entry.tabs.push(makeTab(slot, entry, 0));
     entries.set(slot, entry);
     return entry;
@@ -283,7 +325,7 @@ export function siteViews(window: BaseWindow, send: (event: SurfaceEvent) => voi
       }
       const entry = entryOf(slot);
       closeOthers(entry);
-      Object.assign(entry, { load, url, ended: false, locked: true });
+      Object.assign(entry, { load, url, ended: false, settled: false, locked: true });
       send({ type: "loading", slot, load, url });
       changed(slot, entry);
       navigate(entry.tabs[0] as Tab, url);

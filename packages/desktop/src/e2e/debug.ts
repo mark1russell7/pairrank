@@ -41,8 +41,13 @@ export async function connect(target: Target): Promise<Connection> {
   let next = 0;
   const waiting = new Map<number, (value: unknown) => void>();
   socket.addEventListener("message", (message) => {
-    const data = JSON.parse(String(message.data)) as { id?: number; result?: { result?: { value?: unknown } } };
-    if (data.id !== undefined) waiting.get(data.id)?.(data.result?.result?.value);
+    const data = JSON.parse(String(message.data)) as { id?: unknown; result?: { result?: { value?: unknown } } };
+    // The message comes from outside, so only a number of a waiting call gives a function
+    if (typeof data.id !== "number") return;
+    const done = waiting.get(data.id);
+    if (typeof done !== "function") return;
+    waiting.delete(data.id);
+    done(data.result?.result?.value);
   });
   const call = (method: string, params: Record<string, unknown>): Promise<unknown> =>
     new Promise((done) => {
