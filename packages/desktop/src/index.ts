@@ -11,6 +11,8 @@ import type { FailReason } from "@pairrank/surfaces";
 import type { BrowserWindowConstructorOptions, WebPreferences } from "electron";
 
 export * from "./constants.ts";
+export * from "./data.ts";
+export * from "./installer.ts";
 
 /** The scheme of the page of the app. The main process serves the folder of the page under `app://page/`. */
 export const PAGE_SCHEME = "app";
@@ -43,9 +45,6 @@ export function refuseDownloads(session: DownloadSession): void {
     item.cancel();
   });
 }
-
-/** The name of the file of the log of events, in the folder of the user data of the app. */
-export const STORE_FILE = "pairrank.sqlite";
 
 /**
  * The content security policy of each file of the page. The page loads only its own scripts and styles. It has no
