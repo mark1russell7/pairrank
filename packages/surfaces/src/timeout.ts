@@ -58,6 +58,7 @@ export function withLoadTimeout(surface: Surface, { ms, timers }: TimeoutOptions
       return load;
     },
     place: (slot, box) => surface.place(slot, box),
+    act: (slot, action) => surface.act(slot, action),
     clear(slot) {
       end(slot);
       surface.clear(slot);

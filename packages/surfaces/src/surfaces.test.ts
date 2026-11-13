@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { memorySurface } from "./memory.ts";
-import { EMPTY, type SlotStatus, type SurfaceEvent, nextStatus, refusalOf, trackSlots } from "./surface.ts";
+import { type BrowseState, EMPTY, type SlotStatus, type SurfaceEvent, nextStatus, refusalOf, trackSlots } from "./surface.ts";
 import { type Timers, withLoadTimeout } from "./timeout.ts";
 
 const url = "https://a.example/";
@@ -68,6 +68,50 @@ describe("nextStatus", () => {
       state: "loading",
       url,
     });
+  });
+});
+
+describe("nextStatus and the pages of a slot", () => {
+  const pages = (locked: boolean): BrowseState => ({ locked, tabs: [{ id: 0, url, loading: false }], active: 0, back: false, forward: false, pages: true });
+  const loading: SurfaceEvent = { type: "loading", slot: "a", load: 1, url };
+  const browse = (locked: boolean, load = 1): SurfaceEvent => ({ type: "browse", slot: "a", load, browse: pages(locked) });
+  const stop: SurfaceEvent = { type: "blocked", slot: "a", load: 1, blocked: { kind: "window", url: "https://x.example/" } };
+
+  it("keeps the pages from loading to shown, and through a navigation", () => {
+    const status = fold([loading, browse(true), { type: "shown", slot: "a", load: 1, url, title: "A" }, { type: "navigated", slot: "a", load: 1, url: "https://a.example/b" }]);
+    expect(status).toEqual({ state: "shown", load: 1, url: "https://a.example/b", title: "A", browse: pages(true) });
+  });
+
+  it("keeps a stop while the slot is locked, and an unlock removes it", () => {
+    expect(fold([loading, browse(true), stop, browse(true)])).toEqual({ state: "loading", load: 1, url, browse: pages(true), blocked: stop.type === "blocked" ? stop.blocked : undefined });
+    expect(fold([loading, browse(true), stop, browse(false)])).toEqual({ state: "loading", load: 1, url, browse: pages(false) });
+    // An unlocked slot stops a window only at its limit of tabs, and keeps that notice
+    expect(fold([loading, browse(false), stop, browse(false)])).toMatchObject({ blocked: { kind: "window" } });
+  });
+
+  it("ignores the pages of another load, of a failure, of an empty slot and of a picture", () => {
+    expect(fold([loading, browse(true, 0)])).toEqual({ state: "loading", load: 1, url });
+    expect(fold([browse(true)])).toEqual(EMPTY);
+    expect(fold([loading, { type: "failed", slot: "a", load: 1, url, reason: "network" }, browse(true), stop])).toMatchObject({ state: "failed" });
+    const picture = fold([loading, browse(true), { type: "shown", slot: "a", load: 1, url, picture: "data:image/png;base64,AA==" }, browse(true), stop]);
+    expect(picture).toEqual({ state: "shown", load: 1, url, picture: "data:image/png;base64,AA==" });
+  });
+
+  it("drops the pages at a new load and at a clear", () => {
+    expect(fold([loading, browse(true), stop, { type: "loading", slot: "a", load: 2, url }])).toEqual({ state: "loading", load: 2, url });
+    expect(fold([loading, browse(true), { type: "cleared", slot: "a", load: 1 }])).toEqual({ state: "empty", load: 1 });
+  });
+
+  it("keeps each action of a memory surface, in its order", () => {
+    const memory = memorySurface();
+    memory.surface.act("a", { type: "back" });
+    memory.surface.act("b", { type: "lock", locked: false });
+    memory.surface.dispose();
+    memory.surface.act("a", { type: "home" });
+    expect(memory.actions).toEqual([
+      { slot: "a", action: { type: "back" } },
+      { slot: "b", action: { type: "lock", locked: false } },
+    ]);
   });
 });
 

@@ -103,6 +103,11 @@ export function withFallback(primary: Surface, fallback: Surface, reasons: reado
       if (opens.get(slot)?.side === "fallback") fallback.place(slot, box);
       else primary.place(slot, box);
     },
+    act(slot, action) {
+      if (gone) return;
+      if (opens.get(slot)?.side === "fallback") fallback.act(slot, action);
+      else primary.act(slot, action);
+    },
     clear(slot) {
       const open = opens.get(slot);
       opens.delete(slot);

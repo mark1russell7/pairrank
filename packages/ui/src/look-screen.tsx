@@ -21,6 +21,7 @@ import {
   tagOn,
   tagStep,
 } from "./run.ts";
+import type { PageList } from "./page-list.ts";
 import { Slot } from "./slot.tsx";
 import { createDraft, tagProblem } from "./tagging.ts";
 import { Swatch, type Write } from "./tags.tsx";
@@ -37,6 +38,8 @@ export interface LookProps {
   /** The sites of the viewer, in its order, and a name for them. With a list, the run has the list. */
   readonly list?: { readonly ids: readonly string[]; readonly name: string } | undefined;
   readonly leave: () => void;
+  /** The list of the sites, for the button "Add this page" of the slot. */
+  readonly pages?: PageList | undefined;
 }
 
 /** This function gives the name of a site: its title, or its address with no scheme. */
@@ -106,7 +109,7 @@ function startRun(view: StateView, scope: RunScope, at?: string): Run {
 }
 
 /** The Look screen. */
-export function LookScreen({ view, surface, tracker, write, newId, start, list, leave }: LookProps): ReactElement {
+export function LookScreen({ view, surface, tracker, write, newId, start, list, leave, pages }: LookProps): ReactElement {
   const listScope = useMemo((): RunScope | undefined => (list === undefined ? undefined : { kind: "list", ids: list.ids, name: list.name }), [list]);
   const [run, setRun] = useState<Run>(() => {
     if (listScope !== undefined) return startRun(view, listScope, start);
@@ -278,7 +281,7 @@ export function LookScreen({ view, surface, tracker, write, newId, start, list, 
 
       {current !== undefined ? (
         <>
-          <Slot surface={surface} tracker={tracker} slot="main" url={current.url} />
+          <Slot surface={surface} tracker={tracker} slot="main" url={current.url} pages={pages} />
           <TagStrip
             tags={named}
             has={(tag) => current.tags.includes(tag)}

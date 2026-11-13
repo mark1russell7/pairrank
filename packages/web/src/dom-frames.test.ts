@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // @vitest-environment-options {"happyDOM": {"settings": {"disableIframePageLoading": true}}}
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FRAME_SANDBOX, domFrames } from "./dom-frames.ts";
+import { FRAME_SANDBOX, UNLOCKED_SANDBOX, domFrames } from "./dom-frames.ts";
 
 /** This function gives the container of the frames, in the page of the test. */
 function containerOf(): HTMLElement {
@@ -26,6 +26,26 @@ describe("domFrames", () => {
     expect(frame?.getAttribute("loading")).toBe("eager");
     expect(frame?.style.position).toBe("fixed");
     expect(frame?.style.display).toBe("none");
+  });
+
+  it("starts locked with no popups, and an unlock lets the site open windows", () => {
+    const container = containerOf();
+    const frame = domFrames(container)("https://a.example/", () => undefined);
+    const element = container.querySelector("iframe");
+    expect(element?.getAttribute("sandbox")).not.toContain("allow-popups");
+    frame.lock(false);
+    expect(element?.getAttribute("sandbox")).toBe([...FRAME_SANDBOX, ...UNLOCKED_SANDBOX].join(" "));
+    frame.lock(true);
+    expect(element?.getAttribute("sandbox")).toBe(FRAME_SANDBOX.join(" "));
+  });
+
+  it("loads the address of the site again", () => {
+    const container = containerOf();
+    const frame = domFrames(container)("https://a.example/", () => undefined);
+    const element = container.querySelector("iframe");
+    element?.setAttribute("src", "https://b.example/");
+    frame.reload();
+    expect(element?.getAttribute("src")).toBe("https://a.example/");
   });
 
   it("gives no allow-same-origin to a site of the origin of the page", () => {

@@ -10,6 +10,7 @@ import { createRoot } from "react-dom/client";
 import type { BookmarksApi, PairrankApi } from "./api.ts";
 import { DuelScreen } from "./duel-screen.tsx";
 import { ImportScreen } from "./import-screen.tsx";
+import { pageListOf } from "./page-list.ts";
 import { countOf } from "./importing.ts";
 import { LookScreen } from "./look-screen.tsx";
 import { type SiteList, SitesScreen } from "./sites-screen.tsx";
@@ -90,6 +91,7 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
   );
 
   const sites = useMemo(() => (view === undefined ? [] : visibleSites(view)), [view]);
+  const pages = useMemo(() => pageListOf(api, reload), [api, reload]);
 
   return (
     <div className="app" data-screen={screen}>
@@ -138,11 +140,11 @@ export function App({ api, surface, bookmarks, newId = () => crypto.randomUUID()
       {screen === "tags" && view !== undefined && <TagsScreen view={view} write={write} newId={newId} />}
 
       {screen === "duel" && view !== undefined && (
-        <DuelScreen api={api} view={view} surface={surface} tracker={tracker} reload={reload} newId={newId} leave={() => setScreen("sites")} />
+        <DuelScreen api={api} view={view} surface={surface} tracker={tracker} reload={reload} newId={newId} leave={() => setScreen("sites")} pages={pages} />
       )}
 
       {screen === "look" && view !== undefined && (
-        <LookScreen key={look.n} view={view} surface={surface} tracker={tracker} write={write} newId={newId} start={look.start} list={look.list} leave={() => setScreen("sites")} />
+        <LookScreen key={look.n} view={view} surface={surface} tracker={tracker} write={write} newId={newId} start={look.start} list={look.list} leave={() => setScreen("sites")} pages={pages} />
       )}
     </div>
   );
