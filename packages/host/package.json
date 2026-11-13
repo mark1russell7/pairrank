@@ -35,8 +35,9 @@
     "@pairrank/ratings": "workspace:*",
     "@pairrank/store": "workspace:*",
     "@pairrank/surfaces": "workspace:*",
-    "@procedures/client": "^0.55.0",
-    "@procedures/http": "^0.55.0",
+    "@procedures/browser": "^0.55.2",
+    "@procedures/client": "^0.55.2",
+    "@procedures/http": "^0.55.2",
     "zod": "^4.6.7"
   }
 }

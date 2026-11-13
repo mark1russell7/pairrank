@@ -1,6 +1,7 @@
 import { type Random, random } from "@mark1russell7/rigor-generators";
 import { describe, expect, it } from "vitest";
-import { ALL_FOLDERS, type BookmarkFolder, CHROME_SOURCE, type FolderSelection, MAX_DEPTH, choicesOf, chromeSiteList, chromeTime, choose, includedCounts, parseChromeBookmarks, profileNames, selectedSites } from "./chrome.ts";
+import { type BookmarkFolder, parseChromeBookmarks } from "@procedures/browser/bookmarks";
+import { ALL_FOLDERS, CHROME_SOURCE, type FolderSelection, choicesOf, chromeSiteList, choose, includedCounts, selectedSites } from "./chrome.ts";
 import { parseSiteList } from "./format.ts";
 
 /** 2020-01-01T00:00:00.000Z as a Chrome time: microseconds from 1601-01-01. */
@@ -37,76 +38,15 @@ const FILE = {
   },
 };
 
-describe("chromeTime", () => {
-  it("gives the ISO time of a Chrome time", () => {
-    expect(chromeTime(NEW_YEAR_2020)).toBe("2020-01-01T00:00:00.000Z");
-    // A Chrome time is larger than a safe integer, so a conversion with Number loses the microseconds
-    expect(chromeTime("13222310400123456")).toBe("2020-01-01T00:00:00.123Z");
-  });
-
-  it("gives no time for 0, for a text that is not a number, and for a time out of range", () => {
-    for (const value of ["0", "", "12a", "-5", 13222310400000000, undefined, "999999999999999999999"]) expect(chromeTime(value), String(value)).toBeUndefined();
-  });
-});
-
-describe("parseChromeBookmarks", () => {
-  const { roots, skipped, problems } = parseChromeBookmarks(FILE);
-
-  it("reads the roots in the order of Chrome, and skips a value of the roots that is not a folder", () => {
-    expect(roots.map((root) => root.name)).toEqual(["Bookmarks bar", "Other bookmarks", "Mobile bookmarks"]);
-    expect(problems).toEqual([]);
-  });
-
-  it("gives each site the names of its folders as its path, and no tags", () => {
-    const sites = selectedSites(roots, ALL_FOLDERS);
-    expect(sites).toEqual([
-      { url: "https://news.example/", title: "News", dated: "2020-01-01T00:00:00.000Z", path: ["Bookmarks bar"] },
-      { url: "https://a.example/", path: ["Bookmarks bar", "Design"] },
-      { url: "https://type.example/", title: "Type", path: ["Bookmarks bar", "Design", "Fonts"] },
-      { url: "https://docs.example/", title: "Docs", path: ["Other bookmarks"] },
-    ]);
-  });
-
-  it("counts the bookmarks that are not web sites, and keeps them out", () => {
-    expect(skipped).toBe(1);
-    expect(roots[0]?.total).toBe(3);
-  });
-
-  it("gives the keys of the guids, after the prefix", () => {
-    const account = parseChromeBookmarks(FILE, { prefix: "account:" });
-    expect(account.roots[0]?.key).toBe("account:g-bar");
-    expect(account.roots[0]?.folders[0]?.key).toBe("account:g-design");
-  });
-
-  it("gives a problem for each part that it cannot read, and reads the other parts", () => {
-    const bad = parseChromeBookmarks({
-      roots: { bookmark_bar: { type: "folder", name: "Bar", children: [7, { type: "separator" }, { type: "url", url: "https://ok.example/" }, { type: "folder", name: "X", children: "no" }] } },
-    });
-    expect(bad.problems.map((problem) => problem.message)).toEqual([
-      "A bookmark must be an object.",
-      "A bookmark has the type separator, not url or folder.",
-      "The children of a folder must be a list.",
-    ]);
-    expect(bad.roots[0]?.total).toBe(1);
-  });
-
-  it("refuses a value with no roots", () => {
-    for (const value of [null, [], "x", {}, { roots: [] }]) expect(() => parseChromeBookmarks(value)).toThrow("roots");
-  });
-
-  it("stops at the deepest folder, with a problem, and does not overflow the stack", () => {
-    let node: Record<string, unknown> = { type: "folder", name: "deep", children: [{ type: "url", url: "https://deep.example/" }] };
-    for (let i = 0; i < 5000; i++) node = { type: "folder", name: `f${i}`, children: [node] };
-    const read = parseChromeBookmarks({ roots: { bookmark_bar: node } });
-    expect(read.problems).toHaveLength(1);
-    expect(read.problems[0]?.path).toHaveLength(MAX_DEPTH);
-    expect(read.roots[0]?.total).toBe(0);
-  });
-});
-
 describe("a selection of folders", () => {
   const { roots } = parseChromeBookmarks(FILE);
   const urls = (selection: FolderSelection) => selectedSites(roots, selection).map((site) => site.url);
+
+  it("gives each site its title, the time of the bookmark as its date and the names of its folders as its path, and no tags", () => {
+    const sites = selectedSites(roots, ALL_FOLDERS);
+    expect(sites[0]).toEqual({ url: "https://news.example/", title: "News", dated: "2020-01-01T00:00:00.000Z", path: ["Bookmarks bar"] });
+    expect(sites.find((site) => site.url === "https://a.example/")).toEqual({ url: "https://a.example/", path: ["Bookmarks bar", "Design"] });
+  });
 
   it("excludes a folder and each folder in it, and a folder in it can be included again", () => {
     const noDesign = choose(roots, ALL_FOLDERS, "g-design", "exclude");
@@ -190,16 +130,7 @@ describe("the adapter on seeded random files (200 files, 20 choices each)", () =
   });
 });
 
-describe("the sources of the bookmarks", () => {
-  it("gives the name of each profile from the file Local State", () => {
-    const names = profileNames({ profile: { info_cache: { Default: { name: "Person 1" }, "Profile 2": { name: "Work" }, "Profile 3": { name: " " }, bad: null } } });
-    expect([...names]).toEqual([
-      ["Default", "Person 1"],
-      ["Profile 2", "Work"],
-    ]);
-    for (const value of [null, 3, {}, { profile: { info_cache: "x" } }]) expect(profileNames(value).size).toBe(0);
-  });
-
+describe("the choices of the folders", () => {
   it("gives the choice of each folder, also of a folder with no sites", () => {
     const { roots } = parseChromeBookmarks(FILE);
     const choices = choicesOf(roots, choose(roots, ALL_FOLDERS, "g-bar", "exclude"));
