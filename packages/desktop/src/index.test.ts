@@ -1,8 +1,68 @@
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, armsLock, captureWindowOptions, contentType, failureOf, navigationOf, pageFile, returnsKeys, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, type ShownWindow, allowsNavigation, allowsSiteNavigation, armsLock, captureWindowOptions, contentType, failureOf, navigationOf, pageFile, returnsKeys, showWhenReady, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
 
 const root = resolve("build", "page");
+
+describe("showWhenReady", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  /** A hidden window that records each show. `paint` starts its listener of the first paint. */
+  function hiddenWindow(): ShownWindow & { shows: number; destroyed: boolean; paint: () => void } {
+    let ready = (): void => {};
+    const window = {
+      shows: 0,
+      destroyed: false,
+      once: (_event: "ready-to-show", listener: () => void) => {
+        ready = listener;
+      },
+      isDestroyed: () => window.destroyed,
+      isVisible: () => window.shows > 0,
+      show: () => {
+        window.shows += 1;
+      },
+      paint: () => ready(),
+    };
+    return window;
+  }
+
+  it("shows the window at the first paint, and logs nothing", () => {
+    const window = hiddenWindow();
+    const log = vi.fn();
+    showWhenReady(window, 4000, log);
+    expect(window.shows).toBe(0);
+    window.paint();
+    expect(window.shows).toBe(1);
+    vi.advanceTimersByTime(4000);
+    expect(window.shows).toBe(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("shows the window after the time limit when the page does not paint, and tells why", () => {
+    const window = hiddenWindow();
+    const log = vi.fn();
+    showWhenReady(window, 4000, log);
+    vi.advanceTimersByTime(3999);
+    expect(window.shows).toBe(0);
+    vi.advanceTimersByTime(1);
+    expect(window.shows).toBe(1);
+    expect(log).toHaveBeenCalledWith("the page did not paint in 4000 ms, so the window shows before its first paint");
+    window.paint();
+    expect(window.shows).toBe(1);
+  });
+
+  it("does not show a window that closed", () => {
+    const window = hiddenWindow();
+    const log = vi.fn();
+    showWhenReady(window, 4000, log);
+    window.destroyed = true;
+    vi.advanceTimersByTime(4000);
+    window.paint();
+    expect(window.shows).toBe(0);
+    expect(log).not.toHaveBeenCalled();
+  });
+});
 
 describe("windowOptions", () => {
   it("gives the page no Node.js, a sandbox and an isolated preload script", () => {

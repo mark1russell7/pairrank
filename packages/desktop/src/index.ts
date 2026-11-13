@@ -76,6 +76,36 @@ export function siteViewPreferences(): WebPreferences {
   };
 }
 
+/**
+ * The longest time that the window of the app stays hidden, in milliseconds. The window shows at the first paint of its
+ * page. A fault of the GPU process can stop that paint, so after this time the window shows without it.
+ */
+export const SHOW_TIMEOUT_MS = 4000;
+
+/** The part of a window that `showWhenReady` uses. */
+export interface ShownWindow {
+  once(event: "ready-to-show", listener: () => void): unknown;
+  isDestroyed(): boolean;
+  isVisible(): boolean;
+  show(): void;
+}
+
+/**
+ * This function shows a hidden window at the first paint of its page. Without a paint in `timeoutMs`, it shows the
+ * window all the same and tells `log` why. A window that closed before stays closed.
+ */
+export function showWhenReady(window: ShownWindow, timeoutMs: number, log: (message: string) => void): void {
+  const show = (): void => {
+    if (!window.isDestroyed() && !window.isVisible()) window.show();
+  };
+  window.once("ready-to-show", show);
+  setTimeout(() => {
+    if (window.isDestroyed() || window.isVisible()) return;
+    log(`the page did not paint in ${String(timeoutMs)} ms, so the window shows before its first paint`);
+    show();
+  }, timeoutMs).unref();
+}
+
 /** The time from the end of the load of a capture to its picture, in milliseconds. The page paints in this time. */
 export const PAINT_DELAY_MS = 600;
 

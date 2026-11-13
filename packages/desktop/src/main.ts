@@ -31,11 +31,13 @@ import {
   PAGE_URL,
   PAINT_DELAY_MS,
   PICTURE_QUALITY,
+  SHOW_TIMEOUT_MS,
   SITE_PARTITION,
   STORE_FILE,
   allowsNavigation,
   contentType,
   pageFile,
+  showWhenReady,
   windowOptions,
 } from "./index.ts";
 import { electronCapture } from "./capture.ts";
@@ -54,6 +56,11 @@ function stop(code: number, why: string): void {
 
 // The scheme of the page is a standard and secure scheme, as https is. Electron needs this before the app is ready.
 protocol.registerSchemesAsPrivileged([{ scheme: PAGE_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
+
+// A helper process of Electron that stops is a cause of a fault that the person sees, so the terminal tells it
+app.on("child-process-gone", (_event, details) => {
+  if (details.reason !== "clean-exit") console.error(`desktop: the ${details.type} process stopped (${details.reason}, exit code ${String(details.exitCode)})`);
+});
 
 // The window of the app stays at the origin of its page. The views of the sites have their own rules (views.ts).
 app.on("web-contents-created", (_event, contents) => {
@@ -93,7 +100,7 @@ async function start(): Promise<void> {
   const server = new ProcedureServer({ registry, autoRegister: true });
 
   const window = new BrowserWindow(windowOptions(join(build, "preload", "preload.cjs")));
-  window.once("ready-to-show", () => window.show());
+  showWhenReady(window, SHOW_TIMEOUT_MS, (message) => console.error(`desktop: ${message}`));
   window.webContents.on("render-process-gone", (_event, details) => stop(1, `the page stopped (${details.reason})`));
   window.webContents.on("did-fail-load", (_event, code, text, url, mainFrame) => {
     // The code -3 (ERR_ABORTED) is a load that a new load replaced. It is not a fault.
