@@ -1,6 +1,6 @@
 import { type Event, type Outcome, type Scope, replay } from "@pairrank/core";
 import { describe, expect, it } from "vitest";
-import { ladderOf, scopesOf } from "./ladder.ts";
+import { comparisonsOf, ladderOf, scopesOf } from "./ladder.ts";
 import { selectModel } from "./select.ts";
 
 let n = 0;
@@ -114,6 +114,17 @@ describe("ladderOf", () => {
     }
     // The two fits differ, so the option denseLimit gets to the fit
     expect(gap).toBeGreaterThan(0);
+  });
+});
+
+describe("comparisonsOf", () => {
+  it("leaves out a skip, and a pick of a site that the index does not have", () => {
+    const { state } = replay([site("a"), site("b"), site("c"), pick("a", "b", "a"), pick("a", "b", "skip"), pick("a", "c", "b")]);
+    const index = new Map([
+      ["a", 0],
+      ["b", 1],
+    ]);
+    expect(comparisonsOf([...state.picks.values()], index)).toEqual([{ a: 0, b: 1, outcome: "a" }]);
   });
 });
 
