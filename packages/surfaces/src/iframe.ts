@@ -3,8 +3,9 @@
  * and a network failure both give a `load` event. Thus the surface asks the host before each load. The host reads the
  * response of the site, and tells if the site refuses a frame.
  */
+import { createEmitter } from "@mark1russell7/collections";
 import type { Rect } from "@mark1russell7/layout-contract";
-import { type BrowseState, type FailReason, type LoadId, SETTLE_MS, type SlotId, type Surface, type SurfaceEvent, type SurfaceListener, refusalOf } from "./surface.ts";
+import { type BrowseState, type FailReason, type LoadId, SETTLE_MS, type SlotId, type Surface, type SurfaceEvent, type SurfaceEvents, refusalOf } from "./surface.ts";
 
 /** The result of a check of a site: the site accepts a frame, or the reason of a failure. */
 export type FrameCheckResult =
@@ -94,7 +95,7 @@ function browseOf({ url, locked }: Lock): BrowseState {
  * tabs and its history.
  */
 export function iframeSurface({ check, frames, kind = "iframe", now = Date.now }: IframeOptions): Surface {
-  const listeners = new Set<SurfaceListener>();
+  const events = createEmitter<SurfaceEvents>();
   const counts = new Map<SlotId, LoadId>();
   /** The open check of each slot, by its load. */
   const checks = new Map<SlotId, LoadId>();
@@ -103,8 +104,7 @@ export function iframeSurface({ check, frames, kind = "iframe", now = Date.now }
   const boxes = new Map<SlotId, Rect | undefined>();
   let gone = false;
   const emit = (event: SurfaceEvent): void => {
-    if (gone) return;
-    for (const listener of [...listeners]) listener(event);
+    if (!gone) events.emit("event", event);
   };
   /** This function removes the frame of a slot. */
   const drop = (slot: SlotId): void => {
@@ -211,13 +211,10 @@ export function iframeSurface({ check, frames, kind = "iframe", now = Date.now }
       drop(slot);
       emit({ type: "cleared", slot, load: counts.get(slot) ?? 0 });
     },
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe: (listener) => events.on("event", listener),
     dispose() {
       gone = true;
-      listeners.clear();
+      events.dispose();
       checks.clear();
       locks.clear();
       for (const slot of [...entries.keys()]) drop(slot);

@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, type ShownWindow, allowsNavigation, allowsSiteNavigation, armsLock, captureWindowOptions, contentType, failureOf, navigationOf, pageFile, returnsKeys, showWhenReady, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
+import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, type ShownWindow, allowsNavigation, allowsSiteNavigation, armsLock, captureWindowOptions, failureOf, navigationOf, pageFile, returnsKeys, showWhenReady, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
 
 const root = resolve("build", "page");
 
@@ -100,18 +100,17 @@ describe("pageFile", () => {
   it("refuses a path out of the folder, another host and another scheme", () => {
     expect(pageFile(root, "app://page/..%2F..%2Fsecret.txt")).toBeUndefined();
     expect(pageFile(root, "app://page/..%5C..%5Csecret.txt")).toBeUndefined();
+    // A sibling folder whose name starts with the name of the folder is out of the folder
+    expect(pageFile(root, "app://page/..%2Fpage2%2Fsecret.txt")).toBeUndefined();
+    expect(pageFile(root, "app://page/a%2F..%2F..%2Fsecret.txt")).toBeUndefined();
     expect(pageFile(root, "app://page/%00.js")).toBeUndefined();
     expect(pageFile(root, "app://page/%E0%A4%A")).toBeUndefined();
     expect(pageFile(root, "app://other/index.html")).toBeUndefined();
     expect(pageFile(root, "file:///etc/passwd")).toBeUndefined();
   });
-});
 
-describe("contentType", () => {
-  it("gives a JavaScript type to a module script", () => {
-    expect(contentType("page.js")).toBe("text/javascript; charset=utf-8");
-    expect(contentType("INDEX.HTML")).toBe("text/html; charset=utf-8");
-    expect(contentType("data.bin")).toBe("application/octet-stream");
+  it("keeps a path that goes out and back into the folder", () => {
+    expect(pageFile(root, "app://page/a%2F..%2Fpage.js")).toBe(join(root, "page.js"));
   });
 });
 

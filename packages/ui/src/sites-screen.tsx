@@ -8,6 +8,7 @@ import type { PairrankApi } from "./api.ts";
 import { HiddenSites } from "./hidden-sites.tsx";
 import { countOf } from "./importing.ts";
 import { nameOf } from "./look-screen.tsx";
+import { wordSearch } from "./search.ts";
 import { Swatch, type Write } from "./tags.tsx";
 import { MIX_LEVELS, type MixLevel, type ViewerSettings, mixLevelOf, orderChoices, orderOf, ratingText } from "./viewer.ts";
 
@@ -31,9 +32,7 @@ export interface SitesProps {
 
 /** This function tells if a site agrees with a search text. The search examines the title and the address. */
 export function matches(site: SiteView, query: string): boolean {
-  const words = query.toLowerCase().split(/\s+/).filter((word) => word !== "");
-  const text = `${site.title ?? ""} ${site.url}`.toLowerCase();
-  return words.every((word) => text.includes(word));
+  return wordSearch(query)(`${site.title ?? ""} ${site.url}`);
 }
 
 /** The time that the viewer waits after a change of the settings before it asks the host, in milliseconds. */

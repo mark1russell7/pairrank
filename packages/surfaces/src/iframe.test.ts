@@ -1,3 +1,4 @@
+import { fakeClock } from "@mark1russell7/algebra/clock";
 import type { Rect } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
 import { type FrameCheck, type FrameCheckResult, type MakeFrame, MAX_RETURNS, iframeSurface } from "./iframe.ts";
@@ -60,22 +61,11 @@ function record(surface: Surface): SurfaceEvent[] {
 /** This function lets the promises of the checks end. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-/** A clock that the test moves by hand. */
-function handClock() {
-  let time = 0;
-  return {
-    now: () => time,
-    pass: (ms: number): void => {
-      time += ms;
-    },
-  };
-}
-
 /** This function makes a surface with a check, frames and a clock that the test controls. */
 function setup() {
   const { check, calls } = handCheck();
   const { frames, made } = fakeFrames();
-  const clock = handClock();
+  const clock = fakeClock();
   const surface = iframeSurface({ check, frames, now: clock.now });
   return { surface, calls, made, clock, events: record(surface) };
 }
@@ -91,7 +81,7 @@ describe("iframeSurface", () => {
     await settle();
     expect(made.map((frame) => frame.url)).toEqual([url]);
     made[0]?.load();
-    clock.pass(SETTLE_MS);
+    clock.block(SETTLE_MS);
     made[0]?.load();
     expect(events).toEqual([
       { type: "loading", slot: "a", load: 1, url },
@@ -111,14 +101,14 @@ describe("iframeSurface", () => {
     frame?.load();
     expect(frame?.locks).toEqual([]);
     // The site goes to another page: the frame loads the site again, and the load of the return is not a navigation
-    clock.pass(SETTLE_MS);
+    clock.block(SETTLE_MS);
     frame?.load();
     frame?.load();
     expect(frame?.reloads).toBe(1);
     expect(events.filter((event) => event.type === "blocked")).toEqual([{ type: "blocked", slot: "a", load: 1, blocked: { kind: "page" } }]);
     // A site that leaves again after each return stays where it went after MAX_RETURNS returns
     for (let n = 0; n < MAX_RETURNS + 2; n += 1) {
-      clock.pass(SETTLE_MS);
+      clock.block(SETTLE_MS);
       frame?.load();
       frame?.load();
     }
@@ -133,20 +123,20 @@ describe("iframeSurface", () => {
     const frame = made[0];
     frame?.load();
     // The script of the site goes to another page soon after the load, and its next page does the same
-    clock.pass(SETTLE_MS - 1);
+    clock.block(SETTLE_MS - 1);
     frame?.load();
-    clock.pass(SETTLE_MS - 1);
+    clock.block(SETTLE_MS - 1);
     frame?.load();
     expect(frame?.reloads).toBe(0);
     // After a quiet time, a load is a navigation
-    clock.pass(SETTLE_MS);
+    clock.block(SETTLE_MS);
     frame?.load();
     expect(frame?.reloads).toBe(1);
     // The return loads the site, and the script of the site goes again
     frame?.load();
     frame?.load();
     expect(frame?.reloads).toBe(1);
-    clock.pass(SETTLE_MS);
+    clock.block(SETTLE_MS);
     frame?.load();
     expect(frame?.reloads).toBe(2);
     expect(events.filter((event) => event.type === "blocked")).toHaveLength(2);
@@ -309,8 +299,8 @@ describe("iframeSurface", () => {
   it("follows the status of each slot in a tracker, with the time limit", async () => {
     const { check, calls } = handCheck();
     const { frames, made } = fakeFrames();
-    const clock = handClock();
-    const surface = withLoadTimeout(iframeSurface({ check, frames, now: clock.now }), { ms: 1_000, timers: { set: () => 0, clear: () => undefined } });
+    const clock = fakeClock();
+    const surface = withLoadTimeout(iframeSurface({ check, frames, now: clock.now }), { ms: 1_000, clock });
     const tracker = trackSlots(surface);
     surface.show("a", url);
     expect(tracker.status("a")).toEqual({ state: "loading", load: 1, url, browse: pagesOf(true) });
@@ -318,7 +308,7 @@ describe("iframeSurface", () => {
     await settle();
     made[0]?.load();
     expect(tracker.status("a")).toEqual({ state: "shown", load: 1, url, browse: pagesOf(true) });
-    clock.pass(SETTLE_MS);
+    clock.block(SETTLE_MS);
     made[0]?.load();
     expect(tracker.status("a")).toEqual({ state: "shown", load: 1, url, browse: pagesOf(true), blocked: { kind: "page" } });
     surface.act("a", { type: "lock", locked: false });

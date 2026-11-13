@@ -1,38 +1,33 @@
 /**
  * A time limit for the loads of a surface. A site that does not answer must not keep a slot in the status `loading`.
  */
-import type { LoadId, SlotId, Surface, SurfaceEvent, SurfaceListener } from "./surface.ts";
-
-/** The timers of the host. The package has no timers of its own, so a test gives fake timers. */
-export interface Timers {
-  set(callback: () => void, ms: number): unknown;
-  clear(handle: unknown): void;
-}
+import { type Cancel, type Clock, realClock } from "@mark1russell7/algebra/clock";
+import { createEmitter } from "@mark1russell7/collections";
+import type { LoadId, SlotId, Surface, SurfaceEvent, SurfaceEvents } from "./surface.ts";
 
 /** The options of `withLoadTimeout`. */
 export interface TimeoutOptions {
   /** The time limit of a load, in milliseconds. */
   readonly ms: number;
-  readonly timers: Timers;
+  /** The clock of the timers. The default is `realClock`. A test gives `fakeClock()`. */
+  readonly clock?: Clock;
 }
 
 /**
  * This function gives a surface that sends `failed` with the reason `timeout` for a load with no `shown` and no `failed`
  * in the time limit. The page of the slot stays, so a late `shown` of the same load replaces the failure (`nextStatus`).
  */
-export function withLoadTimeout(surface: Surface, { ms, timers }: TimeoutOptions): Surface {
-  const listeners = new Set<SurfaceListener>();
+export function withLoadTimeout(surface: Surface, { ms, clock = realClock }: TimeoutOptions): Surface {
+  const events = createEmitter<SurfaceEvents>();
   /** The timer of the open load of each slot. */
-  const pending = new Map<SlotId, { readonly load: LoadId; readonly handle: unknown }>();
+  const pending = new Map<SlotId, { readonly load: LoadId; readonly cancel: Cancel }>();
   /** The last load of each slot that ended: `shown`, `failed` or `cleared`. */
   const ended = new Map<SlotId, LoadId>();
-  const send = (event: SurfaceEvent): void => {
-    for (const listener of listeners) listener(event);
-  };
+  const send = (event: SurfaceEvent): void => events.emit("event", event);
   const end = (slot: SlotId): void => {
     const entry = pending.get(slot);
     if (entry === undefined) return;
-    timers.clear(entry.handle);
+    entry.cancel();
     pending.delete(slot);
   };
   const stop = surface.subscribe((event) => {
@@ -50,11 +45,11 @@ export function withLoadTimeout(surface: Surface, { ms, timers }: TimeoutOptions
       const load = surface.show(slot, url);
       // The inner surface can end the load in show, for example for an address that is not a web address
       if ((ended.get(slot) ?? 0) >= load) return load;
-      const handle = timers.set(() => {
+      const cancel = clock.after(ms, () => {
         pending.delete(slot);
         send({ type: "failed", slot, load, url, reason: "timeout", detail: `No page in ${ms} ms.` });
-      }, ms);
-      pending.set(slot, { load, handle });
+      });
+      pending.set(slot, { load, cancel });
       return load;
     },
     place: (slot, box) => surface.place(slot, box),
@@ -63,14 +58,11 @@ export function withLoadTimeout(surface: Surface, { ms, timers }: TimeoutOptions
       end(slot);
       surface.clear(slot);
     },
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe: (listener) => events.on("event", listener),
     dispose() {
       for (const slot of [...pending.keys()]) end(slot);
       stop();
-      listeners.clear();
+      events.dispose();
       surface.dispose();
     },
   };

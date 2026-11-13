@@ -5,6 +5,7 @@
  * An adapter with a view of its own puts the view on the box of the slot. An adapter with no view gives a still
  * picture in its `shown` event, and the page draws the picture in the slot.
  */
+import { createEmitter } from "@mark1russell7/collections";
 import type { Rect } from "@mark1russell7/layout-contract";
 import { isWebUrl } from "@pairrank/input";
 
@@ -128,6 +129,9 @@ export function refusalOf(url: string): FailReason | undefined {
 /** A function that gets each event of a surface. */
 export type SurfaceListener = (event: SurfaceEvent) => void;
 
+/** The event map of the emitter of a surface (`createEmitter` of `@mark1russell7/collections`). Each event goes under `event`. */
+export type SurfaceEvents = { readonly event: SurfaceEvent };
+
 /**
  * A surface shows sites in slots. The interface lays out the slots, and gives the box of each slot to `place`. Thus
  * each adapter follows one layout: the layout of the interface.
@@ -236,23 +240,20 @@ export interface SlotTracker {
 /** This function follows the events of a surface, and keeps the status of each slot. */
 export function trackSlots(surface: Surface): SlotTracker {
   const statuses = new Map<SlotId, SlotStatus>();
-  const listeners = new Set<(slot: SlotId, status: SlotStatus) => void>();
+  const changes = createEmitter<{ readonly change: { readonly slot: SlotId; readonly status: SlotStatus } }>();
   const stop = surface.subscribe((event) => {
     const before = statuses.get(event.slot) ?? EMPTY;
     const after = nextStatus(before, event);
     if (after === before) return;
     statuses.set(event.slot, after);
-    for (const listener of listeners) listener(event.slot, after);
+    changes.emit("change", { slot: event.slot, status: after });
   });
   return {
     status: (slot) => statuses.get(slot) ?? EMPTY,
-    subscribe: (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe: (listener) => changes.on("change", ({ slot, status }) => listener(slot, status)),
     stop: () => {
       stop();
-      listeners.clear();
+      changes.dispose();
     },
   };
 }

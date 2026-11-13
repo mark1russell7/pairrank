@@ -2,8 +2,9 @@
  * A fallback from one surface to another. When the first surface fails a load for a given reason, the second surface
  * shows the same address in the same slot. For example, a site that refuses a frame shows as a still picture.
  */
+import { createEmitter } from "@mark1russell7/collections";
 import type { Rect } from "@mark1russell7/layout-contract";
-import type { FailReason, LoadId, SlotId, Surface, SurfaceEvent, SurfaceListener } from "./surface.ts";
+import type { FailReason, LoadId, SlotId, Surface, SurfaceEvent, SurfaceEvents } from "./surface.ts";
 
 type Failed = Extract<SurfaceEvent, { type: "failed" }>;
 
@@ -31,14 +32,13 @@ interface Open {
  * surface gets no box.
  */
 export function withFallback(primary: Surface, fallback: Surface, reasons: readonly FailReason[]): Surface {
-  const listeners = new Set<SurfaceListener>();
+  const events = createEmitter<SurfaceEvents>();
   const counts = new Map<SlotId, LoadId>();
   const opens = new Map<SlotId, Open>();
   const boxes = new Map<SlotId, Rect | undefined>();
   let gone = false;
   const send = (event: SurfaceEvent): void => {
-    if (gone) return;
-    for (const listener of [...listeners]) listener(event);
+    if (!gone) events.emit("event", event);
   };
   /** This function gives the open load of an event of a side, or `undefined` for an event of another load. */
   const openOf = (side: Open["side"], event: SurfaceEvent): Open | undefined => {
@@ -115,16 +115,13 @@ export function withFallback(primary: Surface, fallback: Surface, reasons: reado
       if (open?.side === "fallback") fallback.clear(slot);
       send({ type: "cleared", slot, load: counts.get(slot) ?? 0 });
     },
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe: (listener) => events.on("event", listener),
     dispose() {
       if (gone) return;
       gone = true;
       stopPrimary();
       stopFallback();
-      listeners.clear();
+      events.dispose();
       opens.clear();
       primary.dispose();
       fallback.dispose();

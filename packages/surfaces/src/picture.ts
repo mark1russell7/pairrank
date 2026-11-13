@@ -2,7 +2,8 @@
  * A surface of still pictures. It shows a site as a picture from a capture function, for a host that cannot show a
  * live view of the site. The surface has no view of its own: its `shown` event has the picture, and the page draws it.
  */
-import { type FailReason, type LoadId, type SlotId, type Surface, type SurfaceEvent, type SurfaceListener, refusalOf } from "./surface.ts";
+import { createEmitter } from "@mark1russell7/collections";
+import { type FailReason, type LoadId, type SlotId, type Surface, type SurfaceEvent, type SurfaceEvents, refusalOf } from "./surface.ts";
 
 /** The size of the window of a capture, in CSS pixels. */
 export interface PictureSize {
@@ -49,14 +50,13 @@ export interface PictureOptions {
  * nothing, because the page draws the picture in its slot.
  */
 export function pictureSurface(capture: Capture, { size = PICTURE_SIZE, kind = "picture" }: PictureOptions = {}): Surface {
-  const listeners = new Set<SurfaceListener>();
+  const events = createEmitter<SurfaceEvents>();
   const counts = new Map<SlotId, LoadId>();
   /** The open capture of each slot, by its load. */
   const open = new Map<SlotId, LoadId>();
   let gone = false;
   const emit = (event: SurfaceEvent): void => {
-    if (gone) return;
-    for (const listener of [...listeners]) listener(event);
+    if (!gone) events.emit("event", event);
   };
   const end = (slot: SlotId, load: LoadId, event: SurfaceEvent): void => {
     if (open.get(slot) !== load) return;
@@ -94,13 +94,10 @@ export function pictureSurface(capture: Capture, { size = PICTURE_SIZE, kind = "
       open.delete(slot);
       emit({ type: "cleared", slot, load: counts.get(slot) ?? 0 });
     },
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe: (listener) => events.on("event", listener),
     dispose() {
       gone = true;
-      listeners.clear();
+      events.dispose();
       open.clear();
     },
   };

@@ -25,6 +25,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@mark1russell7/files": "^0.0.2",
     "@mark1russell7/layout-contract": "^0.10.0",
     "@pairrank/host": "workspace:*",
     "@pairrank/input": "workspace:*",
@@ -32,6 +33,7 @@
     "@pairrank/surfaces": "workspace:*",
     "@pairrank/ui": "workspace:*",
     "@procedures/client": "^0.55.0",
+    "@procedures/peer": "^0.55.0",
     "polite-crawler": "^0.6.0"
   }
 }
