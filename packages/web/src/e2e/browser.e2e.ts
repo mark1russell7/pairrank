@@ -6,6 +6,8 @@
  * - In the duel, the two slots are shown. Site B has no frame, and its slot shows the picture of the capture.
  * - The capture is a fake capture with a picture of one pixel. Thus the check examines the page, not a browser capture.
  * - The host reads the local sites: its `fetch` accepts `127.0.0.1` for this check only.
+ * - The slot starts locked. The page moves the frame of site A, and the lock loads site A again. After an unlock, the
+ *   frame stays on its new page (R23).
  *
  * CI starts it with `pnpm --filter @pairrank/web e2e`. The variable `CHROME_PATH` gives the browser. The default is
  * `google-chrome`.
@@ -19,6 +21,7 @@ import { join } from "node:path";
 import { fakeProcess } from "@mark1russell7/service/testing";
 import { capturePool } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
+import { SETTLE_MS } from "@pairrank/surfaces";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client";
 import { createHostFetch } from "@procedures/http";
 import { runProcedureHost } from "@procedures/server";
@@ -55,8 +58,13 @@ async function connect(target: Target): Promise<{ evaluate: <T>(expression: stri
   let next = 0;
   const waiting = new Map<number, (value: unknown) => void>();
   socket.addEventListener("message", (message) => {
-    const data = JSON.parse(String(message.data)) as { id?: number; result?: { result?: { value?: unknown } } };
-    if (data.id !== undefined) waiting.get(data.id)?.(data.result?.result?.value);
+    const data = JSON.parse(String(message.data)) as { id?: unknown; result?: { result?: { value?: unknown } } };
+    // The message comes from outside, so only a number of a waiting call gives a function
+    if (typeof data.id !== "number") return;
+    const done = waiting.get(data.id);
+    if (typeof done !== "function") return;
+    waiting.delete(data.id);
+    done(data.result?.result?.value);
   });
   return {
     evaluate: <T>(expression: string) =>
@@ -89,7 +97,10 @@ async function freePort(): Promise<number> {
   return port;
 }
 
+/** The addresses that the local sites got, in order. */
+const requests: string[] = [];
 const sites = createServer((request, response) => {
+  requests.push(request.url ?? "");
   const refuses = request.url === "/b";
   response.writeHead(200, { "content-type": "text/html; charset=utf-8", ...(refuses ? { "x-frame-options": "DENY" } : {}) });
   response.end(`<!doctype html><title>Site ${refuses ? "B" : "A"}</title><body style="margin:0;background:#cde"><h1>A site</h1></body>`);
@@ -158,6 +169,39 @@ const SEEN = `(() => {
   };
 })()`;
 
+/** The expression that moves the frame of the Look screen to another page of site A, as a link of the site does. */
+const moveTo = (path: string): string => `document.querySelector('iframe').contentWindow.location.href = ${JSON.stringify(`${origin}${path}`)}`;
+/** The expression that gives the text of the notice of the slot, or an empty text. */
+const NOTICE = `document.querySelector('.slot-notice-text')?.textContent ?? ''`;
+
+/**
+ * This function examines the lock of the frame on the Look screen. A locked frame that moves to another page comes back
+ * to the site, and the slot tells it. After an unlock, the frame stays on the new page.
+ */
+async function examineLock(view: Page): Promise<void> {
+  const lock = `document.querySelector('.slot-bar [role=switch]')`;
+  await until("locked slot", async () => ((await view.evaluate<string | null>(`${lock}?.getAttribute('aria-checked') ?? null`)) === "true" ? true : undefined));
+  // A load soon after the last load is a redirect of the site, so the move waits for the quiet time
+  await sleep(SETTLE_MS + 500);
+  await view.evaluate(moveTo("/a?moved"));
+  await until("return of the frame to the site", async () => (requests.slice(requests.indexOf("/a?moved") + 1).includes("/a") && requests.includes("/a?moved") ? true : undefined));
+  await until("notice of the lock", async () => ((await view.evaluate<string>(NOTICE)).startsWith("The lock kept the site on its page") ? true : undefined));
+  say("Look: the lock brought the frame back to the site");
+  await view.evaluate(`${lock}.click()`);
+  const sandbox = await until("unlocked frame", async () => {
+    const value = await view.evaluate<string>(`document.querySelector('iframe').getAttribute('sandbox') ?? ''`);
+    return value.split(" ").includes("allow-popups") ? value : undefined;
+  });
+  say(`Look: the unlocked frame has the sandbox "${sandbox}"`);
+  const before = requests.length;
+  await view.evaluate(moveTo("/a?free"));
+  await until("move of the unlocked frame", async () => (requests.slice(before).includes("/a?free") ? true : undefined));
+  await sleep(1000);
+  const after = requests.slice(requests.lastIndexOf("/a?free") + 1);
+  if (after.includes("/a")) throw new Error(`Look: the unlocked frame came back to the site: ${JSON.stringify(after)}.`);
+  say("Look: the unlocked frame stayed on its new page");
+}
+
 /** This function tells if two boxes are the same, with one pixel of tolerance for the rounding. */
 const same = (a: Box, b: Box): boolean => Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1 && Math.abs(a.w - b.w) <= 1 && Math.abs(a.h - b.h) <= 1;
 
@@ -200,6 +244,7 @@ try {
     );
   await click("Look");
   examineShown("Look", await settle(view, "Look", ["shown"]), `${origin}/a`);
+  await examineLock(view);
   await click("Duel");
   const duel = await settle(view, "Duel", ["shown", "shown"]);
   examineShown("Duel", duel, `${origin}/a`);

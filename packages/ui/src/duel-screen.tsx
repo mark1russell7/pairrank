@@ -11,6 +11,7 @@ import type { PairrankApi } from "./api.ts";
 import { type Asking, type DuelAction, type DuelStep, type Pair, actionOf, lastAsk, outcomeOf, pickDraft, recentOf, seedOf, undoDraft } from "./duel.ts";
 import { type DuelSource, OVERALL, askName, sourceOf, sourceValue } from "./mode.ts";
 import { ModeEditor } from "./mode-editor.tsx";
+import type { PageList } from "./page-list.ts";
 import { Slot } from "./slot.tsx";
 import { Swatch } from "./tags.tsx";
 
@@ -26,6 +27,8 @@ export interface DuelProps {
   readonly newId: () => string;
   /** This function goes back to the list of the sites. */
   readonly leave: () => void;
+  /** The list of the sites, for the button "Add this page" of each slot. */
+  readonly pages?: PageList | undefined;
 }
 
 /** The pair of a round, with the picks that it asks. */
@@ -60,7 +63,7 @@ function Side(props: { readonly site: SiteView | undefined; readonly tags: Reado
 }
 
 /** The duel screen. */
-export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }: DuelProps): ReactElement {
+export function DuelScreen({ api, view, surface, tracker, reload, newId, leave, pages }: DuelProps): ReactElement {
   const [source, setSource] = useState<DuelSource>(OVERALL);
   const [duel, setDuel] = useState(newId);
   const [round, setRound] = useState(0);
@@ -296,11 +299,11 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave }
       ) : (
         <div className="duel-sides">
           <div className="side">
-            <Slot surface={surface} tracker={tracker} slot="left" url={left?.url} />
+            <Slot surface={surface} tracker={tracker} slot="left" url={left?.url} pages={pages} />
             <Side site={left} tags={tags} label="left" hide={() => hide(pair!.a)} />
           </div>
           <div className="side">
-            <Slot surface={surface} tracker={tracker} slot="right" url={right?.url} />
+            <Slot surface={surface} tracker={tracker} slot="right" url={right?.url} pages={pages} />
             <Side site={right} tags={tags} label="right" hide={() => hide(pair!.b)} />
           </div>
         </div>

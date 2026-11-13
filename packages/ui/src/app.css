@@ -448,11 +448,192 @@ nav button[aria-pressed="true"] {
   flex: 1;
 }
 
+/* The frame of a slot: the bar of the pages of the site, and the mat of the site under it. */
+.slot-frame {
+  display: grid;
+  grid-template-rows: var(--strip) minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  margin: var(--gap);
+}
+
+/*
+ * The bar of the pages. Its height does not change, so the box of the site does not move. The lock is quiet when it
+ * holds, and an unlock is in pencil red: the site can then leave its page.
+ */
+.slot-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0 0.25rem;
+  background: var(--mat);
+  border-bottom: 1px solid var(--table);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.slot-bar button {
+  flex: none;
+  border-radius: 2px;
+  padding: 0.1rem 0.45rem;
+}
+
+.slot-bar button:hover:not(:disabled) {
+  background: var(--table);
+}
+
+.lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--quiet);
+}
+
+.lock[aria-checked="false"] {
+  color: var(--pencil);
+  font-weight: 600;
+}
+
+.lock-glyph {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.slot-history button {
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.05rem 0.4rem;
+}
+
+.slot-pages {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.slot-address {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--quiet);
+  font-size: 0.85rem;
+}
+
+.slot-tabs {
+  display: flex;
+  align-self: stretch;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.slot-tab {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 3.5rem;
+  max-width: 12rem;
+  height: 80%;
+  color: var(--quiet);
+  border-radius: 3px 3px 0 0;
+}
+
+.slot-bar .slot-tab > button:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.slot-tab[data-active="true"] {
+  color: var(--ink);
+  background: var(--table);
+  box-shadow: inset 0 -2px 0 var(--pencil);
+}
+
+.slot-bar .slot-close {
+  padding: 0 0.3rem;
+  color: var(--quiet);
+}
+
+/* A notice of the lock takes the place of the tabs for a short time, so the box of the site does not move */
+.slot-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  height: 80%;
+  padding: 0 0.15rem 0 0.5rem;
+  background: var(--table);
+  border-left: 3px solid var(--pencil);
+}
+
+.slot-notice-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-notice button:not(.slot-close) {
+  font-weight: 600;
+  color: var(--pencil);
+}
+
+.slot-home {
+  color: var(--quiet);
+}
+
+.slot-bar .slot-add {
+  font-weight: 600;
+  border: 1px solid var(--quiet);
+}
+
+.slot-bar .slot-add:disabled {
+  border-color: transparent;
+}
+
+.slot-bar .slot-add[data-added="true"] {
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--pencil);
+}
+
+.slot-problem {
+  color: var(--pencil);
+}
+
+.slot-address[data-loading="true"],
+.slot-tab[data-loading="true"] > button:first-child {
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .slot-address[data-loading="true"],
+  .slot-tab[data-loading="true"] > button:first-child {
+    animation: slot-loads 0.9s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes slot-loads {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+
 /* The slot: the mat around a site. The view of the site covers it, so its text shows only with no page. */
 .slot {
   position: relative;
   min-height: 0;
-  margin: var(--gap);
   background: var(--mat);
   display: grid;
   place-items: center;

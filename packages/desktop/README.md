@@ -28,9 +28,16 @@ The command builds the app to `build/`, and then starts it with Electron.
 | Page | `src/page.ts` | It shows the interface, and sends the calls and the slot commands on the ports. |
 
 - The page has no Node.js and operates in a sandbox. It gets only its own files from `app://page/`.
-- Each site shows in its own view, in the session `persist:sites`. A site gets no permission, no preload script and no new window.
+- Each site shows in its own view, in the session `persist:sites`. A site gets no permission and no preload script.
+- Each new site starts locked. The lock stops each new window at once.
+- The lock stops each navigation of the site after the first load. The first load ends at the first click or key of the person in the page. It also ends after `SETTLE_MS` (2 seconds) with no load in the page.
+- Thus a redirect of the first load goes on, also a redirect of a script.
+- An unlocked site can navigate. A new window opens as a tab of the slot, in its own view. A slot has at most `MAX_TABS` tabs.
+- The bar of the slot shows the tabs, Back, Forward, "Return to the site" and "Add this page". The first tab is the site, and it does not close.
+- The lock does not stop a page change inside a single-page site (`pushState` or a hash change). Such a change does not load a new page.
 - A click on a site gives the keys to the site. `Escape` gives the keys back to the app.
 - The rules of the app are pure functions in `src/index.ts`. The tests examine them with no Electron process.
 - When a view crashes, or a site refuses the view, the slot shows a still picture of the site. A capture has the rules of the views.
 - `pnpm e2e` starts the built app with two local sites. It opens the Look screen and the duel, and examines the height of each slot.
+- Then `pnpm e2e` examines the lock and the tabs with a local site: a redirect, a stopped link, a stopped window, Back, a tab and "Add this page". A click of the mouse soon after a load also stops the link.
 - Then `pnpm e2e` captures local sites. It examines the color of the picture, a redirect, a closed port, a page with no answer and the pool.

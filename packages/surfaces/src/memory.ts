@@ -3,7 +3,7 @@
  * of a site with `emit`.
  */
 import type { Rect } from "@mark1russell7/layout-contract";
-import { type LoadId, type SlotId, type Surface, type SurfaceEvent, type SurfaceListener, refusalOf } from "./surface.ts";
+import { type LoadId, type SlotAction, type SlotId, type Surface, type SurfaceEvent, type SurfaceListener, refusalOf } from "./surface.ts";
 
 /** A surface in memory, and what it got. */
 export interface MemorySurface {
@@ -12,6 +12,8 @@ export interface MemorySurface {
   readonly loads: ReadonlyMap<SlotId, { readonly load: LoadId; readonly url: string }>;
   /** The box of each slot, by slot. `undefined` is a hidden slot. */
   readonly boxes: ReadonlyMap<SlotId, Rect | undefined>;
+  /** The actions of the person, in their order. The surface changes nothing for them: the test sends the events. */
+  readonly actions: readonly { readonly slot: SlotId; readonly action: SlotAction }[];
   /** This function sends an event, as a site does. */
   emit(event: SurfaceEvent): void;
   /** This function tells if `dispose` stopped the surface. */
@@ -27,6 +29,7 @@ export function memorySurface(kind = "memory"): MemorySurface {
   const loads = new Map<SlotId, { load: LoadId; url: string }>();
   const boxes = new Map<SlotId, Rect | undefined>();
   const counts = new Map<SlotId, LoadId>();
+  const actions: { slot: SlotId; action: SlotAction }[] = [];
   let gone = false;
   const emit = (event: SurfaceEvent): void => {
     if (gone) return;
@@ -51,6 +54,9 @@ export function memorySurface(kind = "memory"): MemorySurface {
       loads.delete(slot);
       emit({ type: "cleared", slot, load });
     },
+    act(slot, action) {
+      if (!gone) actions.push({ slot, action });
+    },
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -62,5 +68,5 @@ export function memorySurface(kind = "memory"): MemorySurface {
       boxes.clear();
     },
   };
-  return { surface, loads, boxes, emit, disposed: () => gone };
+  return { surface, loads, boxes, actions, emit, disposed: () => gone };
 }

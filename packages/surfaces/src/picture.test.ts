@@ -188,4 +188,23 @@ describe("withFallback", () => {
     surface.dispose();
     expect(live.disposed()).toBe(true);
   });
+
+  it("gives each action to the side that shows the slot, and nothing after dispose", async () => {
+    const { live, calls, surface } = setup();
+    surface.show("a", url);
+    surface.act("a", { type: "lock", locked: false });
+    live.emit({ type: "failed", slot: "a", load: 1, url, reason: "refused" });
+    // A still picture has no pages, so the fallback ignores the action
+    surface.act("a", { type: "back" });
+    calls[0]?.end({ ok: true, picture: PNG });
+    await settle();
+    surface.show("a", "https://b.example/");
+    surface.act("a", { type: "home" });
+    surface.dispose();
+    surface.act("a", { type: "forward" });
+    expect(live.actions).toEqual([
+      { slot: "a", action: { type: "lock", locked: false } },
+      { slot: "a", action: { type: "home" } },
+    ]);
+  });
 });

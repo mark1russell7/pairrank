@@ -19,76 +19,12 @@ import { pairrankModule } from "@pairrank/host";
 import { openStore } from "@pairrank/store";
 import { callerOf } from "@procedures/client";
 import electron from "electron";
+import { type Connection, type Target, connect, freePort, say, sleep, targetsOf, until } from "./debug.ts";
 
 /** The lowest height of a slot, in CSS pixels. A window of 1400 by 900 gives each slot more than this. */
 const MIN_HEIGHT = 200;
 /** The largest difference between the width of a view and the width of its slot times the zoom, in pixels of the window. */
 const MAX_WIDTH_ERROR = 2;
-const LIMIT_MS = 20_000;
-
-interface Target {
-  readonly type: string;
-  readonly url: string;
-  readonly webSocketDebuggerUrl: string;
-}
-
-const sleep = (ms: number): Promise<void> => new Promise((done) => setTimeout(done, ms));
-const started = Date.now();
-const say = (text: string): void => console.log(`${String(Date.now() - started).padStart(6)} ms  ${text}`);
-
-/** A connection to one target of a debug port: `Runtime.evaluate`, and `send` for another method. */
-interface Connection {
-  evaluate<T>(expression: string): Promise<T>;
-  /** This function sends a method, and gives the value of its result, if it has one. */
-  send(method: string, params: Record<string, unknown>): Promise<unknown>;
-  close(): void;
-}
-
-/** This function connects to one target of the debug port. */
-async function connect(target: Target): Promise<Connection> {
-  const socket = new WebSocket(target.webSocketDebuggerUrl);
-  await new Promise((done, fail) => {
-    socket.addEventListener("open", done, { once: true });
-    socket.addEventListener("error", fail, { once: true });
-  });
-  let next = 0;
-  const waiting = new Map<number, (value: unknown) => void>();
-  socket.addEventListener("message", (message) => {
-    const data = JSON.parse(String(message.data)) as { id?: number; result?: { result?: { value?: unknown } } };
-    if (data.id !== undefined) waiting.get(data.id)?.(data.result?.result?.value);
-  });
-  const call = (method: string, params: Record<string, unknown>): Promise<unknown> =>
-    new Promise((done) => {
-      const id = ++next;
-      waiting.set(id, done);
-      socket.send(JSON.stringify({ id, method, params }));
-    });
-  return {
-    evaluate: async <T>(expression: string) => (await call("Runtime.evaluate", { expression, returnByValue: true })) as T,
-    send: (method, params) => call(method, params),
-    close: () => socket.close(),
-  };
-}
-
-/** This function waits until `test` gives a value that is not `undefined`, or throws after the time limit. */
-async function until<T>(what: string, test: () => Promise<T | undefined>): Promise<T> {
-  const end = Date.now() + LIMIT_MS;
-  while (Date.now() < end) {
-    const found = await test();
-    if (found !== undefined) return found;
-    await sleep(200);
-  }
-  throw new Error(`No ${what} in ${LIMIT_MS} ms.`);
-}
-
-/** This function gives a free port of the loopback address. */
-async function freePort(): Promise<number> {
-  const server = createServer();
-  await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
-  const { port } = server.address() as AddressInfo;
-  await new Promise((done) => server.close(done));
-  return port;
-}
 
 const sites = createServer((request, response) => {
   const name = request.url === "/b" ? "Site B" : "Site A";
@@ -113,13 +49,7 @@ const app = spawn(electron as unknown as string, [`--inspect=${inspectPort}`, `-
   stdio: ["ignore", "inherit", "inherit"],
 });
 
-const targets = async (): Promise<Target[]> => {
-  try {
-    return (await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json()) as Target[];
-  } catch {
-    return [];
-  }
-};
+const targets = (): Promise<Target[]> => targetsOf(debugPort);
 
 /** This function examines the slots of the screen: each is shown and tall. It writes the visibility of each page. */
 async function examine(page: Connection, screen: string, count: number, urls: readonly string[]): Promise<void> {

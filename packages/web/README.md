@@ -29,7 +29,7 @@ The command builds the page to `build/page/`, and then starts the host. Open the
 | Host | `src/headless.ts` | It gives a capture with a headless browser of the system. The picture comes back as a JPEG `data:` address. |
 | Host | `src/main.ts` | It opens the log and starts the host. It is the only file that starts it. |
 | Page | `src/page.ts` | It shows the interface, and sends the calls to the host over HTTP. |
-| Page | `src/dom-frames.ts` | It makes one hidden `iframe` for each load, in a sandbox, and puts it in the box of its slot. |
+| Page | `src/dom-frames.ts` | It makes one hidden `iframe` for each load, in a sandbox, and puts it in the box of its slot. It changes the sandbox for the lock. |
 
 - The host listens on `127.0.0.1` only. The browser checks of the host refuse a call from a page of another origin, and the check of the `Host` header stops DNS rebinding.
 - The page gets a strict content security policy. It loads only its own files, and it sends requests only to its own origin. Only its frames show other origins.
@@ -37,6 +37,11 @@ The command builds the page to `build/page/`, and then starts the host. Open the
 - The check has no cookies of the browser, so a pass is not a promise. The time limit of the load still applies.
 - The host policy refuses a private address, for example a router on the local network. The host does not read such an address, and the browser decides.
 - Each frame has `referrerpolicy="no-referrer"` and no permissions. A site of the origin of the page gets no `allow-same-origin`.
+- Each new site starts locked. A locked frame gets no `allow-popups`, so the site opens no window. When a locked frame loads another page, the page loads the site again. After `MAX_RETURNS` such loads, the frame stays on its page.
+- The page cannot see a click in the frame of another site. Thus a load within `SETTLE_MS` (2 seconds) of the last load is a redirect of the site, until the first quiet time. A click in that time goes on.
+- An unlock adds `allow-popups` and `allow-popups-to-escape-sandbox`. A new window then opens in a tab of the browser, not in the slot.
+- A frame has no tabs, no history and no address that the page can read. Thus the bar of a frame slot has no Back, no Forward and no "Add this page".
+- The browser check waits for the quiet time. Then it moves the frame of a locked slot, and the lock loads the site again. After an unlock, the frame stays on its new page.
 - A site that refuses a frame shows as a still picture from the host. The page sends the refused load to `pictures.capture`.
 - The option `pictures` of `webHost` gives the capture. The caller makes the pool and stops it. The tests and the browser check give a fake capture.
 - `headlessCapture` writes each picture in a new temporary folder, and deletes the folder after the capture. The render is an option, so the tests start no browser.

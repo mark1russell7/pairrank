@@ -1,11 +1,14 @@
 import type { Rect } from "@mark1russell7/layout-contract";
 import { describe, expect, it } from "vitest";
-import { type FrameCheck, type FrameCheckResult, type MakeFrame, iframeSurface } from "./iframe.ts";
-import { type Surface, type SurfaceEvent, trackSlots } from "./surface.ts";
+import { type FrameCheck, type FrameCheckResult, type MakeFrame, MAX_RETURNS, iframeSurface } from "./iframe.ts";
+import { type BrowseState, SETTLE_MS, type Surface, type SurfaceEvent, trackSlots } from "./surface.ts";
 import { withLoadTimeout } from "./timeout.ts";
 
 const url = "https://a.example/";
 const box: Rect = { x: 10, y: 20, w: 300, h: 200 };
+
+/** The pages of a frame of `url`. */
+const pagesOf = (locked: boolean): BrowseState => ({ locked, tabs: [{ id: 0, url, loading: false }], active: 0, back: false, forward: false, pages: false });
 
 /** A check that a test ends by hand, and the calls that it got. */
 function handCheck() {
@@ -17,10 +20,12 @@ function handCheck() {
   return { check, calls };
 }
 
-/** A frame in memory: its address, its boxes, and a `load` event that the test sends. */
+/** A frame in memory: its address, its boxes, its locks, its reloads, and a `load` event that the test sends. */
 interface FakeFrame {
   readonly url: string;
   readonly boxes: (Rect | undefined)[];
+  readonly locks: boolean[];
+  reloads: number;
   removed: boolean;
   load(): void;
 }
@@ -29,10 +34,14 @@ interface FakeFrame {
 function fakeFrames() {
   const made: FakeFrame[] = [];
   const frames: MakeFrame = (address, loaded) => {
-    const frame: FakeFrame = { url: address, boxes: [], removed: false, load: loaded };
+    const frame: FakeFrame = { url: address, boxes: [], locks: [], reloads: 0, removed: false, load: loaded };
     made.push(frame);
     return {
-      place: (next) => frame.boxes.push(next),
+      place: (next) => void frame.boxes.push(next),
+      lock: (locked) => void frame.locks.push(locked),
+      reload: () => {
+        frame.reloads += 1;
+      },
       remove: () => {
         frame.removed = true;
       },
@@ -51,17 +60,29 @@ function record(surface: Surface): SurfaceEvent[] {
 /** This function lets the promises of the checks end. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-/** This function makes a surface with a check and frames that the test controls. */
+/** A clock that the test moves by hand. */
+function handClock() {
+  let time = 0;
+  return {
+    now: () => time,
+    pass: (ms: number): void => {
+      time += ms;
+    },
+  };
+}
+
+/** This function makes a surface with a check, frames and a clock that the test controls. */
 function setup() {
   const { check, calls } = handCheck();
   const { frames, made } = fakeFrames();
-  const surface = iframeSurface({ check, frames });
-  return { surface, calls, made, events: record(surface) };
+  const clock = handClock();
+  const surface = iframeSurface({ check, frames, now: clock.now });
+  return { surface, calls, made, clock, events: record(surface) };
 }
 
 describe("iframeSurface", () => {
   it("checks the site, makes its frame, and sends shown at the load of the frame", async () => {
-    const { surface, calls, made, events } = setup();
+    const { surface, calls, made, clock, events } = setup();
     expect(surface.kind).toBe("iframe");
     expect(surface.show("a", url)).toBe(1);
     expect(calls.map((call) => call.url)).toEqual([url]);
@@ -70,11 +91,115 @@ describe("iframeSurface", () => {
     await settle();
     expect(made.map((frame) => frame.url)).toEqual([url]);
     made[0]?.load();
+    clock.pass(SETTLE_MS);
     made[0]?.load();
     expect(events).toEqual([
       { type: "loading", slot: "a", load: 1, url },
+      { type: "browse", slot: "a", load: 1, browse: pagesOf(true) },
       { type: "shown", slot: "a", load: 1, url: "https://a.example/home" },
+      { type: "browse", slot: "a", load: 1, browse: pagesOf(true) },
+      { type: "blocked", slot: "a", load: 1, blocked: { kind: "page" } },
     ]);
+  });
+
+  it("returns a locked frame to its site after a navigation, and tells the stop", async () => {
+    const { surface, calls, made, clock, events } = setup();
+    surface.show("a", url);
+    calls[0]?.end({ ok: true });
+    await settle();
+    const frame = made[0];
+    frame?.load();
+    expect(frame?.locks).toEqual([]);
+    // The site goes to another page: the frame loads the site again, and the load of the return is not a navigation
+    clock.pass(SETTLE_MS);
+    frame?.load();
+    frame?.load();
+    expect(frame?.reloads).toBe(1);
+    expect(events.filter((event) => event.type === "blocked")).toEqual([{ type: "blocked", slot: "a", load: 1, blocked: { kind: "page" } }]);
+    // A site that leaves again after each return stays where it went after MAX_RETURNS returns
+    for (let n = 0; n < MAX_RETURNS + 2; n += 1) {
+      clock.pass(SETTLE_MS);
+      frame?.load();
+      frame?.load();
+    }
+    expect(frame?.reloads).toBe(MAX_RETURNS);
+  });
+
+  it("lets the redirects of a script go after the first load and after each return, until a quiet time", async () => {
+    const { surface, calls, made, clock, events } = setup();
+    surface.show("a", url);
+    calls[0]?.end({ ok: true });
+    await settle();
+    const frame = made[0];
+    frame?.load();
+    // The script of the site goes to another page soon after the load, and its next page does the same
+    clock.pass(SETTLE_MS - 1);
+    frame?.load();
+    clock.pass(SETTLE_MS - 1);
+    frame?.load();
+    expect(frame?.reloads).toBe(0);
+    // After a quiet time, a load is a navigation
+    clock.pass(SETTLE_MS);
+    frame?.load();
+    expect(frame?.reloads).toBe(1);
+    // The return loads the site, and the script of the site goes again
+    frame?.load();
+    frame?.load();
+    expect(frame?.reloads).toBe(1);
+    clock.pass(SETTLE_MS);
+    frame?.load();
+    expect(frame?.reloads).toBe(2);
+    expect(events.filter((event) => event.type === "blocked")).toHaveLength(2);
+  });
+
+  it("unlocks a frame, so its site navigates and opens windows", async () => {
+    const { surface, calls, made, events } = setup();
+    surface.show("a", url);
+    surface.act("a", { type: "lock", locked: false });
+    calls[0]?.end({ ok: true });
+    await settle();
+    // The unlock before the frame holds for the frame
+    expect(made[0]?.locks).toEqual([false]);
+    made[0]?.load();
+    made[0]?.load();
+    expect(made[0]?.reloads).toBe(0);
+    surface.act("a", { type: "lock", locked: false });
+    surface.act("a", { type: "lock", locked: true });
+    expect(made[0]?.locks).toEqual([false, true]);
+    expect(events.filter((event) => event.type === "browse")).toEqual([
+      { type: "browse", slot: "a", load: 1, browse: pagesOf(true) },
+      { type: "browse", slot: "a", load: 1, browse: pagesOf(false) },
+      { type: "browse", slot: "a", load: 1, browse: pagesOf(false) },
+      { type: "browse", slot: "a", load: 1, browse: pagesOf(true) },
+    ]);
+    expect(events.some((event) => event.type === "blocked")).toBe(false);
+  });
+
+  it("loads the site again for home, with no notice, and ignores the actions that a frame cannot do", async () => {
+    const { surface, calls, made, events } = setup();
+    surface.act("a", { type: "home" });
+    surface.show("a", url);
+    surface.act("a", { type: "home" });
+    calls[0]?.end({ ok: true });
+    await settle();
+    made[0]?.load();
+    surface.act("a", { type: "home" });
+    made[0]?.load();
+    // The script of the site goes to its page again after home
+    made[0]?.load();
+    for (const action of [{ type: "back" }, { type: "forward" }, { type: "select", tab: 0 }, { type: "close", tab: 1 }, { type: "open", url, where: "tab" }] as const) surface.act("a", action);
+    expect(made[0]?.reloads).toBe(1);
+    expect(events.map((event) => event.type)).toEqual(["loading", "browse", "shown", "browse"]);
+  });
+
+  it("starts each load locked", async () => {
+    const { surface, calls, made } = setup();
+    surface.show("a", url);
+    surface.act("a", { type: "lock", locked: false });
+    surface.show("a", url);
+    calls[1]?.end({ ok: true });
+    await settle();
+    expect(made[0]?.locks).toEqual([]);
   });
 
   it("sends the refusal of a site, and makes no frame for it", async () => {
@@ -184,14 +309,20 @@ describe("iframeSurface", () => {
   it("follows the status of each slot in a tracker, with the time limit", async () => {
     const { check, calls } = handCheck();
     const { frames, made } = fakeFrames();
-    const surface = withLoadTimeout(iframeSurface({ check, frames }), { ms: 1_000, timers: { set: () => 0, clear: () => undefined } });
+    const clock = handClock();
+    const surface = withLoadTimeout(iframeSurface({ check, frames, now: clock.now }), { ms: 1_000, timers: { set: () => 0, clear: () => undefined } });
     const tracker = trackSlots(surface);
     surface.show("a", url);
-    expect(tracker.status("a")).toEqual({ state: "loading", load: 1, url });
+    expect(tracker.status("a")).toEqual({ state: "loading", load: 1, url, browse: pagesOf(true) });
     calls[0]?.end({ ok: true });
     await settle();
     made[0]?.load();
-    expect(tracker.status("a")).toEqual({ state: "shown", load: 1, url });
+    expect(tracker.status("a")).toEqual({ state: "shown", load: 1, url, browse: pagesOf(true) });
+    clock.pass(SETTLE_MS);
+    made[0]?.load();
+    expect(tracker.status("a")).toEqual({ state: "shown", load: 1, url, browse: pagesOf(true), blocked: { kind: "page" } });
+    surface.act("a", { type: "lock", locked: false });
+    expect(tracker.status("a")).toEqual({ state: "shown", load: 1, url, browse: pagesOf(false) });
     surface.dispose();
   });
 });

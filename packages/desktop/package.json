@@ -13,7 +13,7 @@
     "build": "tsdown",
     "start": "tsdown && electron build/main/main.js",
     "smoke": "tsdown && electron build/main/main.js --smoke",
-    "e2e": "tsdown && tsx src/e2e/layout.e2e.ts && tsdown -c tsdown.e2e.config.ts && electron build/e2e/capture.js"
+    "e2e": "tsdown && tsx src/e2e/layout.e2e.ts && tsx src/e2e/browse.e2e.ts && tsdown -c tsdown.e2e.config.ts && electron build/e2e/capture.js"
   },
   "devDependencies": {
     "@mark1russell7/cue": "^2.0.0",
