@@ -25,7 +25,7 @@ import { fakeProcess } from "@mark1russell7/service/testing";
 import { capturePool } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
 import { SETTLE_MS } from "@pairrank/surfaces";
-import { renderScreenshot } from "@procedures/browser";
+import { renderScreenshotBytes } from "@procedures/browser";
 import { Client, HttpTransport, pathToMethod } from "@procedures/client";
 import { createHostFetch } from "@procedures/http";
 import { runProcedureHost } from "@procedures/server";
@@ -190,7 +190,7 @@ const SEEN = `(() => {
  */
 async function examineCapture(view: Page): Promise<void> {
   const executable = process.env["CHROME_PATH"];
-  const capture = headlessCapture({ render: (request) => renderScreenshot({ ...request, executable }), timeoutMs: LOAD_TIMEOUT_MS });
+  const capture = headlessCapture({ render: (request) => renderScreenshotBytes({ ...request, executable }), timeoutMs: LOAD_TIMEOUT_MS });
   const result = await capture(`${origin}/color`, { w: 640, h: 400 }, new AbortController().signal);
   if (!result.ok) throw new Error(`Capture: the real capture failed: ${result.reason}, ${result.detail ?? "no detail"}.`);
   const center = await view.evaluate<{ w: number; h: number; rgb: number[] } | string>(`new Promise((done) => {
