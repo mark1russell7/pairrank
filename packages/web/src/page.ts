@@ -25,8 +25,7 @@ async function check(url: string): Promise<FrameCheckResult> {
 // The frames are in a container of their own, after the root of the interface. Each frame takes the box of its slot.
 const frames = document.createElement("div");
 document.body.append(frames);
-const timers = { set: (callback: () => void, ms: number) => window.setTimeout(callback, ms), clear: (handle: unknown) => window.clearTimeout(handle as number) };
-const live = withLoadTimeout(iframeSurface({ check, frames: domFrames(frames) }), { ms: LOAD_TIMEOUT_MS, timers });
+const live = withLoadTimeout(iframeSurface({ check, frames: domFrames(frames) }), { ms: LOAD_TIMEOUT_MS });
 // A site that refuses the frame shows as a still picture. A host without a capture fails the picture, and then the slot
 // gets the refusal, with the two details. A slow site is not a reason.
 const surface = withFallback(live, pictureSurface(captureApiOf(call)), ["refused"]);

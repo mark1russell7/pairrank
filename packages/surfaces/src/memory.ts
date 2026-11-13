@@ -2,8 +2,9 @@
  * A surface in memory, with no window. The tests of the interface and of the adapters use it. A test gives each event
  * of a site with `emit`.
  */
+import { createEmitter } from "@mark1russell7/collections";
 import type { Rect } from "@mark1russell7/layout-contract";
-import { type LoadId, type SlotAction, type SlotId, type Surface, type SurfaceEvent, type SurfaceListener, refusalOf } from "./surface.ts";
+import { type LoadId, type SlotAction, type SlotId, type Surface, type SurfaceEvent, type SurfaceEvents, refusalOf } from "./surface.ts";
 
 /** A surface in memory, and what it got. */
 export interface MemorySurface {
@@ -25,15 +26,14 @@ export interface MemorySurface {
  * that is not a web address. The test sends the other events with `emit`.
  */
 export function memorySurface(kind = "memory"): MemorySurface {
-  const listeners = new Set<SurfaceListener>();
+  const events = createEmitter<SurfaceEvents>();
   const loads = new Map<SlotId, { load: LoadId; url: string }>();
   const boxes = new Map<SlotId, Rect | undefined>();
   const counts = new Map<SlotId, LoadId>();
   const actions: { slot: SlotId; action: SlotAction }[] = [];
   let gone = false;
   const emit = (event: SurfaceEvent): void => {
-    if (gone) return;
-    for (const listener of [...listeners]) listener(event);
+    if (!gone) events.emit("event", event);
   };
   const surface: Surface = {
     kind,
@@ -57,13 +57,10 @@ export function memorySurface(kind = "memory"): MemorySurface {
     act(slot, action) {
       if (!gone) actions.push({ slot, action });
     },
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe: (listener) => events.on("event", listener),
     dispose() {
       gone = true;
-      listeners.clear();
+      events.dispose();
       loads.clear();
       boxes.clear();
     },

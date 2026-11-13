@@ -1,28 +1,10 @@
+import { fakeClock } from "@mark1russell7/algebra/clock";
 import { describe, expect, it } from "vitest";
 import { memorySurface } from "./memory.ts";
 import { type BrowseState, EMPTY, type SlotStatus, type SurfaceEvent, nextStatus, refusalOf, trackSlots } from "./surface.ts";
-import { type Timers, withLoadTimeout } from "./timeout.ts";
+import { withLoadTimeout } from "./timeout.ts";
 
 const url = "https://a.example/";
-
-/** Fake timers: a test starts each due callback with `run`. */
-function fakeTimers(): Timers & { run(): void; open(): number } {
-  const due = new Map<number, () => void>();
-  let next = 0;
-  return {
-    set: (callback) => {
-      due.set(++next, callback);
-      return next;
-    },
-    clear: (handle) => void due.delete(handle as number),
-    run: () => {
-      const callbacks = [...due.values()];
-      due.clear();
-      for (const callback of callbacks) callback();
-    },
-    open: () => due.size,
-  };
-}
 
 const fold = (events: readonly SurfaceEvent[]): SlotStatus => events.reduce(nextStatus, EMPTY);
 
@@ -146,45 +128,47 @@ describe("memorySurface and trackSlots", () => {
 });
 
 describe("withLoadTimeout", () => {
-  it("fails a load with no page in the time limit, and a late page still shows", () => {
+  it("fails a load with no page in the time limit, and a late page still shows", async () => {
     const memory = memorySurface();
-    const timers = fakeTimers();
-    const surface = withLoadTimeout(memory.surface, { ms: 15_000, timers });
+    const clock = fakeClock();
+    const surface = withLoadTimeout(memory.surface, { ms: 15_000, clock });
     const slots = trackSlots(surface);
     const load = surface.show("a", url);
-    expect(timers.open()).toBe(1);
-    timers.run();
+    expect(clock.pending).toBe(1);
+    await clock.advance(14_999);
+    expect(slots.status("a")).toMatchObject({ state: "loading" });
+    await clock.advance(1);
     expect(slots.status("a")).toMatchObject({ state: "failed", reason: "timeout", detail: "No page in 15000 ms." });
     memory.emit({ type: "shown", slot: "a", load, url });
     expect(slots.status("a")).toMatchObject({ state: "shown" });
   });
 
-  it("stops the timer when the page comes, at a new load, and at clear", () => {
+  it("stops the timer when the page comes, at a new load, and at clear", async () => {
     const memory = memorySurface();
-    const timers = fakeTimers();
-    const surface = withLoadTimeout(memory.surface, { ms: 1000, timers });
+    const clock = fakeClock();
+    const surface = withLoadTimeout(memory.surface, { ms: 1000, clock });
     const slots = trackSlots(surface);
     const first = surface.show("a", url);
     memory.emit({ type: "shown", slot: "a", load: first, url });
-    expect(timers.open()).toBe(0);
+    expect(clock.pending).toBe(0);
     surface.show("a", url);
     surface.show("a", "https://b.example/");
-    expect(timers.open()).toBe(1);
+    expect(clock.pending).toBe(1);
     surface.clear("a");
-    expect(timers.open()).toBe(0);
-    timers.run();
+    expect(clock.pending).toBe(0);
+    await clock.advance(1000);
     expect(slots.status("a")).toMatchObject({ state: "empty" });
   });
 
   it("starts no timer for a load that the inner surface refused in show", () => {
     const memory = memorySurface();
-    const timers = fakeTimers();
-    const surface = withLoadTimeout(memory.surface, { ms: 1000, timers });
+    const clock = fakeClock();
+    const surface = withLoadTimeout(memory.surface, { ms: 1000, clock });
     surface.show("a", "about:blank");
-    expect(timers.open()).toBe(0);
+    expect(clock.pending).toBe(0);
     surface.show("b", url);
     surface.dispose();
-    expect(timers.open()).toBe(0);
+    expect(clock.pending).toBe(0);
     expect(memory.disposed()).toBe(true);
   });
 });

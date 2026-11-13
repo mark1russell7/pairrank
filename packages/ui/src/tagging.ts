@@ -4,6 +4,7 @@
  */
 import type { Draft } from "@pairrank/core";
 import type { StateView, TagView } from "@pairrank/host/views";
+import { wordSearch } from "./search.ts";
 
 /** One color of a tag: a name for the screen readers, and a value that shows in the light and the dark mode. */
 export interface TagColor {
@@ -100,6 +101,6 @@ export function impactOf(view: StateView, tag: string): TagImpact {
 
 /** This function gives the tags whose names have each word of a search, in the order of their names. */
 export function findTags(tags: readonly TagView[], query: string): TagView[] {
-  const words = query.toLowerCase().split(/\s+/).filter((word) => word !== "");
-  return tags.filter((tag) => words.every((word) => tag.name.toLowerCase().includes(word))).sort((a, b) => a.name.localeCompare(b.name));
+  const has = wordSearch(query);
+  return tags.filter((tag) => has(tag.name)).sort((a, b) => a.name.localeCompare(b.name));
 }

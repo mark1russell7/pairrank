@@ -21,8 +21,7 @@ window.addEventListener("message", function onPorts(event: MessageEvent<unknown>
 
   const remote = remoteSurface((command) => surfacePort.postMessage(command), "electron");
   surfacePort.onmessage = (message: MessageEvent<SurfaceEvent>) => remote.receive(message.data);
-  const timers = { set: (callback: () => void, ms: number) => window.setTimeout(callback, ms), clear: (handle: unknown) => window.clearTimeout(handle as number) };
-  const live = withLoadTimeout(remote.surface, { ms: LOAD_TIMEOUT_MS, timers });
+  const live = withLoadTimeout(remote.surface, { ms: LOAD_TIMEOUT_MS });
   // A view that crashes, or a site that refuses the view, shows as a still picture. A slow site is not a reason.
   const surface = withFallback(live, pictureSurface(captureApiOf(call)), ["crashed", "refused"]);
 

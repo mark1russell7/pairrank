@@ -22,6 +22,7 @@ import { MAX_CAPTURES, capturePool, picturesModule } from "@pairrank/host/pictur
 import { openStore } from "@pairrank/store";
 import { applyCommand, parseCommand } from "@pairrank/surfaces";
 import { PortTransport, ProcedureServer, createRegistry, electronPortOf } from "@procedures/client";
+import { contentTypeOf } from "@procedures/peer";
 import { BrowserWindow, MessageChannelMain, app, protocol, session } from "electron";
 import { canonicalUrl } from "polite-crawler/urls";
 import {
@@ -35,7 +36,6 @@ import {
   SITE_PARTITION,
   STORE_FILE,
   allowsNavigation,
-  contentType,
   pageFile,
   showWhenReady,
   windowOptions,
@@ -78,7 +78,7 @@ async function serveFile(request: Request): Promise<Response> {
   if (file === undefined) return new Response("Not found", { status: 404 });
   try {
     const body = await readFile(file);
-    return new Response(body, { headers: { "content-type": contentType(file), "content-security-policy": CONTENT_SECURITY_POLICY } });
+    return new Response(body, { headers: { "content-type": contentTypeOf(file), "content-security-policy": CONTENT_SECURITY_POLICY } });
   } catch {
     return new Response("Not found", { status: 404 });
   }

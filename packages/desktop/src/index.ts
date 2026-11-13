@@ -4,7 +4,8 @@
  *
  * @packageDocumentation
  */
-import { extname, join, normalize, sep } from "node:path";
+import { join, normalize } from "node:path";
+import { isInside } from "@mark1russell7/files";
 import { type Rect, type SizedRect, scaleRect, snapRect, toSizedRect } from "@mark1russell7/layout-contract";
 import type { FailReason } from "@pairrank/surfaces";
 import type { BrowserWindowConstructorOptions, WebPreferences } from "electron";
@@ -259,21 +260,5 @@ export function pageFile(root: string, address: string): string | undefined {
   if (url.protocol !== `${PAGE_SCHEME}:` || url.host !== "page" || path.includes("\0") || path.includes("\\")) return undefined;
   const base = normalize(root);
   const file = normalize(join(base, path === "/" ? "index.html" : path));
-  return file.startsWith(base.endsWith(sep) ? base : base + sep) ? file : undefined;
-}
-
-/** The content type of each kind of file of the page. A module script must have a JavaScript type. */
-const TYPES: Readonly<Record<string, string>> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".woff2": "font/woff2",
-};
-
-/** This function gives the content type of a file of the page. An unknown kind gives `application/octet-stream`. */
-export function contentType(file: string): string {
-  return TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
+  return isInside(base, file) ? file : undefined;
 }

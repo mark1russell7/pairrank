@@ -5,8 +5,9 @@
  * The proxy gives each load its number, so `show` gives the number at once, as the contract tells. The main process
  * uses the number of the command, so the events of the two sides agree.
  */
+import { createEmitter } from "@mark1russell7/collections";
 import type { Rect } from "@mark1russell7/layout-contract";
-import type { LoadId, SlotAction, SlotId, Surface, SurfaceEvent, SurfaceListener, TabId } from "./surface.ts";
+import type { LoadId, SlotAction, SlotId, Surface, SurfaceEvent, SurfaceEvents, TabId } from "./surface.ts";
 
 /**
  * A command of the page to the main process. A port sends `null` for a hidden slot, not `undefined`. An action has the
@@ -144,7 +145,7 @@ export interface RemoteSurface {
  * events of the main process come back through `receive`.
  */
 export function remoteSurface(send: (command: SurfaceCommand) => void, kind = "remote"): RemoteSurface {
-  const listeners = new Set<SurfaceListener>();
+  const events = createEmitter<SurfaceEvents>();
   const counts = new Map<SlotId, LoadId>();
   let gone = false;
   const surface: Surface = {
@@ -165,23 +166,19 @@ export function remoteSurface(send: (command: SurfaceCommand) => void, kind = "r
       const load = counts.get(slot);
       if (!gone && load !== undefined) send({ type: "act", slot, load, action });
     },
-    subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
+    subscribe: (listener) => events.on("event", listener),
     dispose() {
       if (gone) return;
       // Stop first: the answers of the main process to these commands reach no listener
       gone = true;
-      listeners.clear();
+      events.dispose();
       for (const [slot, load] of counts) send({ type: "clear", slot, load });
     },
   };
   return {
     surface,
     receive(event) {
-      if (gone) return;
-      for (const listener of [...listeners]) listener(event);
+      if (!gone) events.emit("event", event);
     },
   };
 }
