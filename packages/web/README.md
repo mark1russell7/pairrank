@@ -44,7 +44,7 @@ The command builds the page to `build/page/`, and then starts the host. Open the
 - The browser check waits for the quiet time. Then it moves the frame of a locked slot, and the lock loads the site again. After an unlock, the frame stays on its new page.
 - A site that refuses a frame shows as a still picture from the host. The page sends the refused load to `pictures.capture`.
 - The option `pictures` of `webHost` gives the capture. The caller makes the pool and stops it. The tests and the browser check give a fake capture.
-- `headlessCapture` writes each picture in a new temporary folder, and deletes the folder after the capture. The render is an option, so the tests start no browser.
-- `src/main.ts` gives `headlessCapture` with the render `renderScreenshot` of `@procedures/browser`. At most `MAX_CAPTURES` captures operate. The pool stops when the host stops.
+- `headlessCapture` gets the bytes of each picture from the render, and writes no file. The render is an option, so the tests start no browser.
+- `src/main.ts` gives `headlessCapture` with the render `renderScreenshotBytes` of `@procedures/browser`. At most `MAX_CAPTURES` captures operate. The pool stops when the host stops.
 - The capture needs Chrome, Chromium or Edge on the computer. With no browser, the slot of a refused site tells the failure of the capture.
 - At its end, the browser check takes a real picture of a local page of one color, and examines the color of the picture.
