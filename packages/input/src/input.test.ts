@@ -56,6 +56,16 @@ describe("parseSiteList", () => {
 describe("planImport", () => {
   const empty = replay([]).state;
 
+  it("keeps the earliest date of the entries with one key, and an entry with no date keeps the date", () => {
+    const entries: Entry[] = [
+      { url: "https://a.example/", dated: "2020-01-01T00:00:00Z" },
+      { url: "https://a.example#later", dated: "2022-01-01T00:00:00Z" },
+      { url: "https://a.example#none" },
+    ];
+    const { state } = replay(planImport(empty, siteList("test", entries), options()).events);
+    expect([...state.sites.values()].map((site) => site.dated)).toEqual(["2020-01-01T00:00:00Z"]);
+  });
+
   it("merges the entries with one key, and makes each new tag one time", () => {
     const entries: Entry[] = [
       { url: "https://a.example/", tags: ["News"], dated: "2021-05-01T00:00:00Z" },
