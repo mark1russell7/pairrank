@@ -1,7 +1,8 @@
+import { RATING_START_UNCERTAINTY, pairInformation, ratingUncertainty } from "@mark1russell7/rigor-statistics";
 import { type Event, type Scope, replay } from "@pairrank/core";
 import { describe, expect, it } from "vitest";
 import { type Ladder, type Rating, ladderOf, pairableOf } from "./ladder.ts";
-import { FULL_SEARCH, type PoolSite, START_UNCERTAINTY, choosePair, choosePairWith, informationOf, uncertaintyOf } from "./pairs.ts";
+import { choosePair, ratedOf } from "./pairs.ts";
 
 const overall: Scope = { kind: "overall" };
 
@@ -16,16 +17,13 @@ const ladder = (ratings: readonly Rating[]): Ladder => ({
   tie: 0,
 });
 
-describe("informationOf", () => {
-  it("is highest when the result and the two ratings are not sure", () => {
-    const fresh = rating("a", 1500);
-    expect(uncertaintyOf(fresh)).toBe(START_UNCERTAINTY);
-    expect(uncertaintyOf(rating("b", 1500, 3))).toBe(START_UNCERTAINTY / 2);
-    expect(uncertaintyOf(rating("c", 1500, 3, 80))).toBe(80);
-    // Equal ratings give p = 0.5, so the variance of the result is 0.25
-    expect(informationOf(fresh, rating("b", 1500))).toBeCloseTo(0.25 * 2 * START_UNCERTAINTY ** 2, 6);
-    expect(informationOf(fresh, rating("b", 1500))).toBeGreaterThan(informationOf(fresh, rating("b", 1900)));
-    expect(informationOf(fresh, rating("b", 1500))).toBeGreaterThan(informationOf(fresh, rating("b", 1500, 50)));
+describe("ratedOf", () => {
+  it("gives the site, the rating, the standard error and the count of the wins, the losses and the ties", () => {
+    const one: Rating = { site: "a", rating: 1620, se: undefined, wins: 1, losses: 1, ties: 1 };
+    expect(ratedOf(one)).toEqual({ id: "a", rating: 1620, se: undefined, picks: 3 });
+    // Three picks and no standard error give half of the start uncertainty
+    expect(ratingUncertainty(ratedOf(one))).toBe(RATING_START_UNCERTAINTY / 2);
+    expect(ratingUncertainty(ratedOf({ ...one, se: 80 }))).toBe(80);
   });
 });
 
@@ -51,7 +49,7 @@ describe("choosePair", () => {
   it("gives a rating of 1500 with no picks to a site that the ladder does not have", () => {
     const pair = choosePair(ladder([rating("old", 1500, 40, 30)]), ["old", "new"], { seed: 3 })!;
     expect([pair.a, pair.b].sort()).toEqual(["new", "old"]);
-    expect(pair.information).toBeCloseTo(informationOf(rating("old", 1500, 40, 30), rating("new", 1500)), 9);
+    expect(pair.information).toBeCloseTo(pairInformation(ratedOf(rating("old", 1500, 40, 30)), ratedOf(rating("new", 1500))), 9);
   });
 
   it("puts the sites with few picks first, and pairs a site with a near rating", () => {
@@ -74,14 +72,6 @@ describe("choosePair", () => {
     expect(near / seeds).toBeGreaterThan(0.9);
   });
 
-  it("puts each site on the left about half of the time", () => {
-    const board = ladder([rating("a", 1500), rating("b", 1500)]);
-    let left = 0;
-    for (let seed = 0; seed < 400; seed++) if (choosePair(board, ["a", "b"], { seed })!.a === "a") left++;
-    expect(left).toBeGreaterThan(160);
-    expect(left).toBeLessThan(240);
-  });
-
   it("takes a recent pair only when each pair is recent", () => {
     const board = ladder([rating("a", 1500), rating("b", 1500), rating("c", 1500)]);
     const recent = [["a", "b"], ["c", "a"]] as const;
@@ -91,43 +81,6 @@ describe("choosePair", () => {
     }
     const all = [...recent, ["b", "c"]] as const;
     expect(choosePair(board, ["a", "b", "c"], { seed: 1, recent: all })).toBeDefined();
-  });
-});
-
-describe("choosePairWith", () => {
-  const pool = (n: number): PoolSite[] => Array.from({ length: n }, (_, i) => ({ site: `s${i}`, rating: 1500 + i, picks: 0 }));
-  // Two groups: the even sites and the odd sites. A pair is allowed only inside a group
-  const sameGroup = (a: string, b: string): number | undefined => (Number(a.slice(1)) % 2 === Number(b.slice(1)) % 2 ? 1 : undefined);
-
-  it("gives only allowed pairs, in a small pool and in a large pool", () => {
-    for (const size of [5, FULL_SEARCH + 40]) {
-      for (let seed = 0; seed < 200; seed++) {
-        const pair = choosePairWith(pool(size), { seed, information: sameGroup });
-        expect(pair).toBeDefined();
-        expect(sameGroup(pair!.a, pair!.b)).toBe(1);
-      }
-    }
-  });
-
-  it("leaves out a site with no allowed pair, and gives nothing when no pair is allowed", () => {
-    // Only s0 and s1 make a pair. Each other site has no allowed pair, so the draw goes on to s0 or s1
-    const only = (a: string, b: string) => ([a, b].sort().join() === "s0,s1" ? 1 : undefined);
-    for (let seed = 0; seed < 100; seed++) expect([choosePairWith(pool(30), { seed, information: only })].map((pair) => [pair!.a, pair!.b].sort().join())).toEqual(["s0,s1"]);
-    expect(choosePairWith(pool(30), { seed: 1, information: () => undefined })).toBeUndefined();
-  });
-
-  it("takes the pair with the most information, and a recent pair only when each allowed pair is recent", () => {
-    const most = (a: string, b: string) => ([a, b].sort().join() === "s1,s2" ? 10 : 1);
-    for (let seed = 0; seed < 50; seed++) {
-      const pair = choosePairWith(pool(3), { seed, information: most });
-      if ([pair!.a, pair!.b].includes("s0")) continue;
-      expect([pair!.a, pair!.b].sort()).toEqual(["s1", "s2"]);
-    }
-    const recent = [["s0", "s2"]] as const;
-    for (let seed = 0; seed < 50; seed++) {
-      const pair = choosePairWith(pool(4), { seed, recent, information: sameGroup });
-      expect([pair!.a, pair!.b].sort()).toEqual(["s1", "s3"]);
-    }
   });
 });
 

@@ -209,8 +209,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.3
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.12
-        version: 0.1.14
+        specifier: ^0.1.16
+        version: 0.1.16
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -291,11 +291,11 @@ importers:
   packages/host:
     dependencies:
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.12
-        version: 0.1.14
+        specifier: ^0.1.16
+        version: 0.1.16
       '@mark1russell7/rigor-statistics':
-        specifier: ^0.1.27
-        version: 0.1.27
+        specifier: ^0.1.29
+        version: 0.1.29
       '@mark1russell7/service':
         specifier: ^0.8.5
         version: 0.8.6(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
@@ -359,8 +359,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.3
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.12
-        version: 0.1.14
+        specifier: ^0.1.16
+        version: 0.1.16
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -377,11 +377,11 @@ importers:
   packages/ratings:
     dependencies:
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.12
-        version: 0.1.14
+        specifier: ^0.1.16
+        version: 0.1.16
       '@mark1russell7/rigor-statistics':
-        specifier: ^0.1.27
-        version: 0.1.27
+        specifier: ^0.1.29
+        version: 0.1.29
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -405,11 +405,11 @@ importers:
   packages/site:
     dependencies:
       '@mark1russell7/rigor-generators':
-        specifier: ^0.1.12
-        version: 0.1.14
+        specifier: ^0.1.16
+        version: 0.1.16
       '@mark1russell7/rigor-statistics':
-        specifier: ^0.1.27
-        version: 0.1.27
+        specifier: ^0.1.29
+        version: 0.1.29
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -1003,8 +1003,16 @@ packages:
     resolution: {integrity: sha512-wSSv2qWetdgWMhhr7VdujBKgdF0kYB8PsckImdGC3yibgpI79fwos0U61dKZaPF7DebhE29F9AXWk7Ke//ASPQ==}
     engines: {node: '>=22'}
 
+  '@mark1russell7/rigor-generators@0.1.16':
+    resolution: {integrity: sha512-C94Q4C31aZ8UXx1R0JSBV7DiQFl5tVpbFxHxHzHaSqr3dTgmCkEvLrvlUV8/0/GZqPhQYG9cbX6GOlqfRj/h4g==}
+    engines: {node: '>=22'}
+
   '@mark1russell7/rigor-statistics@0.1.27':
     resolution: {integrity: sha512-UnBEZVSVSytwFH5pJ5ezlOCEs/19Ur0/REQ+Tq5BYs8uYWSNoP/hZNGx2tdqLN2Rn0u+A41GwieBnuM6DuWS4g==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.1.29':
+    resolution: {integrity: sha512-Wh91NJIwxIRN3+a5V2bqUkMhdPcjHI+gVZBCnohf12ZegdSTNqGlpqS2WXYmrRVjasF9EBgm1lC8GQNYpBSg7Q==}
     engines: {node: '>=22'}
 
   '@mark1russell7/service@0.8.6':
@@ -3680,9 +3688,15 @@ snapshots:
 
   '@mark1russell7/rigor-generators@0.1.14': {}
 
+  '@mark1russell7/rigor-generators@0.1.16': {}
+
   '@mark1russell7/rigor-statistics@0.1.27':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.12
+
+  '@mark1russell7/rigor-statistics@0.1.29':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.16
 
   '@mark1russell7/service@0.8.6(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)':
     dependencies:
@@ -3698,7 +3712,7 @@ snapshots:
 
   '@mark1russell7/site-pages@0.4.6':
     dependencies:
-      '@mark1russell7/rigor-statistics': 0.1.27
+      '@mark1russell7/rigor-statistics': 0.1.29
 
   '@mark1russell7/ste-lint@0.3.1':
     dependencies:

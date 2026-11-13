@@ -4,18 +4,11 @@
  *
  * @packageDocumentation
  */
-import {
-  type PairComparison,
-  bradleyTerry,
-  eloUpdate,
-  glicko2Update,
-  ratingToStrength,
-  strengthToRating,
-} from "@mark1russell7/rigor-statistics";
+import { type PairComparison, type RatingFitOptions, type RatingModel, fitRatings, strengthToRating } from "@mark1russell7/rigor-statistics";
 import { type Pick, type Scope, type SiteId, type State, picksIn, scopeKey } from "@pairrank/core";
 
 /** The models of a ladder. */
-export type ModelName = "bradley-terry" | "elo" | "glicko2";
+export type ModelName = RatingModel;
 
 /** The rating of one site in one scope. */
 export interface Rating {
@@ -43,14 +36,13 @@ export interface Ladder {
   readonly tie: number;
 }
 
-/** The options of a ladder. */
-export interface LadderOptions {
+/**
+ * The options of a ladder: the model, and the options of `fitRatings` of `@mark1russell7/rigor-statistics`. The prior
+ * SD of the Bradley-Terry fit is 1, and the K factor of Elo is 32, when the options do not set them.
+ */
+export interface LadderOptions extends RatingFitOptions {
   /** The model. The default is `bradley-terry`. */
   readonly model?: ModelName;
-  /** The standard deviation of the prior of each log-strength of the Bradley-Terry fit. The default is 1. */
-  readonly priorSd?: number;
-  /** The K factor of Elo. The default is 32. */
-  readonly k?: number;
 }
 
 /** This function gives the sites that can be in a pair of a scope. A site must not be hidden, and in a tag scope it must have the tag. */
@@ -84,59 +76,25 @@ export function comparisonsOf(picks: readonly Pick[], index: ReadonlyMap<SiteId,
   });
 }
 
-/** The fitted strengths of a model: a log-strength and its standard error for each site, and a tie parameter. */
-export interface Fit {
-  readonly strengths: readonly number[];
-  readonly se: readonly (number | undefined)[];
-  readonly tie: number;
+/** The log of a scope: the sites of its ladder, and its picks as comparisons by the index of each site in `sites`. */
+export interface ScopeLog {
+  readonly sites: readonly SiteId[];
+  readonly comparisons: readonly PairComparison[];
 }
 
-const score = (outcome: PairComparison["outcome"]): number => (outcome === "a" ? 1 : outcome === "b" ? 0 : 0.5);
-
-/** This function fits a model to the comparisons of `items` sites, in the order of the comparisons. */
-export function fit(model: ModelName, items: number, comparisons: readonly PairComparison[], options: LadderOptions = {}): Fit {
-  // A scope with no site has an empty ladder. The Bradley-Terry fit refuses 0 items
-  if (items === 0) return { strengths: [], se: [], tie: 0 };
-  switch (model) {
-    case "bradley-terry": {
-      const result = bradleyTerry(items, comparisons, { priorSd: options.priorSd ?? 1 });
-      return { strengths: result.strengths, se: result.se, tie: result.tie };
-    }
-    case "elo": {
-      const ratings = new Array<number>(items).fill(1500);
-      for (const { a, b, outcome } of comparisons) {
-        const next = eloUpdate(ratings[a] as number, ratings[b] as number, score(outcome), { k: options.k ?? 32 });
-        ratings[a] = next.a;
-        ratings[b] = next.b;
-      }
-      return { strengths: ratings.map((rating) => ratingToStrength(rating)), se: ratings.map(() => undefined), tie: 0 };
-    }
-    case "glicko2": {
-      const players = Array.from({ length: items }, () => ({ rating: 1500, rd: 350, volatility: 0.06 }));
-      // Each pick is one rating period of its two sites, so the order of the picks counts, as in Elo
-      for (const { a, b, outcome } of comparisons) {
-        const pa = players[a] as (typeof players)[number];
-        const pb = players[b] as (typeof players)[number];
-        players[a] = glicko2Update(pa, [{ rating: pb.rating, rd: pb.rd, score: score(outcome) }]);
-        players[b] = glicko2Update(pb, [{ rating: pa.rating, rd: pa.rd, score: 1 - score(outcome) }]);
-      }
-      return {
-        strengths: players.map((player) => ratingToStrength(player.rating)),
-        se: players.map((player) => ratingToStrength(1500 + player.rd)),
-        tie: 0,
-      };
-    }
-  }
-}
-
-/** This function gives the ladder of one scope. */
-export function ladderOf(state: State, scope: Scope, options: LadderOptions = {}): Ladder {
-  const model = options.model ?? "bradley-terry";
+/** This function gives the log of a scope, in the order of the picks. */
+export function logOf(state: State, scope: Scope): ScopeLog {
   const picks = picksIn(state, scope);
   const sites = sitesOf(state, scope, picks);
   const index = new Map(sites.map((site, i) => [site, i]));
-  const comparisons = comparisonsOf(picks, index);
-  const result = fit(model, sites.length, comparisons, options);
+  return { sites, comparisons: comparisonsOf(picks, index) };
+}
+
+/** This function gives the ladder of one scope. `fitRatings` of `@mark1russell7/rigor-statistics` fits the model. */
+export function ladderOf(state: State, scope: Scope, options: LadderOptions = {}): Ladder {
+  const model = options.model ?? "bradley-terry";
+  const { sites, comparisons } = logOf(state, scope);
+  const result = fitRatings(model, sites.length, comparisons, options);
 
   const counts = sites.map(() => ({ wins: 0, losses: 0, ties: 0 }));
   for (const { a, b, outcome } of comparisons) {

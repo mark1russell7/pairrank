@@ -109,6 +109,16 @@ describe("the mix of an order by rating", () => {
     }
   });
 
+  it("keeps the strict order at a temperature near 0, where the log-weights of the scores overflow", () => {
+    const state = stateOf();
+    const strict = ids(state, { query: all, order: { kind: "rating", scopes: [news, fun] } });
+    for (const temperature of [1e-310, Number.MIN_VALUE]) {
+      for (let seed = 1; seed <= 5; seed++) {
+        expect(ids(state, { query: all, order: { kind: "rating", scopes: [news, fun], mix: { temperature, seed } } })).toEqual(strict);
+      }
+    }
+  });
+
   it("puts a site first with a chance in proportion to its strength at the temperature 1", () => {
     const state = stateOf();
     const ladder = new Map(ladderOf(state, news).ratings.map((rating) => [rating.site, rating.rating]));

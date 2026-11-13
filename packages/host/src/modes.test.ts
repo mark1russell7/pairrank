@@ -1,5 +1,6 @@
+import { pairInformation } from "@mark1russell7/rigor-statistics";
 import { type Ask, type Draft, type Scope, type SiteId, type TagQuery, replay, stamp } from "@pairrank/core";
-import { informationOf, ladderOf } from "@pairrank/ratings";
+import { ladderOf, ratedOf } from "@pairrank/ratings";
 import { describe, expect, it } from "vitest";
 import { modePair } from "./modes.ts";
 
@@ -47,7 +48,7 @@ describe("modePair", () => {
     expect(sorted(pair!.a, pair!.b)).toBe("ab");
     expect(pair!.asks).toEqual([{ kind: "overall" }, news]);
     const ratingIn = (scope: Scope, id: SiteId) => ladderOf(state, scope).ratings.find((rating) => rating.site === id)!;
-    const sum = [{ kind: "overall" } as Scope, news].reduce((total, scope) => total + informationOf(ratingIn(scope, pair!.a), ratingIn(scope, pair!.b)), 0);
+    const sum = [{ kind: "overall" } as Scope, news].reduce((total, scope) => total + pairInformation(ratedOf(ratingIn(scope, pair!.a)), ratedOf(ratingIn(scope, pair!.b))), 0);
     expect(pair!.information).toBeCloseTo(sum, 9);
   });
 
