@@ -2,8 +2,8 @@
 #
 #   changes     The action changes of the template. The other jobs run only on a pull request that changes the app,
 #               and on each run by hand.
-#   installer   On Windows: builds the installer (packages/desktop/scripts/installer.ts), installs it silently, and
-#               starts the installed app with --smoke. The installer, latest.yml and the blockmap go to the artifact
+#   installer   On Windows: runs the tests of the desktop package, builds the installer
+#               (packages/desktop/scripts/installer.ts), installs it silently, and starts the installed app with --smoke. The installer, latest.yml and the blockmap go to the artifact
 #               desktop-installer. The job has only "contents: read".
 #   release     Only on a run by hand on main: makes the GitHub release desktop-v<version> with the files of the
 #               artifact, when that release is not there. The updater of the installed app reads the latest release.
@@ -76,6 +76,9 @@ jobs:
           key: desktop-installer-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: desktop-installer-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
+      # The tests of the move of the log use SQLite files and a rename, so they also run on the system of the installer.
+      - name: The tests of the desktop package on Windows
+        run: pnpm --filter @pairrank/desktop test
       - id: version
         name: The version of the app
         run: echo "version=$(node -p 'require("./packages/desktop/package.json").version')" >> "$GITHUB_OUTPUT"

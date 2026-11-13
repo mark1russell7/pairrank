@@ -49,9 +49,11 @@ try {
   }
   await writeFile(join(stage, "package.json"), `${JSON.stringify(stagedPackage(version), null, 2)}\n`);
 
-  // The Electron of the workspace: its version, and its files from the install of the package electron
-  const electronPackage = createRequire(import.meta.url).resolve("electron/package.json");
-  const electronVersion = (JSON.parse(await readFile(electronPackage, "utf8")) as { version: string }).version;
+  // The Electron of the workspace: its version, and its files. The package electron downloads its files at the first
+  // use, and its main module gives the path of the program after that download.
+  const require = createRequire(import.meta.url);
+  const electronVersion = (JSON.parse(await readFile(require.resolve("electron/package.json"), "utf8")) as { version: string }).version;
+  const electronDist = dirname(require("electron") as string);
 
   const { Arch, Platform, build } = builder;
   const artifacts = await build({
@@ -62,7 +64,7 @@ try {
       appId: APP_ID,
       productName: PRODUCT_NAME,
       electronVersion,
-      electronDist: join(dirname(electronPackage), "dist"),
+      electronDist,
       directories: { output: out },
       files: ["build/**/*", "package.json"],
       npmRebuild: false,
