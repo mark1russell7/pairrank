@@ -5,6 +5,7 @@
  */
 import { createEmitter } from "@mark1russell7/collections";
 import type { Rect } from "@mark1russell7/layout-contract";
+import { errorMessage } from "@mark1russell7/text";
 import { type BrowseState, type FailReason, type LoadId, SETTLE_MS, type SlotId, type Surface, type SurfaceEvent, type SurfaceEvents, refusalOf } from "./surface.ts";
 
 /** The result of a check of a site: the site accepts a frame, or the reason of a failure. */
@@ -181,7 +182,7 @@ export function iframeSurface({ check, frames, kind = "iframe", now = Date.now }
           checks.delete(slot);
           open(slot, load, url, result.url ?? url);
         },
-        (error: unknown) => fail("network", error instanceof Error ? error.message : String(error)),
+        (error: unknown) => fail("network", errorMessage(error)),
       );
       return load;
     },

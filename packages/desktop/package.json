@@ -27,6 +27,7 @@
   "dependencies": {
     "@mark1russell7/files": "^0.0.2",
     "@mark1russell7/layout-contract": "^0.10.0",
+    "@mark1russell7/text": "^0.0.5",
     "@pairrank/host": "workspace:*",
     "@pairrank/input": "workspace:*",
     "@pairrank/store": "workspace:*",

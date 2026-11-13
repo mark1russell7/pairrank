@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@mark1russell7/layout-contract": "^0.10.0",
+    "@mark1russell7/text": "^0.0.5",
     "@pairrank/core": "workspace:*",
     "@pairrank/host": "workspace:*",
     "@pairrank/input": "workspace:*",

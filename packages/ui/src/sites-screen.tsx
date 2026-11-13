@@ -2,13 +2,12 @@
  * The Sites screen: the viewer. It lists the sites that agree with a tag query, in the order of a rating, a title or a
  * date. A text search narrows the list. A click on a site shows the list one site at a time, from that site.
  */
+import { countOf, errorMessage, wordSearch } from "@mark1russell7/text";
 import type { SiteView, StateView, TagView, ViewerAnswer, ViewerRow } from "@pairrank/host/views";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import type { PairrankApi } from "./api.ts";
 import { HiddenSites } from "./hidden-sites.tsx";
-import { countOf } from "./importing.ts";
 import { nameOf } from "./look-screen.tsx";
-import { wordSearch } from "./search.ts";
 import { Swatch, type Write } from "./tags.tsx";
 import { MIX_LEVELS, type MixLevel, type ViewerSettings, mixLevelOf, orderChoices, orderOf, ratingText } from "./viewer.ts";
 
@@ -65,7 +64,7 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
           setFailure(undefined);
           if (got.ok) setRows(got.rows);
         },
-        (error: unknown) => live && setFailure(error instanceof Error ? error.message : String(error)),
+        (error: unknown) => live && setFailure(errorMessage(error)),
       );
     }, SETTLE_MS);
     return () => {

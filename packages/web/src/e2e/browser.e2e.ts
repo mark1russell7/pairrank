@@ -14,6 +14,7 @@
  * CI starts it with `pnpm --filter @pairrank/web e2e`. The variable `CHROME_PATH` gives the browser. The default is
  * `google-chrome`.
  */
+import { errorMessage } from "@mark1russell7/text";
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
@@ -301,7 +302,7 @@ try {
   say("The browser check passed.");
   code = 0;
 } catch (error) {
-  console.error(`The browser check failed: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`The browser check failed: ${errorMessage(error)}`);
 } finally {
   chrome.kill();
   await running.life.shutdown("the check ended");

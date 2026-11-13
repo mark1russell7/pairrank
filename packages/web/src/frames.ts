@@ -9,6 +9,7 @@
  * - The host policy refuses a private address, for example a router on the local network. The host does not read
  *   such an address, and the check passes: the browser decides.
  */
+import { errorMessage } from "@mark1russell7/text";
 import { type FrameCheck, type FrameCheckResult, MAX_URL, refusalOf } from "@pairrank/surfaces";
 import { type ProcedureModule, createProcedure, defineModule, typed } from "@procedures/client";
 import { type HostFetch, type HostFetchResponse, frameRefusal, isHostNotAllowed } from "@procedures/http";
@@ -27,9 +28,6 @@ export interface FrameCheckOptions {
 /** This function tells if an error is the end of a time limit (`AbortSignal.timeout`). */
 const isTimeout = (error: unknown): boolean => (error as { name?: unknown } | null)?.name === "TimeoutError";
 
-/** This function gives the text of an error for the detail of a result. */
-const detailOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
 /** This function gives the check of a site before its load in a frame. The check does not throw. */
 export function frameCheck({ fetch, ancestor, timeoutMs }: FrameCheckOptions): FrameCheck {
   return async (url: string): Promise<FrameCheckResult> => {
@@ -42,8 +40,8 @@ export function frameCheck({ fetch, ancestor, timeoutMs }: FrameCheckOptions): F
       if (response.status === 405 || response.status === 501) response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
     } catch (error) {
       if (isHostNotAllowed(error)) return { ok: true };
-      if (isTimeout(error)) return { ok: false, reason: "timeout", detail: detailOf(error) };
-      return { ok: false, reason: "network", detail: detailOf(error) };
+      if (isTimeout(error)) return { ok: false, reason: "timeout", detail: errorMessage(error) };
+      return { ok: false, reason: "network", detail: errorMessage(error) };
     }
     const decision = frameRefusal(response.headers, { ancestor, page: response.url });
     return decision.refused ? { ok: false, reason: "refused", detail: decision.detail } : { ok: true, url: response.url };

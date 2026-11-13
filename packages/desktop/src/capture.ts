@@ -2,6 +2,7 @@
  * The capture of a site in the main process. A window off the screen loads the site with the rules of the site views.
  * Then it gives its last frame as a JPEG picture.
  */
+import { errorMessage } from "@mark1russell7/text";
 import type { CaptureResult } from "@pairrank/surfaces";
 import { BrowserWindow, type NativeImage } from "electron";
 import { CAPTURE_FRAME_RATE, allowsSiteNavigation, captureWindowOptions, failureOf } from "./index.ts";
@@ -56,7 +57,7 @@ export function electronCapture({ timeoutMs, paintDelayMs, quality }: ElectronCa
           const data = image.toJPEG(quality).toString("base64");
           end({ ok: true, picture: `data:image/jpeg;base64,${data}`, url: contents.getURL(), title: contents.getTitle() });
         } catch (error) {
-          const text = error instanceof Error ? error.message : String(error);
+          const text = errorMessage(error);
           end({ ok: false, reason: "network", detail: `The window painted ${frames} frames, and its capture failed: ${text}` });
         }
       };

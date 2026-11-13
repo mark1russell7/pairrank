@@ -9,6 +9,7 @@
  * After the checks, no window of a capture stays open. `tsdown -c tsdown.e2e.config.ts` builds this file, and CI starts it with
  * `pnpm --filter @pairrank/desktop e2e`.
  */
+import { errorMessage } from "@mark1russell7/text";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -139,7 +140,7 @@ void app
   .whenReady()
   .then(checks)
   .catch((error: unknown) => {
-    console.error(`The capture check failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`The capture check failed: ${errorMessage(error)}`);
     return 1;
   })
   .then(finish);

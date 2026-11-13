@@ -6,6 +6,7 @@
  * A bar above the slot shows the lock, the history, the tabs, a notice of the lock, and the button "Add this page". The view of the site covers the box of the slot, so the bar stays out of that box.
  */
 import type { Rect } from "@mark1russell7/layout-contract";
+import { errorMessage } from "@mark1russell7/text";
 import { isWebUrl } from "@pairrank/input";
 import type { Blocked, BrowseState, FailReason, SlotAction, SlotId, SlotStatus, SlotTracker, Surface, TabView } from "@pairrank/surfaces";
 import { type ReactElement, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -302,7 +303,7 @@ function AddPage({ pages, page }: { readonly pages: PageList; readonly page: Tab
     setAdd({ url, state: "adding" });
     pages.add(url, page.title).then(
       (addition) => setAdd((was) => (was?.url === url ? { url, state: "done", addition } : was)),
-      (failure: unknown) => setAdd((was) => (was?.url === url ? { url, state: "failed", problem: failure instanceof Error ? failure.message : String(failure) } : was)),
+      (failure: unknown) => setAdd((was) => (was?.url === url ? { url, state: "failed", problem: errorMessage(failure) } : was)),
     );
   };
 

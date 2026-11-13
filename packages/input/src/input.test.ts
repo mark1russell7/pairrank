@@ -119,4 +119,11 @@ describe("isWebUrl", () => {
       expect(isWebUrl(url), url).toBe(false);
     }
   });
+
+  it("tests a long URL in linear time", () => {
+    const url = `http://${"!".repeat(100_000)} `;
+    const start = performance.now();
+    expect(isWebUrl(url)).toBe(false);
+    expect(performance.now() - start).toBeLessThan(1000);
+  });
 });

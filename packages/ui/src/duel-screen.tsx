@@ -3,6 +3,7 @@
  * some picks of each pair, one after another. After the last pick, the host chooses the next pair (`pairrank.pair`).
  * An undo removes the last pick or the last hide of the duel, and shows its pair and its pick again.
  */
+import { errorMessage } from "@mark1russell7/text";
 import type { Draft, ModeId, Scope } from "@pairrank/core";
 import type { ModeView, SiteView, StateView, TagView } from "@pairrank/host/views";
 import type { SlotTracker, Surface } from "@pairrank/surfaces";
@@ -36,10 +37,6 @@ interface Round {
   readonly key: string;
   readonly pair: Pair | null | undefined;
   readonly asks: readonly Scope[];
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function Side(props: { readonly site: SiteView | undefined; readonly tags: ReadonlyMap<string, TagView>; readonly hide: () => void; readonly label: string }): ReactElement {
@@ -106,7 +103,7 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave, 
       },
       (failure: unknown) => {
         if (!live) return;
-        setProblem(messageOf(failure));
+        setProblem(errorMessage(failure));
         setLoaded({ key: roundKey, pair: undefined, asks: [] });
       },
     );
@@ -135,7 +132,7 @@ export function DuelScreen({ api, view, surface, tracker, reload, newId, leave, 
         else if (next === "ask") setAsk((current) => current + 1);
         return true;
       } catch (failure) {
-        setProblem(messageOf(failure));
+        setProblem(errorMessage(failure));
         return false;
       } finally {
         busy.current = false;

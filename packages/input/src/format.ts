@@ -56,8 +56,11 @@ export interface Parsed {
 /** A URL starts with a scheme. This code is also for a browser, so it does not use the `URL` class of Node. */
 const SCHEME = /^[a-z][a-z0-9+.-]*:\S*$/i;
 
-/** A web URL has the scheme `http` or `https`, a host, and no spaces. */
-const WEB = /^https?:\/\/[^\s/?#]+\S*$/i;
+/**
+ * A web URL has the scheme `http` or `https`, a host, and no spaces. The first character of the host is one class, and the
+ * rest is `\S*`. Thus no two quantifiers agree on the same character, and the time of the test is linear in the length of the URL.
+ */
+const WEB = /^https?:\/\/[^\s/?#]\S*$/i;
 
 /** This function tells if a text is a web URL: the scheme `http` or `https`, a host, and no spaces. */
 export function isWebUrl(url: string): boolean {
