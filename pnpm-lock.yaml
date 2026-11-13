@@ -290,6 +290,9 @@ importers:
 
   packages/host:
     dependencies:
+      '@mark1russell7/collections':
+        specifier: ^0.10.0
+        version: 0.10.0(zod@4.6.7)
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.16
         version: 0.1.16
