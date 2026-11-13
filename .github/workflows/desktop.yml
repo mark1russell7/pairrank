@@ -1,0 +1,176 @@
+# The Windows installer of the desktop app, and its GitHub releases (packages/desktop/README.md, "The installer").
+#
+#   changes     The action changes of the template. The other jobs run only on a pull request that changes the app,
+#               and on each run by hand.
+#   installer   On Windows: builds the installer (packages/desktop/scripts/installer.ts), installs it silently, and
+#               starts the installed app with --smoke. The installer, latest.yml and the blockmap go to the artifact
+#               desktop-installer. The job has only "contents: read".
+#   release     Only on a run by hand on main: makes the GitHub release desktop-v<version> with the files of the
+#               artifact, when that release is not there. The updater of the installed app reads the latest release.
+#               Only this job holds "contents: write", and it runs no code of the repository: no checkout, no install.
+#   desktop-ok  The summary check "Desktop OK".
+#
+# A release: raise the version of packages/desktop/package.json, merge, then: gh workflow run desktop.yml --ref main
+name: Desktop
+
+on:
+  # Each pull request starts this workflow, so its summary check is always there. The job changes skips the
+  # work when the pull request changes no file of the gate (CI.md of the template, "A gate with paths").
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+# A newer push cancels the run of a pull request. A run by hand on main ends with a result (main-runs-finish).
+concurrency:
+  group: desktop-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      match: ${{ steps.changes.outputs.match }}
+    steps:
+      - id: changes
+        uses: mark1russell7/template/.github/actions/changes@4466542421ef76bcb3ccf5b5e1765d4f509f8f4f # main
+        with:
+          paths: |
+            packages/desktop/**
+            packages/ui/**
+            .github/workflows/desktop.yml
+
+  installer:
+    needs: changes
+    if: needs.changes.outputs.match == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      # The binary of Electron (the install of the package electron) and the tools of electron-builder (NSIS) come
+      # from the releases of GitHub. The cache keeps them, so an error of that download does not fail the job.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: desktop-installer-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: desktop-installer-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - id: version
+        name: The version of the app
+        run: echo "version=$(node -p 'require("./packages/desktop/package.json").version')" >> "$GITHUB_OUTPUT"
+      - name: Build the installer
+        run: pnpm --filter @pairrank/desktop installer
+      - name: The files of the release are there
+        working-directory: packages/desktop/dist
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ls -l
+          for file in "pairrank-setup-$VERSION.exe" "pairrank-setup-$VERSION.exe.blockmap" latest.yml; do
+            if [ ! -s "$file" ]; then echo "::error::The build made no $file."; exit 1; fi
+          done
+          cat latest.yml
+          grep -q "^version: $VERSION\$" latest.yml
+          grep -q "path: pairrank-setup-$VERSION.exe" latest.yml
+          cat win-unpacked/resources/app-update.yml
+          grep -q "provider: github" win-unpacked/resources/app-update.yml
+          echo "The installer has $(( $(stat -c %s "pairrank-setup-$VERSION.exe") / 1048576 )) MiB." >> "$GITHUB_STEP_SUMMARY"
+      # The installer for one user puts the app in %LOCALAPPDATA%\Programs\pairrank, with no question (/S). Then the
+      # installed app starts with --smoke: it stops with 0 after the first message of its page.
+      - name: The installer installs, and the installed app passes its smoke
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = (Resolve-Path "packages/desktop/dist/pairrank-setup-$env:VERSION.exe").Path
+          $install = Start-Process -FilePath $setup -ArgumentList '/S' -PassThru
+          $null = $install.Handle
+          if (-not $install.WaitForExit(300000)) { $install.Kill($true); throw 'The installer did not end in 5 minutes.' }
+          if ($install.ExitCode -ne 0) { throw "The installer stopped with the exit code $($install.ExitCode)." }
+          $folder = Join-Path $env:LOCALAPPDATA 'Programs\pairrank'
+          $app = Join-Path $folder 'pairrank.exe'
+          if (-not (Test-Path $app)) { Get-ChildItem $folder -ErrorAction SilentlyContinue; throw "The installer put no app at $app." }
+          if (-not (Select-String -Path (Join-Path $folder 'resources\app-update.yml') -Pattern 'provider: github' -Quiet)) { throw 'The installed app has no app-update.yml for GitHub.' }
+          $out = Join-Path $env:RUNNER_TEMP 'smoke.out'
+          $err = Join-Path $env:RUNNER_TEMP 'smoke.err'
+          $smoke = Start-Process -FilePath $app -ArgumentList '--smoke' -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+          $null = $smoke.Handle
+          $ended = $smoke.WaitForExit(120000)
+          Get-Content $out, $err -ErrorAction SilentlyContinue
+          if (-not $ended) { $smoke.Kill($true); throw 'The installed app did not stop in 2 minutes.' }
+          if ($smoke.ExitCode -ne 0) { throw "The smoke of the installed app stopped with the exit code $($smoke.ExitCode)." }
+          "The installed app passed its smoke." >> $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-installer
+          path: |
+            packages/desktop/dist/pairrank-setup-*.exe
+            packages/desktop/dist/pairrank-setup-*.exe.blockmap
+            packages/desktop/dist/latest.yml
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: installer
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: desktop-installer
+          path: release
+      # The updater of the installed app reads the latest release of the repository, so the new release is the latest.
+      - name: Make the release desktop-v<version>, when it is not there
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.installer.outputs.version }}
+        run: |
+          tag="desktop-v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::notice::The release $tag is there, so this run makes no release. A new release needs a new version of packages/desktop."
+            exit 0
+          fi
+          ls -l release
+          notes="The Windows installer of the desktop app. Download pairrank-setup-$VERSION.exe and start it. The installer has no signature, so Windows can show a warning: select \"More info\", then \"Run anyway\". The installed app then updates itself from the next releases."
+          gh release create "$tag" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "pairrank $VERSION" --notes "$notes" --latest
+          echo "The release $tag is at $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$tag." >> "$GITHUB_STEP_SUMMARY"
+
+  # The one check of this file for the ruleset (CI.md of the template, "The check of the ruleset"). The job release
+  # starts only on a run by hand on main, so its skip passes.
+  desktop-ok:
+    name: Desktop OK
+    if: ${{ !cancelled() }}
+    needs: [changes, installer, release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: mark1russell7/template/.github/actions/gate-summary@4466542421ef76bcb3ccf5b5e1765d4f509f8f4f # main
+        with:
+          needs: ${{ toJSON(needs) }}
+          allow-skip: release

@@ -10,6 +10,9 @@ allowBuilds:
   esbuild: true
   # Its install script only checks the native package, which pnpm installs as an optional dependency.
   "@swc/core": false
+  # A peer of electron-builder for the Squirrel target. Its install script picks a 7-Zip for that target, and the
+  # desktop app uses the NSIS target only.
+  electron-winstaller: false
 
 # Our own packages: the release train updates them, so the release age check of pnpm does not apply to them.
 minimumReleaseAgeExclude:

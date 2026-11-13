@@ -9,10 +9,14 @@
  *   it, the app shows the files of `build/page/` under `app://page/`. A packaged app ignores the variable.
  * - The page, the views of the sites and the captures download no file.
  * - The environment variable `PAIRRANK_STORE` gives the file of the log. The default is `pairrank.sqlite` in the folder
- *   of the user data. A smoke run uses a log in memory.
+ *   of the data (`data.ts`). A smoke run uses a log in memory.
+ * - The installed app and a development run use the same folder of the data. Before the store opens, the log of an
+ *   earlier development run moves into that folder once (`moveOldLog`).
+ * - Only the installed app looks for updates (`updates.ts`). A smoke run and a development run do not.
  * - With the argument `--smoke`, the app stops with the exit code 0 after the first message of the page. It stops with
  *   1 after a fault, or after 30 seconds with no message. CI uses it.
  */
+import { mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -24,9 +28,11 @@ import { openStore } from "@pairrank/store";
 import { applyCommand, parseCommand } from "@pairrank/surfaces";
 import { PortTransport, ProcedureServer, createRegistry, electronPortOf } from "@procedures/client";
 import { contentTypeOf } from "@procedures/peer";
-import { BrowserWindow, MessageChannelMain, app, protocol, session } from "electron";
+import { BrowserWindow, MessageChannelMain, app, dialog, protocol, session } from "electron";
+import electronUpdater from "electron-updater";
 import { canonicalUrl } from "polite-crawler/urls";
 import {
+  APP_ID,
   CONTENT_SECURITY_POLICY,
   LOAD_TIMEOUT_MS,
   PAGE_SCHEME,
@@ -34,8 +40,11 @@ import {
   PICTURE_QUALITY,
   SHOW_TIMEOUT_MS,
   SITE_PARTITION,
-  STORE_FILE,
   allowsNavigation,
+  checksForUpdates,
+  dataFolderOf,
+  logPlaceOf,
+  moveOldLog,
   pageFile,
   pageUrlOf,
   refuseDownloads,
@@ -43,16 +52,30 @@ import {
   windowOptions,
 } from "./index.ts";
 import { electronCapture } from "./capture.ts";
+import { diskLogFiles } from "./disk-log.ts";
+import { startUpdates } from "./updates.ts";
 import { siteViews } from "./views.ts";
 
 const build = join(dirname(fileURLToPath(import.meta.url)), "..");
 const page = pageUrlOf(app.isPackaged, process.env);
 const smoke = process.argv.includes("--smoke");
 
-/** This function stops the app with an exit code. It tells why on a fault, and in a smoke run. */
+// One folder of the data for each run mode. Electron names the folder after the app, and a development run has the
+// name "Electron". The lock of one instance and the sessions use this folder, so it is set before the lock and `ready`.
+const appData = app.getPath("appData");
+mkdirSync(dataFolderOf(appData), { recursive: true });
+app.setPath("userData", dataFolderOf(appData));
+// The notifications of Windows need the id that the installer gives to the shortcuts
+if (app.isPackaged) app.setAppUserModelId(APP_ID);
+
+/**
+ * This function stops the app with an exit code. It tells why on a fault, and in a smoke run. The installed app has no
+ * terminal, so it also shows the fault in a box, but not in a smoke run.
+ */
 function stop(code: number, why: string): void {
   if (code !== 0) console.error(`desktop: ${why}`);
   else if (smoke) console.log(`smoke: ${why}`);
+  if (code !== 0 && app.isPackaged && !smoke) dialog.showErrorBox("pairrank stopped", why);
   app.exit(code);
 }
 
@@ -97,7 +120,13 @@ async function start(): Promise<void> {
   }
   protocol.handle(PAGE_SCHEME, serveFile);
 
-  const store = openStore(smoke ? ":memory:" : (process.env["PAIRRANK_STORE"] ?? join(app.getPath("userData"), STORE_FILE)));
+  // The log of an earlier development run moves into the folder of the data once. A failed move stops the app before
+  // the store makes an empty log, so the next start tries again. The old file stays.
+  const place = logPlaceOf(smoke, process.env, appData);
+  if (place.kind === "data" && moveOldLog(place.old, place.file, diskLogFiles).moved) {
+    console.log(`desktop: the log of ${place.old} is now at ${place.file}. The old file stays.`);
+  }
+  const store = openStore(place.kind === "memory" ? ":memory:" : place.file);
   app.on("will-quit", () => store.close());
   const bookmarks = bookmarksModule({ folders: chromeDataFolders(process.platform, process.env, homedir()), files: diskFiles });
   // A capture refuses a host name with an address on this computer or on the local network. The lookup uses the
@@ -155,6 +184,7 @@ async function start(): Promise<void> {
     pictures.stop();
   });
   if (smoke) setTimeout(() => stop(1, "no message from the page in 30 seconds"), 30_000).unref();
+  if (checksForUpdates(app.isPackaged, smoke)) void startUpdates(electronUpdater.autoUpdater, (message) => console.error(`desktop: ${message}`));
   await window.loadURL(page);
 }
 
