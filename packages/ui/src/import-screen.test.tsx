@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import { pairrankModule } from "@pairrank/host";
-import { type BookmarkSource, parseChromeBookmarks } from "@pairrank/input";
+import type { BookmarkSource } from "@pairrank/input";
 import { openStore } from "@pairrank/store";
 import { memorySurface } from "@pairrank/surfaces";
+import { parseChromeBookmarks } from "@procedures/browser/bookmarks";
 import { callerOf } from "@procedures/client";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";

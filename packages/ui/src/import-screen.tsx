@@ -4,7 +4,8 @@
  */
 import { countOf, errorMessage } from "@mark1russell7/text";
 import type { ImportPreview, ImportResult } from "@pairrank/host/views";
-import { type BookmarkFolder, type BookmarkSource, type FolderChoice, type FolderSelection, ALL_FOLDERS, choicesOf, choose, chromeSiteList, includedCounts } from "@pairrank/input";
+import { type BookmarkSource, type FolderChoice, type FolderSelection, ALL_FOLDERS, choicesOf, choose, chromeSiteList, includedCounts } from "@pairrank/input";
+import type { BookmarkFolder } from "@procedures/browser/bookmarks";
 import { type ChangeEvent, type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import type { BookmarksApi, PairrankApi } from "./api.ts";
 import { type Book, type BoxState, boxState, clickChoice, everyFolder, kindText, readChosenFile, rootsOf } from "./importing.ts";

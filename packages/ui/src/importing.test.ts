@@ -1,4 +1,4 @@
-import { MAX_BOOKMARKS_BYTES, parseChromeBookmarks } from "@pairrank/input";
+import { MAX_BOOKMARKS_BYTES, parseChromeBookmarks } from "@procedures/browser/bookmarks";
 import { describe, expect, it } from "vitest";
 import { boxState, clickChoice, everyFolder, kindText, readChosenFile, rootsOf } from "./importing.ts";
 
