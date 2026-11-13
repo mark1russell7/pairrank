@@ -291,6 +291,11 @@ kbd {
   white-space: nowrap;
 }
 
+/* The key badge covers the left end of the bar of a card, so the address starts after it. */
+.card .mini-bar {
+  padding-left: 2.75rem;
+}
+
 .mini-hero {
   min-height: 0;
   background: var(--art);
@@ -618,6 +623,10 @@ code {
     width: 2.2rem;
     height: 2.2rem;
     font-size: 1.2rem;
+  }
+
+  .card .mini-bar {
+    padding-left: 2.6rem;
   }
 
   .actions button {
