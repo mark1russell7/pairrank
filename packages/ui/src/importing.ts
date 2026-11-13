@@ -2,15 +2,8 @@
  * The rules of the import of the Chrome bookmarks, with no React. They give the state of the box of each folder and
  * the change of a click. They also read a file that the user chooses.
  */
-import {
-  type BookmarkFolder,
-  type BookmarkSource,
-  type ChromeBookmarks,
-  type FolderChoice,
-  type FolderSelection,
-  MAX_BOOKMARKS_BYTES,
-  parseChromeBookmarks,
-} from "@pairrank/input";
+import type { BookmarkSource, FolderChoice, FolderSelection } from "@pairrank/input";
+import { type BookmarkFolder, type ChromeBookmarks, MAX_BOOKMARKS_BYTES, parseChromeBookmarks } from "@procedures/browser/bookmarks";
 
 /** A bookmarks file that the interface read, with its folders and its sites. */
 export interface Book {

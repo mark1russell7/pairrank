@@ -1,148 +1,13 @@
 /**
- * The adapter of the Chrome bookmarks. It reads the JSON of a Chrome bookmarks file, and gives a tree of folders. A
- * selection includes or excludes each folder. Then the adapter gives the sites of the included folders as a site list.
- * The names of the folders of a site go to its `path`, and not to its tags at any time.
+ * The adapter of the Chrome bookmarks. `parseChromeBookmarks` of `@procedures/browser/bookmarks` reads a bookmarks
+ * file, and gives a tree of folders. A selection includes or excludes each folder. Then the adapter gives the sites of
+ * the included folders as a site list. The names of the folders of a site go to its `path`, and not to its tags at any time.
  */
-import { type Entry, type SiteList, isWebUrl, siteList } from "./format.ts";
+import type { Bookmark, BookmarkFileKind, BookmarkFolder } from "@procedures/browser/bookmarks";
+import { type Entry, type SiteList, siteList } from "./format.ts";
 
 /** The source of each site list of this adapter. */
 export const CHROME_SOURCE = "chrome-bookmarks";
-
-/** The deepest folder that the adapter reads. A deeper folder gives a problem, and the adapter does not read it. */
-export const MAX_DEPTH = 100;
-
-/** A folder of the bookmarks, with its sites and the folders in it. */
-export interface BookmarkFolder {
-  /** The key of the folder: its `guid`, or else its `id`, after the prefix of the read. Each read of a file gives the same keys. */
-  readonly key: string;
-  readonly name: string;
-  /** The names of the folders from the root to this folder. The last name is the name of this folder. */
-  readonly path: readonly string[];
-  readonly folders: readonly BookmarkFolder[];
-  /** The sites directly in this folder. Each site has the path of this folder. */
-  readonly sites: readonly Entry[];
-  /** The count of the sites in this folder and in each folder in it. */
-  readonly total: number;
-}
-
-/** A part of a bookmarks file that the adapter cannot read. */
-export interface ChromeProblem {
-  /** The names of the folders to the part. */
-  readonly path: readonly string[];
-  readonly message: string;
-}
-
-/** The result of a read of a bookmarks file. */
-export interface ChromeBookmarks {
-  /** The root folders, for example "Bookmarks bar" and "Other bookmarks". */
-  readonly roots: readonly BookmarkFolder[];
-  /** The count of the bookmarks that are not web sites, for example `javascript:` or `chrome://` addresses. */
-  readonly skipped: number;
-  readonly problems: readonly ChromeProblem[];
-}
-
-/** The options of a read. */
-export interface ChromeReadOptions {
-  /** The text before each key. Two files of one profile have different prefixes, so their keys are different. */
-  readonly prefix?: string;
-}
-
-/** The order of the roots that Chrome writes. A root with another name comes after them. */
-const ROOT_ORDER = ["bookmark_bar", "other", "synced"];
-
-/** The time from 1601-01-01 (the start of the Chrome times) to 1970-01-01, in milliseconds. */
-const WINDOWS_EPOCH_MS = 11_644_473_600_000n;
-
-/**
- * This function gives the ISO 8601 time of a Chrome time, or `undefined` for no time. A Chrome time is a text of the
- * microseconds from 1601-01-01 UTC. The function uses `BigInt`, because the value is larger than a safe integer.
- */
-export function chromeTime(value: unknown): string | undefined {
-  if (typeof value !== "string" || !/^\d{1,20}$/.test(value)) return undefined;
-  const ms = BigInt(value) / 1000n - WINDOWS_EPOCH_MS;
-  // The time 0 means no time. A time before 1990 or after 9999 is not a date of a bookmark.
-  if (ms < 631_152_000_000n || ms > 253_402_300_799_999n) return undefined;
-  return new Date(Number(ms)).toISOString();
-}
-
-interface Node {
-  readonly type?: unknown;
-  readonly name?: unknown;
-  readonly url?: unknown;
-  readonly children?: unknown;
-  readonly guid?: unknown;
-  readonly id?: unknown;
-  readonly date_added?: unknown;
-}
-
-function isNode(value: unknown): value is Node {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-/**
- * This function reads the JSON value of a Chrome bookmarks file (the file `Bookmarks` or `AccountBookmarks` of a
- * profile). It gives a problem for each part that it cannot read, and it reads the other parts.
- *
- * @throws Error when the value has no roots, so it is not a bookmarks file
- */
-export function parseChromeBookmarks(value: unknown, options: ChromeReadOptions = {}): ChromeBookmarks {
-  const prefix = options.prefix ?? "";
-  if (!isNode(value) || !isNode((value as { roots?: unknown }).roots)) throw new Error("A Chrome bookmarks file has an object roots.");
-  const rootNodes = (value as { roots: Record<string, unknown> }).roots;
-  const problems: ChromeProblem[] = [];
-  let skipped = 0;
-
-  const folderOf = (node: Node, parent: readonly string[], fallback: string, depth: number): BookmarkFolder => {
-    const name = typeof node.name === "string" && node.name !== "" ? node.name : fallback;
-    const path = [...parent, name];
-    const own = typeof node.guid === "string" && node.guid !== "" ? node.guid : String(node.id ?? path.join("/"));
-    const folders: BookmarkFolder[] = [];
-    const sites: Entry[] = [];
-    let total = 0;
-    const children = Array.isArray(node.children) ? (node.children as unknown[]) : [];
-    if (node.children !== undefined && !Array.isArray(node.children)) problems.push({ path, message: "The children of a folder must be a list." });
-    for (const child of children) {
-      if (!isNode(child)) {
-        problems.push({ path, message: "A bookmark must be an object." });
-      } else if (child.type === "url") {
-        if (typeof child.url !== "string" || !isWebUrl(child.url)) {
-          skipped++;
-          continue;
-        }
-        const title = typeof child.name === "string" && child.name.trim() !== "" ? child.name : undefined;
-        const dated = chromeTime(child.date_added);
-        sites.push({ url: child.url, ...(title === undefined ? {} : { title }), ...(dated === undefined ? {} : { dated }), path });
-        total++;
-      } else if (child.type === "folder") {
-        if (depth >= MAX_DEPTH) {
-          problems.push({ path, message: `A folder is deeper than ${MAX_DEPTH} folders. The adapter does not read it.` });
-          continue;
-        }
-        const folder = folderOf(child, path, "Folder", depth + 1);
-        folders.push(folder);
-        total += folder.total;
-      } else {
-        problems.push({ path, message: `A bookmark has the type ${String(child.type)}, not url or folder.` });
-      }
-    }
-    return { key: `${prefix}${own}`, name, path, folders, sites, total };
-  };
-
-  const names = Object.keys(rootNodes).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
-  const roots: BookmarkFolder[] = [];
-  for (const name of names) {
-    const node = rootNodes[name];
-    // The roots object of an old file also has values that are not folders, for example a sync transaction version
-    if (!isNode(node) || node.type !== "folder") continue;
-    roots.push(folderOf(node, [], name, 1));
-  }
-  return { roots, skipped, problems };
-}
-
-function rank(name: string): number {
-  const index = ROOT_ORDER.indexOf(name);
-  return index === -1 ? ROOT_ORDER.length : index;
-}
 
 /** The choice of a folder: its sites go into the import, or they stay out. */
 export type FolderChoice = "include" | "exclude";
@@ -174,9 +39,14 @@ function walk(roots: readonly BookmarkFolder[], selection: FolderSelection, visi
 export function selectedSites(roots: readonly BookmarkFolder[], selection: FolderSelection): Entry[] {
   const sites: Entry[] = [];
   walk(roots, selection, (folder, choice) => {
-    if (choice === "include") sites.push(...folder.sites);
+    if (choice === "include") sites.push(...folder.sites.map(entryOf));
   });
   return sites;
+}
+
+/** This function gives the entry of a bookmark. The time when the user added the bookmark is the date of the entry. */
+function entryOf({ url, title, added, path }: Bookmark): Entry {
+  return { url, ...(title === undefined ? {} : { title }), ...(added === undefined ? {} : { dated: added }), path };
 }
 
 /** This function gives the site list of the included folders. The import reads this list. */
@@ -235,26 +105,5 @@ export interface BookmarkSource {
    * The kind of the file. `profile` is the file `Bookmarks` of a profile. `account` is the file `AccountBookmarks`: the
    * bookmarks of a Google account with no sync. `file` is a file that the user chose.
    */
-  readonly kind: "profile" | "account" | "file";
-}
-
-/** The largest bookmarks file that the app reads, in bytes. A larger file is not a bookmarks file. */
-export const MAX_BOOKMARKS_BYTES: number = 64 * 1024 * 1024;
-
-/** The bookmarks files of a Chrome profile, with their kinds. */
-export const BOOKMARK_FILES: Readonly<Record<string, BookmarkSource["kind"]>> = { Bookmarks: "profile", AccountBookmarks: "account" };
-
-/**
- * This function gives the name of each profile from the JSON of the file `Local State` of Chrome, by the folder of the
- * profile. A value that it cannot read gives no names.
- */
-export function profileNames(localState: unknown): Map<string, string> {
-  const names = new Map<string, string>();
-  const cache = (localState as { profile?: { info_cache?: unknown } } | null)?.profile?.info_cache;
-  if (typeof cache !== "object" || cache === null) return names;
-  for (const [folder, info] of Object.entries(cache)) {
-    const name = (info as { name?: unknown } | null)?.name;
-    if (typeof name === "string" && name.trim() !== "") names.set(folder, name);
-  }
-  return names;
+  readonly kind: BookmarkFileKind | "file";
 }

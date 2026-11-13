@@ -3,10 +3,11 @@
  * `Client` on a `PortTransport` gives it. In a test, `callerOf` of the host module gives it.
  */
 import type { Draft, ModeId, Scope } from "@pairrank/core";
-import type { BookmarkSource, ChromeBookmarks } from "@pairrank/input";
+import type { BookmarkSource } from "@pairrank/input";
 import type { ApplyResult, DuelPair, ImportPreview, ImportResult, StateView, ViewerAnswer, ViewerOrder } from "@pairrank/host/views";
 import type { Ladder, ModelChoice, ModelName } from "@pairrank/ratings";
 import type { Capture, CaptureResult } from "@pairrank/surfaces";
+import type { ChromeBookmarks } from "@procedures/browser/bookmarks";
 
 /** A function that calls the procedure at a path with an input, and gives its value. */
 export type Call = <T>(path: string[], input: unknown) => Promise<T>;

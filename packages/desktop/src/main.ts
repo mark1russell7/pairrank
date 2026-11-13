@@ -18,11 +18,10 @@
  */
 import { mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pairrankModule } from "@pairrank/host";
-import { bookmarksModule, chromeDataFolders, diskFiles } from "@pairrank/host/bookmarks";
+import { bookmarksModule } from "@pairrank/host/bookmarks";
 import { type AddressLookup, MAX_CAPTURES, capturePool, picturesModule, publicCapture } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
 import { applyCommand, parseCommand } from "@pairrank/surfaces";
@@ -128,7 +127,7 @@ async function start(): Promise<void> {
   }
   const store = openStore(place.kind === "memory" ? ":memory:" : place.file);
   app.on("will-quit", () => store.close());
-  const bookmarks = bookmarksModule({ folders: chromeDataFolders(process.platform, process.env, homedir()), files: diskFiles });
+  const bookmarks = bookmarksModule();
   // A capture refuses a host name with an address on this computer or on the local network. The lookup uses the
   // resolver of the session of the sites, which the load of the capture also uses.
   const lookup: AddressLookup = async (hostname) => (await sites.resolveHost(hostname)).endpoints;

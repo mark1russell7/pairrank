@@ -8,7 +8,7 @@ import { errorMessage } from "@mark1russell7/text";
 import { type Capture, type CaptureResult, MAX_URL, type PictureSize } from "@pairrank/surfaces";
 import { isWebUrl } from "@pairrank/input";
 import { type ProcedureModule, createProcedure, defineModule, typed } from "@procedures/client";
-import { isPublicAddress, parseAddress, specialClass } from "@procedures/http";
+import { isLocalName, isPublicAddress, parseAddress, specialClass } from "@procedures/http";
 import { z } from "zod";
 
 /** A capture that a signal stops. When the signal stops it, the capture closes its window, and ends soon. */
@@ -54,25 +54,11 @@ export function capturePool(run: StoppableCapture, max: number): CapturePool {
 /** The smallest and the largest side of the window of a capture, in CSS pixels. */
 export const CAPTURE_SIDES = { min: 64, max: 4096 } as const;
 
-/** The domains of the names of this computer and of the local network. */
-const LOCAL_DOMAINS: readonly string[] = ["localhost", "local", "internal", "home.arpa"];
-
-/**
- * This function tells if a host name is a name of this computer or of the local network. Such a name is `localhost` or
- * a name in the domain `localhost`, `local` (mDNS), `internal` or `home.arpa`. A final dot changes nothing.
- *
- * TEMP: this function moves to @procedures/http, in the client pull request of the bookmark reader (R28).
- */
-export function isLocalName(hostname: string): boolean {
-  const name = hostname.toLowerCase().replace(/\.$/, "");
-  return LOCAL_DOMAINS.some((domain) => name === domain || name.endsWith(`.${domain}`));
-}
-
 /**
  * This function gives the reason that a still picture refuses the host of an address, or `undefined` for a public host.
- * It refuses a name of this computer or of the local network. It also refuses an IP address that is not public, also in
- * an IPv6 form. Examples are loopback, private and link-local addresses and `0.0.0.0`. `isPublicAddress` of
- * `@procedures/http` has all the ranges.
+ * It refuses a name of this computer or of the local network (`isLocalName` of `@procedures/http`). It also refuses an
+ * IP address that is not public, also in an IPv6 form. Examples are loopback, private and link-local addresses and
+ * `0.0.0.0`. `isPublicAddress` of `@procedures/http` has all the ranges.
  *
  * The function reads no DNS. `publicCapture` examines the addresses of a name.
  *
