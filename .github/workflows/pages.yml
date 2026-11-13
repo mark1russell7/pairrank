@@ -12,7 +12,7 @@ on:
     branches: [main]
   # Every 3 hours, so that the Status page shows the open pull requests and issues of now
   schedule:
-    - cron: "17 */3 * * *"
+    - cron: "24 */3 * * *"
   workflow_dispatch:
   pull_request:
 
