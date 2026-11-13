@@ -13,6 +13,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 - The desktop app with Electron is first. The same interface also works in a browser with an `iframe`, for the sites that permit it.
 - The import uses one standard format. An adapter changes each source into that format. The first adapter reads Chrome bookmarks.
 - Bookmark folders do not become tags. The import wizard includes or excludes folders.
+- General code moves to its home package (R26, R35 to R40). The app keeps only the code of pairrank.
 - The template gets a preset for an Electron app, in a pull request of the template at the start of R10. The preset joins a React interface, a service host and a Node main process.
 
 ## Items
@@ -44,10 +45,25 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R23 | The lock and the tabs of a slot | done | R9, R21 | Each new site starts locked. A locked site cannot open a window. After its first load, it cannot go to another page. The first load ends at the first click in the page, or after 2 seconds with no load. Thus the redirects of a site go on. The slot tells what the lock stopped, and offers an unlock. An unlocked site can navigate. In the desktop app, a new window opens as a tab of the slot, with Back, Forward and "Return to the site". The lock does not stop a page change inside a single-page site. |
 | R24 | Add this page | done | R23 | The bar of a slot adds the page of the open tab to the list, with its title and no tags. The host compares the addresses by their key, so a page that the list has shows "In the list". |
 | R25 | A public site | done | R23 | A live demo of pairrank on GitHub Pages. It runs the code of the app in the browser on eight sample sites: the duel, the ranking of each model, and a hidden taste to compare with. |
+| R26 | Use the homes that have the code | active |  | The app uses the functions that its home packages already have: the path check, the content types, the clock, the emitter and the error text. One search replaces two copies. |
+| R27 | Schemas at each boundary | active |  | Each procedure checks its input with a `zod` schema. The schemas replace the four copies of `as`, which accepted each value. |
+| R28 | A harder desktop app | active |  | The app refuses each download. Only a development run reads `PAGE_URL`. A still picture refuses the addresses of this computer and of the local network. |
+| R29 | The model on the screen | later | R5 | The ranking screen shows the model that the log-loss chose, and the log-loss of each model. The person can select a model. |
+| R30 | A cache of the ladders | later | R5 | The host keeps each ladder with the version of the log. A new event clears the cache, so a request does not fit all the picks again. |
+| R31 | A bench of the pair choice | later | R14 | Simulated tastes measure the picks that each rule of the pairs uses to find the order. CI holds the best rule. The bench also sets `FULL_SEARCH`. |
+| R32 | Scale targets and a speed gate | later | R30, R35 | The roadmap gives targets for each power of ten of sites and picks. A bench with `@mark1russell7/rigor-bench` holds them in CI. |
+| R33 | More tests | later | R26, R27 | Coverage limits, property tests with `@mark1russell7/rigor-testkit`, and unit tests of the views and the captures with a fake `WebContents`. |
+| R34 | An installer and updates | later |  | An installer for Windows, and updates from GitHub Releases. Without a signing certificate, Windows shows a warning at the install. |
+| R35 | The ranking engine in rigor-statistics | later | R1 | A pull request of `rigor` adds the replay of the picks, the choice of the model and of the pair, and a sparse Bradley-Terry fit. The app then uses them. |
+| R36 | A random order in rigor-generators | later | R17 | A pull request of `rigor` adds the Plackett-Luce draw of an order. The viewer then uses it. |
+| R37 | Still pictures as bytes | later | R22 | A pull request of `client` lets `@procedures/browser` give a screenshot as bytes. The browser host then writes no temporary file. |
+| R38 | Word forms in text | later |  | A pull request of `text` adds the count of a noun, for example "1 site" and "2 sites". The import screen then uses it, and its TEMP note ends. |
+| R39 | One rule for the lock | later | R23 | The lock and its quiet time become one state machine as data, with `@mark1russell7/algebra`. The `iframe` surface and the desktop views use it. |
+| R40 | Homes for three general parts | later |  | The event log, the bookmark reader and the safety rules of an Electron window are general. The maintainer gives each a home, and the code moves. |
 | B1 | Sites load, then disappear | done | | The screen of each site had no height, so the app hid the view after each load. A layout check in CI holds the fix. |
 | B2 | A race in the duel tests | done | | The tests read the slots before React gave them their sites. The tests wait for the pair that the screen names. A slow run of the tests holds the fix. |
 | B3 | A failed write kept its events in the state | done | | A write that fails after its checks rolls back the file. The state kept the events of the write, so the screens showed them. After a failed write, the store replays the file. |
 | B4 | Page zoom moved the site views off their slots | done | | The page sends the box of each slot in CSS pixels. The views are in the pixels of the window, so at a zoom they missed their slots. The main process scales each box by the zoom of the page. The layout check in CI zooms out with the menu and holds the fix (#38). |
 | B5 | A fast second press of a tag key added the tag again | done | | The key handler read the tags of the view before the last write. Thus a second press before the view changed added the tag again, and did not remove it. The Look screen keeps the state of each write in flight, and the handler reads the values of the last render. A test holds it. |
 | B6 | The desktop check of a click missed the link | done | R23 | The check clicked the link right after the load of the page. Chromium ignores input before the first paint, so the click did not count. The check waits for two frames, and proves the click came before the quiet time. |
-| B7 | The window of the app stayed hidden | done | | The window shows at the first paint of its page. A fault of the GPU process can stop that paint, so the window stayed hidden. The window now shows after 4 seconds all the same. The terminal names each helper process that stops. |
+| B7 | The window of the app stayed hidden | done | | The window shows at the first paint of its page. A fault of the GPU process can stop that paint, so the window stayed hidden. After 4 seconds with no paint, the window shows all the same. The terminal names each helper process that stops. |
