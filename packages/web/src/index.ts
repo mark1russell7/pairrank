@@ -71,6 +71,11 @@ export interface WebHostOptions {
    * it. Without it, the host has no procedure `pictures.capture`, and a refused site stays failed.
    */
   readonly pictures?: CapturePool | undefined;
+  /**
+   * The hosts on this computer or on the local network that a still picture can show all the same, for example
+   * `127.0.0.1`. The default is none. Only a check of local sites gives them.
+   */
+  readonly pictureHosts?: readonly string[] | undefined;
 }
 
 /**
@@ -91,7 +96,7 @@ export function webHost(options: WebHostOptions): ProcedureHostOptions {
       pairrankModule(store, { key: canonicalUrl }),
       bookmarksModule({ folders, files }),
       framesModule(check),
-      ...(options.pictures === undefined ? [] : [picturesModule(options.pictures.capture)]),
+      ...(options.pictures === undefined ? [] : [picturesModule(options.pictures.capture, { allow: options.pictureHosts })]),
     ),
     faces: { http: httpFace({ basePath: API_PATH }), page: staticFace({ root: page, headers: PAGE_HEADERS }) },
     listen: [listener],

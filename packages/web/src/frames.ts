@@ -9,9 +9,10 @@
  * - The host policy refuses a private address, for example a router on the local network. The host does not read
  *   such an address, and the check passes: the browser decides.
  */
-import { type FrameCheck, type FrameCheckResult, refusalOf } from "@pairrank/surfaces";
-import { type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
+import { type FrameCheck, type FrameCheckResult, MAX_URL, refusalOf } from "@pairrank/surfaces";
+import { type ProcedureModule, createProcedure, defineModule, typed } from "@procedures/client";
 import { type HostFetch, type HostFetchResponse, frameRefusal, isHostNotAllowed } from "@procedures/http";
+import { z } from "zod";
 
 /** The options of `frameCheck`. */
 export interface FrameCheckOptions {
@@ -49,15 +50,10 @@ export function frameCheck({ fetch, ancestor, timeoutMs }: FrameCheckOptions): F
   };
 }
 
-const CheckInput = zodAdapter<{ url: string }>({
-  parse: (value: unknown) => {
-    const { url } = (value ?? {}) as { url?: unknown };
-    if (typeof url !== "string" || url.length === 0 || url.length > 8192) throw new Error("The address of a frame check is a text of 1 to 8192 characters.");
-    return { url };
-  },
-});
+const URL_ERROR = `The address of a frame check is a text of 1 to ${MAX_URL} characters.`;
 
-const as = <T>() => zodAdapter<T>({ parse: (value: unknown) => value as T });
+/** The input of `frames.check`. `refusalOf` of `@pairrank/surfaces` examines the address in the check. */
+const CheckInput = z.strictObject({ url: z.string({ error: URL_ERROR }).min(1, { error: URL_ERROR }).max(MAX_URL, { error: URL_ERROR }) });
 
 /** This function gives the module of the procedure `frames.check`: the check of a site before its load in a frame. */
 export function framesModule(check: FrameCheck): ProcedureModule {
@@ -65,7 +61,7 @@ export function framesModule(check: FrameCheck): ProcedureModule {
     createProcedure()
       .path(["frames", "check"])
       .input(CheckInput)
-      .output(as<FrameCheckResult>())
+      .output(typed<FrameCheckResult>())
       .meta({
         description: "Tell if a site refuses to show in a frame of the page",
         effects: { reads: ["network"], writes: [], idempotent: true, destructive: false },

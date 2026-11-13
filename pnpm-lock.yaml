@@ -314,6 +314,12 @@ importers:
       '@procedures/client':
         specifier: ^0.55.0
         version: 0.55.0
+      '@procedures/http':
+        specifier: ^0.55.0
+        version: 0.55.0
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0
@@ -576,6 +582,9 @@ importers:
       polite-crawler:
         specifier: ^0.6.0
         version: 0.6.0
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0

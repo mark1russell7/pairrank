@@ -21,6 +21,29 @@ export const PAGE_URL = "app://page/index.html";
 /** The session of the views of the sites. It keeps the logins of the sites, and it is not the session of the page. */
 export const SITE_PARTITION = "persist:sites";
 
+/**
+ * This function gives the address of the page of the window. Only a development run reads the environment variable
+ * `PAGE_URL`, for example the address of Vite. A packaged app ignores the variable, so the environment cannot give the
+ * window another page.
+ */
+export function pageUrlOf(packaged: boolean, env: Readonly<Record<string, string | undefined>>): string {
+  const variable = env["PAGE_URL"];
+  return packaged || variable === undefined || variable === "" ? PAGE_URL : variable;
+}
+
+/** The part of a session of Electron that `refuseDownloads` uses. */
+export interface DownloadSession {
+  on(event: "will-download", listener: (event: { preventDefault(): void }, item: { cancel(): void }) => void): unknown;
+}
+
+/** This function makes a session refuse each download. Thus the page and the sites put no file on the disk. */
+export function refuseDownloads(session: DownloadSession): void {
+  session.on("will-download", (event, item) => {
+    event.preventDefault();
+    item.cancel();
+  });
+}
+
 /** The name of the file of the log of events, in the folder of the user data of the app. */
 export const STORE_FILE = "pairrank.sqlite";
 

@@ -6,7 +6,8 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { BOOKMARK_FILES, type BookmarkSource, type ChromeBookmarks, MAX_BOOKMARKS_BYTES, parseChromeBookmarks, profileNames } from "@pairrank/input";
-import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
+import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, typed } from "@procedures/client";
+import { z } from "zod";
 
 /** The file operations that the procedures use. A test gives files in memory. */
 export interface Files {
@@ -94,14 +95,9 @@ export interface BookmarksOptions {
   readonly files: Files;
 }
 
-const as = <T>() => zodAdapter<T>({ parse: (value: unknown) => value as T });
-
-const SourceInput = zodAdapter<{ source: string }>({
-  parse: (value: unknown) => {
-    const source = (value as { source?: unknown } | null)?.source;
-    if (typeof source !== "string" || source === "") throw new Error("The input has the id of a source.");
-    return { source };
-  },
+/** The input of `bookmarks.read`: the id of a file that `bookmarks.sources` found. */
+const SourceInput = z.strictObject({
+  source: z.string({ error: "The input must have the id of a source." }).min(1, { error: "The input must have the id of a source." }),
 });
 
 const reads = { reads: ["chrome.bookmarks"], writes: [], idempotent: true, destructive: false };
@@ -120,8 +116,8 @@ export function bookmarksModule(options: BookmarksOptions): ProcedureModule {
   const procedures: AnyProcedure[] = [
     createProcedure()
       .path(["bookmarks", "sources"])
-      .input(as<Record<string, never>>())
-      .output(as<BookmarkSource[]>())
+      .input(z.strictObject({}))
+      .output(typed<BookmarkSource[]>())
       .meta({ description: "Find the bookmarks files of the Chrome profiles", effects: reads })
       .handler(async (): Promise<BookmarkSource[]> => {
         const found = await findSources(options.folders, options.files);
@@ -133,7 +129,7 @@ export function bookmarksModule(options: BookmarksOptions): ProcedureModule {
     createProcedure()
       .path(["bookmarks", "read"])
       .input(SourceInput)
-      .output(as<ChromeBookmarks>())
+      .output(typed<ChromeBookmarks>())
       .meta({ description: "Read the folders and the sites of a bookmarks file", effects: reads })
       .handler(async ({ source }): Promise<ChromeBookmarks> => {
         const found = known.get(source);

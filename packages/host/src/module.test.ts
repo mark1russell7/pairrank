@@ -138,3 +138,60 @@ describe("pairrankModule", () => {
     store.close();
   });
 });
+
+describe("the input schemas of pairrankModule", () => {
+  const overall = { kind: "overall" };
+  /** The inputs of each procedure that pass the schema. */
+  const valid: [string, unknown][] = [
+    ["view", {}],
+    ["apply", { drafts: [] }],
+    ["import.plan", { list }],
+    ["import.apply", { list: { format: "pairrank.sites", version: 1, source: "test", sites: [] } }],
+    ["ladder", { scope: overall, model: "glicko2" }],
+    ["model", { scope: { kind: "tag", tag: "t" } }],
+    ["pair", { scope: overall, seed: 7, recent: [] }],
+    ["pair", { scope: overall, seed: "one" }],
+    ["viewer", {}],
+    ["viewer", { query: "", order: { kind: "rating", scopes: [overall], mix: { temperature: 1, seed: 2 } }, model: "elo" }],
+  ];
+  /** The inputs of each procedure that the schema refuses, with a part of the message. */
+  const invalid: [string, unknown, RegExp][] = [
+    ["view", { all: true }, /Unrecognized key/],
+    ["view", "everything", /expected object/],
+    ["apply", {}, /The input must have a list drafts/],
+    ["apply", { drafts: "x" }, /The input must have a list drafts/],
+    ["apply", { drafts: [{ type: "site.removed" }] }, /The draft is not valid/],
+    ["apply", { drafts: [], at: "now" }, /Unrecognized key/],
+    ["import.plan", {}, /The list must be an object/],
+    ["import.apply", { list: "https://a.example/" }, /The list must be an object/],
+    ["ladder", {}, /The scope must be/],
+    ["ladder", { scope: { kind: "tag" } }, /The scope must be/],
+    ["ladder", { scope: { kind: "tag", tag: "" } }, /The scope must be/],
+    ["ladder", { scope: { kind: "overall", tag: "t" } }, /Unrecognized key: "tag"/],
+    ["model", { scope: overall, model: "best" }, /The model must be bradley-terry, elo or glicko2/],
+    ["pair", { scope: overall }, /The seed must be a text or a finite number/],
+    ["pair", { scope: overall, seed: Number.POSITIVE_INFINITY }, /The seed must be a text or a finite number/],
+    ["pair", { scope: overall, seed: 1, recent: [["a"]] }, /Each recent pair must be a list of two site ids/],
+    ["pair", { scope: overall, seed: 1, recent: Array.from({ length: 201 }, () => ["a", "b"]) }, /200 pairs or fewer/],
+    ["pair", { seed: 1 }, /a scope or a mode, and not the two/],
+    ["pair", { scope: overall, mode: "m", seed: 1 }, /a scope or a mode, and not the two/],
+    ["pair", { mode: 5, seed: 1 }, /The mode must be the id of a saved mode/],
+    ["viewer", { query: 5 }, /The query must be a text/],
+    ["viewer", { order: { kind: "random" } }, /The order must be/],
+    ["viewer", { order: { kind: "title", scopes: [overall] } }, /Unrecognized key/],
+    ["viewer", { order: { kind: "rating", scopes: Array.from({ length: 101 }, () => overall) } }, /from 1 to 100 scopes/],
+  ];
+
+  it("passes a valid input of each procedure", async () => {
+    const { store, call } = setup();
+    for (const [name, input] of valid) await expect(call(["pairrank", ...name.split(".")], input), `${name} ${JSON.stringify(input)}`).resolves.toBeDefined();
+    store.close();
+  });
+
+  it("refuses a wrong type, a missing field, an extra field and a list that is too long, with a clear message", async () => {
+    const { store, call } = setup();
+    for (const [name, input, message] of invalid) await expect(call(["pairrank", ...name.split(".")], input), `${name} ${JSON.stringify(input)}`).rejects.toThrow(message);
+    expect([...store.events()]).toHaveLength(0);
+    store.close();
+  });
+});

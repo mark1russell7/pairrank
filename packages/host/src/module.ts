@@ -11,7 +11,8 @@ import type { Store } from "@pairrank/store";
 import { modePair } from "./modes.ts";
 import { MAX_TEMPERATURE, viewerOf } from "./viewer.ts";
 import { type ApplyResult, type DuelPair, type ImportPreview, type ImportResult, type StateView, type ViewerAnswer, type ViewerMix, type ViewerOrder, viewOf } from "./views.ts";
-import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, zodAdapter } from "@procedures/client";
+import { type AnyProcedure, type ProcedureModule, createProcedure, defineModule, typed } from "@procedures/client";
+import { z } from "zod";
 
 /** The options of the module. */
 export interface ModuleOptions {
@@ -23,47 +24,35 @@ export interface ModuleOptions {
   readonly now?: () => string;
 }
 
-/** A schema that gives the value as it is. The output of a procedure of this module needs no check. */
-const as = <T>() => zodAdapter<T>({ parse: (value: unknown) => value as T });
+const MODEL_ERROR = "The model must be bradley-terry, elo or glicko2.";
 
-function objectOf(value: unknown): Readonly<Record<string, unknown>> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("The input must be an object.");
-  return value as Readonly<Record<string, unknown>>;
-}
+/** The name of a rating model. */
+const ModelSchema: z.ZodType<ModelName> = z.enum(["bradley-terry", "elo", "glicko2"], { error: MODEL_ERROR });
 
-const DraftsInput = zodAdapter<{ drafts: Draft[] }>({
-  parse: (value) => {
-    const drafts = objectOf(value)["drafts"];
-    if (!Array.isArray(drafts)) throw new Error("The input must have a list drafts.");
-    return { drafts: drafts.map((draft, index) => {
-      try {
-        return parseDraft(draft);
-      } catch (error) {
-        throw new Error(`The draft at the position ${index} is not valid. ${(error as Error).message}`);
-      }
-    }) };
-  },
+const SCOPE_ERROR = "The scope must be { kind: overall } or { kind: tag, tag }, with the id of a tag.";
+
+/** The scope of a ladder: the overall ladder, or the ladder of one tag. A scope has no other field. */
+const ScopeSchema: z.ZodType<Scope> = z.union(
+  [z.strictObject({ kind: z.literal("overall") }), z.strictObject({ kind: z.literal("tag"), tag: z.string({ error: SCOPE_ERROR }).min(1, { error: SCOPE_ERROR }) })],
+  { error: SCOPE_ERROR },
+);
+
+/** A draft from a caller. `parseDraft` of `@pairrank/core` owns the format of a draft, so the schema uses it. */
+const DraftSchema = z.unknown().transform((value, context): Draft => {
+  try {
+    return parseDraft(value);
+  } catch (error) {
+    context.addIssue({ code: "custom", message: `The draft is not valid. ${(error as Error).message}` });
+    return z.NEVER;
+  }
 });
 
-const ListInput = zodAdapter<{ list: unknown }>({ parse: (value) => ({ list: objectOf(value)["list"] }) });
+const DraftsInput = z.strictObject({ drafts: z.array(DraftSchema, { error: "The input must have a list drafts." }) });
 
-const MODELS = new Set<unknown>(["bradley-terry", "elo", "glicko2"]);
+/** A site list. `parseSiteList` of `@pairrank/input` reads it, and gives a problem for each entry that is not valid. */
+const ListInput = z.strictObject({ list: z.looseObject({}, { error: "The list must be an object." }) });
 
-function scopeOf(value: unknown): Scope {
-  const scope = objectOf(value);
-  if (scope["kind"] === "overall") return { kind: "overall" };
-  if (scope["kind"] === "tag" && typeof scope["tag"] === "string" && scope["tag"] !== "") return { kind: "tag", tag: scope["tag"] };
-  throw new Error("The scope must be { kind: overall } or { kind: tag, tag }.");
-}
-
-const LadderInput = zodAdapter<{ scope: Scope; model?: ModelName }>({
-  parse: (value) => {
-    const input = objectOf(value);
-    const model = input["model"];
-    if (model !== undefined && !MODELS.has(model)) throw new Error("The model must be bradley-terry, elo or glicko2.");
-    return { scope: scopeOf(input["scope"]), ...(model === undefined ? {} : { model: model as ModelName }) };
-  },
-});
+const LadderInput = z.strictObject({ scope: ScopeSchema, model: ModelSchema.exactOptional() });
 
 /** The most recent pairs that one call of `pairrank.pair` takes. */
 const MAX_RECENT = 200;
@@ -71,61 +60,60 @@ const MAX_RECENT = 200;
 /** The input of `pairrank.pair`: a scope, or the id of a saved mode. */
 type PairInputValue = ({ scope: Scope; mode?: undefined } | { mode: ModeId; scope?: undefined }) & { seed: number | string; recent: [string, string][]; model?: ModelName };
 
-const PairInput = zodAdapter<PairInputValue>({
-  parse: (value) => {
-    const input = objectOf(value);
-    const mode = input["mode"];
-    if (mode !== undefined && (typeof mode !== "string" || mode === "")) throw new Error("The mode must be the id of a saved mode.");
-    if ((mode === undefined) === (input["scope"] === undefined)) throw new Error("The input must have a scope or a mode, and not the two.");
-    const model = input["model"];
-    if (model !== undefined && !MODELS.has(model)) throw new Error("The model must be bradley-terry, elo or glicko2.");
-    const seed = input["seed"];
-    if (!(typeof seed === "string" && seed !== "") && !(typeof seed === "number" && Number.isFinite(seed))) throw new Error("The seed must be a text or a finite number.");
-    const recent = input["recent"] ?? [];
-    if (!Array.isArray(recent) || recent.length > MAX_RECENT) throw new Error(`The recent pairs must be a list of ${MAX_RECENT} pairs or fewer.`);
-    const pairs = recent.map((pair): [string, string] => {
-      if (!Array.isArray(pair) || pair.length !== 2 || typeof pair[0] !== "string" || typeof pair[1] !== "string") throw new Error("Each recent pair must be a list of two site ids.");
-      return [pair[0], pair[1]];
-    });
-    const rest = { seed, recent: pairs, ...(model === undefined ? {} : { model: model as ModelName }) };
-    return mode === undefined ? { scope: scopeOf(input["scope"]), ...rest } : { mode, ...rest };
-  },
-});
+const PairInput = z
+  .strictObject({
+    scope: ScopeSchema.exactOptional(),
+    mode: z.string({ error: "The mode must be the id of a saved mode." }).min(1, { error: "The mode must be the id of a saved mode." }).exactOptional(),
+    seed: z.union([z.string().min(1), z.number()], { error: "The seed must be a text or a finite number." }),
+    recent: z
+      .array(z.tuple([z.string(), z.string()], { error: "Each recent pair must be a list of two site ids." }), { error: `The recent pairs must be a list of ${MAX_RECENT} pairs or fewer.` })
+      .max(MAX_RECENT, { error: `The recent pairs must be a list of ${MAX_RECENT} pairs or fewer.` })
+      .default([]),
+    model: ModelSchema.exactOptional(),
+  })
+  .transform(({ scope, mode, ...rest }, context): PairInputValue => {
+    if (mode !== undefined && scope === undefined) return { mode, ...rest };
+    if (scope !== undefined && mode === undefined) return { scope, ...rest };
+    context.addIssue({ code: "custom", message: "The input must have a scope or a mode, and not the two." });
+    return z.NEVER;
+  });
 
 /** The most scopes that one order of the viewer takes. */
 const MAX_SCOPES = 100;
 
-/** This function reads the mix of an order by rating. */
-function mixOf(value: unknown): ViewerMix | undefined {
-  if (value === undefined) return undefined;
-  const mix = objectOf(value);
-  const temperature = mix["temperature"];
-  const seed = mix["seed"];
-  if (typeof temperature !== "number" || !(temperature >= 0 && temperature <= MAX_TEMPERATURE)) throw new Error(`The temperature of a mix must be a number from 0 to ${MAX_TEMPERATURE}.`);
-  if (typeof seed !== "number" || !Number.isSafeInteger(seed)) throw new Error("The seed of a mix must be an integer.");
-  return { temperature, seed };
-}
+const TEMPERATURE_ERROR = `The temperature of a mix must be a number from 0 to ${MAX_TEMPERATURE}.`;
 
-const ViewerInputSchema = zodAdapter<{ query: string; order: ViewerOrder; model?: ModelName }>({
-  parse: (value) => {
-    const input = objectOf(value);
-    const query = input["query"] ?? "";
-    if (typeof query !== "string") throw new Error("The query must be a text.");
-    const model = input["model"];
-    if (model !== undefined && !MODELS.has(model)) throw new Error("The model must be bradley-terry, elo or glicko2.");
-    const order = objectOf(input["order"] ?? { kind: "title" });
-    const kind = order["kind"];
-    let parsed: ViewerOrder;
-    if (kind === "title" || kind === "added") parsed = { kind };
-    else if (kind === "rating") {
-      const scopes = order["scopes"];
-      if (!Array.isArray(scopes) || scopes.length === 0 || scopes.length > MAX_SCOPES) throw new Error(`An order by rating must have from 1 to ${MAX_SCOPES} scopes.`);
-      const mix = mixOf(order["mix"]);
-      parsed = { kind, scopes: scopes.map(scopeOf), ...(mix === undefined ? {} : { mix }) };
-    } else throw new Error("The order must be { kind: rating, scopes }, { kind: title } or { kind: added }.");
-    return { query, order: parsed, ...(model === undefined ? {} : { model: model as ModelName }) };
-  },
+/** The mix of an order by rating. */
+const MixSchema: z.ZodType<ViewerMix> = z.strictObject({
+  temperature: z.number({ error: TEMPERATURE_ERROR }).min(0, { error: TEMPERATURE_ERROR }).max(MAX_TEMPERATURE, { error: TEMPERATURE_ERROR }),
+  seed: z.int({ error: "The seed of a mix must be an integer." }),
 });
+
+const SCOPES_ERROR = `An order by rating must have from 1 to ${MAX_SCOPES} scopes.`;
+
+/** The order of the viewer. */
+const OrderSchema: z.ZodType<ViewerOrder> = z.discriminatedUnion(
+  "kind",
+  [
+    z.strictObject({
+      kind: z.literal("rating"),
+      scopes: z.array(ScopeSchema, { error: SCOPES_ERROR }).min(1, { error: SCOPES_ERROR }).max(MAX_SCOPES, { error: SCOPES_ERROR }),
+      mix: MixSchema.exactOptional(),
+    }),
+    z.strictObject({ kind: z.literal("title") }),
+    z.strictObject({ kind: z.literal("added") }),
+  ],
+  { error: "The order must be { kind: rating, scopes }, { kind: title } or { kind: added }." },
+);
+
+const ViewerInput = z.strictObject({
+  query: z.string({ error: "The query must be a text." }).default(""),
+  order: OrderSchema.default({ kind: "title" }),
+  model: ModelSchema.exactOptional(),
+});
+
+/** The input of a procedure with no input: an empty object. */
+const NoInput = z.strictObject({});
 
 const reads = { reads: ["pairrank.log"], writes: [] as string[], idempotent: true, destructive: false };
 const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent: false, destructive: false };
@@ -143,6 +131,9 @@ const appends = { reads: ["pairrank.log"], writes: ["pairrank.log"], idempotent:
  * - `pairrank.viewer` gives the sites that agree with a tag query, in an order.
  *
  * The log is append-only, so no procedure removes data: a delete or an undo is a new event.
+ *
+ * The page and a local HTTP client give the inputs, so a zod schema examines each input before its handler. The host
+ * makes each output, so `typed` of `@procedures/client` gives its type and examines nothing.
  */
 export function pairrankModule(store: Store, options: ModuleOptions): ProcedureModule {
   const id = options.id ?? (() => crypto.randomUUID());
@@ -157,15 +148,15 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
   const procedures: AnyProcedure[] = [
     createProcedure()
       .path(["pairrank", "view"])
-      .input(as<Record<string, never>>())
-      .output(as<StateView>())
+      .input(NoInput)
+      .output(typed<StateView>())
       .meta({ description: "Give the sites, the tags and the count of picks", effects: reads })
       .handler(async (): Promise<StateView> => viewOf(store.state, store.problems.length))
       .build(),
     createProcedure()
       .path(["pairrank", "apply"])
       .input(DraftsInput)
-      .output(as<ApplyResult>())
+      .output(typed<ApplyResult>())
       .meta({ description: "Write drafts as events in one transaction", effects: appends })
       .handler(async ({ drafts }): Promise<ApplyResult> => {
         const at = now();
@@ -176,7 +167,7 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
     createProcedure()
       .path(["pairrank", "import", "plan"])
       .input(ListInput)
-      .output(as<ImportPreview>())
+      .output(typed<ImportPreview>())
       .meta({ description: "Give the report of the import of a site list, and change nothing", effects: reads })
       .handler(async ({ list }): Promise<ImportPreview> => {
         const { parsed, plan: result } = plan(list);
@@ -186,7 +177,7 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
     createProcedure()
       .path(["pairrank", "import", "apply"])
       .input(ListInput)
-      .output(as<ImportResult>())
+      .output(typed<ImportResult>())
       .meta({ description: "Import a site list in one transaction", effects: appends })
       .handler(async ({ list }): Promise<ImportResult> => {
         const { parsed, plan: result } = plan(list);
@@ -196,21 +187,21 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
     createProcedure()
       .path(["pairrank", "ladder"])
       .input(LadderInput)
-      .output(as<Ladder>())
+      .output(typed<Ladder>())
       .meta({ description: "Give the ladder of a scope", effects: reads })
       .handler(async ({ scope, model }): Promise<Ladder> => ladderOf(store.state, scope, model === undefined ? {} : { model }))
       .build(),
     createProcedure()
       .path(["pairrank", "model"])
       .input(LadderInput)
-      .output(as<ModelChoice>())
+      .output(typed<ModelChoice>())
       .meta({ description: "Compare the models of a scope by the log-loss on its last picks", effects: reads })
       .handler(async ({ scope }): Promise<ModelChoice> => selectModel(store.state, scope))
       .build(),
     createProcedure()
       .path(["pairrank", "pair"])
       .input(PairInput)
-      .output(as<DuelPair | null>())
+      .output(typed<DuelPair | null>())
       .meta({ description: "Choose the next pair of a duel in a scope or in a saved mode, with a seed", effects: reads })
       .handler(async ({ scope, mode, seed, recent, model }): Promise<DuelPair | null> => {
         const options = model === undefined ? {} : { model };
@@ -225,8 +216,8 @@ export function pairrankModule(store: Store, options: ModuleOptions): ProcedureM
       .build(),
     createProcedure()
       .path(["pairrank", "viewer"])
-      .input(ViewerInputSchema)
-      .output(as<ViewerAnswer>())
+      .input(ViewerInput)
+      .output(typed<ViewerAnswer>())
       .meta({ description: "Give the sites that agree with a tag query, in the order of a rating, a title or a date", effects: reads })
       .handler(async ({ query, order, model }): Promise<ViewerAnswer> => {
         const names = new Map<string, TagId>([...store.state.tags.values()].map((tag) => [tag.name.toLowerCase(), tag.id]));
