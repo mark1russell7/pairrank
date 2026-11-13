@@ -75,7 +75,7 @@ function drawCard(card: HTMLButtonElement, id: string | undefined, number: "1" |
 /** This function gives the position of a rating on the scale, in percent. */
 const position = (rating: number): number => (100 * (Math.min(SCALE.high, Math.max(SCALE.low, rating)) - SCALE.low)) / (SCALE.high - SCALE.low);
 
-/** This function gives the row element of a site, and makes it on the first call. */
+/** This function gives the row element of a site. The first time, it makes the row. */
 function rowOf(id: string): HTMLLIElement {
   const found = ladder.querySelector<HTMLLIElement>(`li[data-site="${id}"]`);
   if (found !== null) return found;

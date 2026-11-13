@@ -1,7 +1,7 @@
 /**
- * The live demo of the site: a duel of eight sample sites and their ladder. It uses the code of the app: the event
- * log of `@pairrank/core`, the ladders and the choice of the pair of `@pairrank/ratings`, and the rules of the duel of
- * `@pairrank/ui`. The state is in the page only, and a reload starts it again.
+ * The live demo of the site: a duel of eight sample sites and their ladder. The demo uses the code of the app. The
+ * event log comes from `@pairrank/core`, and the ladders and the choice of the pair come from `@pairrank/ratings`.
+ * The rules of the duel come from `@pairrank/ui`. The state is in the page only, and a reload starts it again.
  *
  * A hidden taste can also pick. It has a fixed order of the sample sites, and it picks the side of each pair by the
  * odds of the Elo scale. Thus the ladder of its picks moves to its order, and the agreement shows how near it is.
