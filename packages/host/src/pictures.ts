@@ -63,7 +63,7 @@ const LOCAL_DOMAINS: readonly string[] = ["localhost", "local", "internal", "hom
  * This function tells if a host name is a name of this computer or of the local network. Such a name is `localhost` or
  * a name in the domain `localhost`, `local` (mDNS), `internal` or `home.arpa`. A final dot changes nothing.
  *
- * TEMP: this function moves to @procedures/http (R28).
+ * TEMP: this function moves to @procedures/http, in the client pull request of the bookmark reader (R28).
  */
 export function isLocalName(hostname: string): boolean {
   const name = hostname.toLowerCase().replace(/\.$/, "");
