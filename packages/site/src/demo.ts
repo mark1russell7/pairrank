@@ -7,9 +7,9 @@
  * odds of the Elo scale. Thus the ladder of its picks moves to its order, and the agreement shows how near it is.
  */
 import { random } from "@mark1russell7/rigor-generators";
-import { eloExpected, kendallTau } from "@mark1russell7/rigor-statistics";
+import { eloExpected, kendallTau, ratingUncertainty } from "@mark1russell7/rigor-statistics";
 import { type Draft, type Scope, type State, apply, createState, stamp } from "@pairrank/core";
-import { type Ladder, type ModelName, type PairChoice, choosePair, ladderOf, uncertaintyOf } from "@pairrank/ratings";
+import { type Ladder, type ModelName, type PairChoice, choosePair, ladderOf, ratedOf } from "@pairrank/ratings";
 import { type DuelAction, type DuelStep, type Pair, outcomeOf, pickDraft, recentOf, seedOf, undoDraft } from "@pairrank/ui/duel";
 
 /** A sample site of the demo. Its address uses the domain `example`, so it is not a real site. */
@@ -181,7 +181,7 @@ export function rowsOf(ladder: Ladder): LadderRow[] {
   const rated = new Map(ladder.ratings.map((row) => [row.site, row]));
   const rows = SAMPLE_SITES.map((site, index) => {
     const row = rated.get(site.id) ?? { site: site.id, rating: 1500, se: undefined, wins: 0, losses: 0, ties: 0 };
-    return { site, tastePlace: index + 1, rating: row.rating, uncertainty: uncertaintyOf(row), wins: row.wins, losses: row.losses, ties: row.ties };
+    return { site, tastePlace: index + 1, rating: row.rating, uncertainty: ratingUncertainty(ratedOf(row)), wins: row.wins, losses: row.losses, ties: row.ties };
   });
   // A stable sort keeps the order of the ladder for the sites in it
   const order = new Map(ladder.ratings.map((row, index) => [row.site, index]));

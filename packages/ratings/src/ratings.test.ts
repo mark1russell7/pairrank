@@ -10,6 +10,12 @@ const site = (id: string): Event => e({ type: "site.added", site: id, url: `http
 const overall: Scope = { kind: "overall" };
 const pick = (a: string, b: string, outcome: Outcome, scope: Scope = overall): Event => e({ type: "pick", a, b, scope, outcome });
 
+/**
+ * The largest relative difference of a standard error of the sparse fit from the dense fit, in the test of 210 sites. The
+ * measured difference is 0.031.
+ */
+const SE_TOLERANCE = 0.05;
+
 /** Three sites with a clear order: `a` beats `b` and `c`, and `b` beats `c`, with some upsets and ties. */
 function ordered(rounds: number): Event[] {
   const events = [site("a"), site("b"), site("c")];
@@ -88,6 +94,26 @@ describe("ladderOf", () => {
   it("gives the same ladder for the same log", () => {
     const events = ordered(6);
     expect(ladderOf(replay(events).state, overall)).toEqual(ladderOf(replay(events).state, overall));
+  });
+
+  it("fits a scope of more than 200 sites with the sparse fit, near the dense fit", () => {
+    const events = Array.from({ length: 210 }, (_, i) => site(`s${i}`));
+    for (let i = 0; i < 420; i++) events.push(pick(`s${i % 210}`, `s${(i * 7 + 3) % 210}`, i % 3 === 0 ? "b" : i % 11 === 0 ? "tie" : "a"));
+    const { state } = replay(events);
+    const sparse = ladderOf(state, overall);
+    const dense = new Map(ladderOf(state, overall, { denseLimit: Number.POSITIVE_INFINITY }).ratings.map((rating) => [rating.site, rating]));
+    expect(sparse.ratings).toHaveLength(210);
+    expect(sparse.picks).toBe(420);
+    let gap = 0;
+    for (const rating of sparse.ratings) {
+      const exact = dense.get(rating.site)!;
+      expect(Math.abs(rating.rating - exact.rating)).toBeLessThan(1e-4);
+      // The standard errors of the sparse fit are approximate
+      expect(Math.abs(rating.se! / exact.se! - 1)).toBeLessThan(SE_TOLERANCE);
+      gap = Math.max(gap, Math.abs(rating.se! - exact.se!));
+    }
+    // The two fits differ, so the option denseLimit gets to the fit
+    expect(gap).toBeGreaterThan(0);
   });
 });
 
