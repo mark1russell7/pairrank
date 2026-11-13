@@ -1,6 +1,27 @@
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, type ShownWindow, allowsNavigation, allowsSiteNavigation, armsLock, captureWindowOptions, failureOf, navigationOf, pageFile, returnsKeys, showWhenReady, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
+import {
+  CONTENT_SECURITY_POLICY,
+  type DownloadSession,
+  PAGE_URL,
+  SITE_PARTITION,
+  type ShownWindow,
+  allowsNavigation,
+  allowsSiteNavigation,
+  armsLock,
+  captureWindowOptions,
+  failureOf,
+  navigationOf,
+  pageFile,
+  pageUrlOf,
+  refuseDownloads,
+  returnsKeys,
+  showWhenReady,
+  siteViewPreferences,
+  tabAfterClose,
+  viewBounds,
+  windowOptions,
+} from "./index.ts";
 
 const root = resolve("build", "page");
 
@@ -202,5 +223,35 @@ describe("captureWindowOptions", () => {
     const options = captureWindowOptions({ w: 1280, h: 800 });
     expect(options).toMatchObject({ width: 1280, height: 800, useContentSize: true, show: false, skipTaskbar: true, focusable: false });
     expect(options.webPreferences).toEqual({ ...siteViewPreferences(), offscreen: true });
+  });
+});
+
+describe("pageUrlOf", () => {
+  const vite = "http://localhost:5173/";
+
+  it("reads PAGE_URL only in a development run", () => {
+    expect(pageUrlOf(false, { PAGE_URL: vite })).toBe(vite);
+    expect(pageUrlOf(true, { PAGE_URL: vite })).toBe(PAGE_URL);
+    expect(pageUrlOf(true, { PAGE_URL: "https://attacker.example/" })).toBe(PAGE_URL);
+  });
+
+  it("gives the page of the app without the variable, or with an empty variable", () => {
+    expect(pageUrlOf(false, {})).toBe(PAGE_URL);
+    expect(pageUrlOf(false, { PAGE_URL: "" })).toBe(PAGE_URL);
+    expect(pageUrlOf(true, {})).toBe(PAGE_URL);
+  });
+});
+
+describe("refuseDownloads", () => {
+  it("cancels each download of the session", () => {
+    let listener: Parameters<DownloadSession["on"]>[1] | undefined;
+    const events: string[] = [];
+    refuseDownloads({ on: (event, each) => ((listener = each), events.push(event)) });
+    expect(events).toEqual(["will-download"]);
+    const item = { cancelled: false, cancel: () => (item.cancelled = true) };
+    const event = { prevented: false, preventDefault: () => (event.prevented = true) };
+    listener?.(event, item);
+    expect(event.prevented).toBe(true);
+    expect(item.cancelled).toBe(true);
   });
 });

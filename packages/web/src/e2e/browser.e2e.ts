@@ -5,7 +5,7 @@
  * - On the Look screen, the slot of site A is shown and tall, and its frame covers the slot.
  * - In the duel, the two slots are shown. Site B has no frame, and its slot shows the picture of the capture.
  * - The capture is a fake capture with a picture of one pixel. Thus the check examines the page, not a browser capture.
- * - The host reads the local sites: its `fetch` accepts `127.0.0.1` for this check only.
+ * - The host reads the local sites: its `fetch` and its still pictures accept `127.0.0.1` for this check only.
  * - The slot starts locked. The page moves the frame of site A, and the lock loads site A again. After an unlock, the
  *   frame stays on its new page (R23).
  * - At the end, the capture of `src/main.ts` takes a real picture of a local page of one color. The page of the host
@@ -136,7 +136,7 @@ const store = openStore(join(folder, "store.sqlite"));
 const page = join(import.meta.dirname, "..", "..", "build", "page");
 const running = await runProcedureHost({
   name: "pairrank-web-e2e",
-  host: webHost({ store, page, port: 0, fetch: createHostFetch({ allow: ["127.0.0.1"] }), pictures }),
+  host: webHost({ store, page, port: 0, fetch: createHostFetch({ allow: ["127.0.0.1"] }), pictures, pictureHosts: ["127.0.0.1"] }),
   mode: "foreground",
   run: { process: fakeProcess() },
 });

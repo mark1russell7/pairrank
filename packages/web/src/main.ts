@@ -13,9 +13,10 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { MAX_CAPTURES, capturePool } from "@pairrank/host/pictures";
+import { MAX_CAPTURES, capturePool, publicCapture } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
 import { renderScreenshot } from "@procedures/browser";
+import { systemResolver } from "@procedures/http";
 import { runProcedureHost } from "@procedures/server";
 import { LOAD_TIMEOUT_MS } from "./constants.ts";
 import { headlessCapture } from "./headless.ts";
@@ -32,7 +33,8 @@ const file = process.env["PAIRRANK_STORE"] ?? join(homedir(), ".pairrank", STORE
 mkdirSync(dirname(file), { recursive: true });
 const store = openStore(file);
 const page = join(dirname(fileURLToPath(import.meta.url)), "..", "build", "page");
-const pictures = capturePool(headlessCapture({ render: renderScreenshot, timeoutMs: LOAD_TIMEOUT_MS }), MAX_CAPTURES);
+// A capture refuses a host name with an address on this computer or on the local network
+const pictures = capturePool(publicCapture(headlessCapture({ render: renderScreenshot, timeoutMs: LOAD_TIMEOUT_MS }), systemResolver), MAX_CAPTURES);
 
 const running = await runProcedureHost({
   name: "pairrank-web",

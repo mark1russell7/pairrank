@@ -6,7 +6,8 @@
  *   (`@pairrank/host/bookmarks`) and of the still pictures (`@pairrank/host/pictures`) on one message port.
  * - A second port carries the commands of the surface of the page, and the events of the views of the sites.
  * - The environment variable `PAGE_URL` gives the address of a page server in development, for example Vite. Without
- *   it, the app shows the files of `build/page/` under `app://page/`.
+ *   it, the app shows the files of `build/page/` under `app://page/`. A packaged app ignores the variable.
+ * - The page, the views of the sites and the captures download no file.
  * - The environment variable `PAIRRANK_STORE` gives the file of the log. The default is `pairrank.sqlite` in the folder
  *   of the user data. A smoke run uses a log in memory.
  * - With the argument `--smoke`, the app stops with the exit code 0 after the first message of the page. It stops with
@@ -18,7 +19,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pairrankModule } from "@pairrank/host";
 import { bookmarksModule, chromeDataFolders, diskFiles } from "@pairrank/host/bookmarks";
-import { MAX_CAPTURES, capturePool, picturesModule } from "@pairrank/host/pictures";
+import { type AddressLookup, MAX_CAPTURES, capturePool, picturesModule, publicCapture } from "@pairrank/host/pictures";
 import { openStore } from "@pairrank/store";
 import { applyCommand, parseCommand } from "@pairrank/surfaces";
 import { PortTransport, ProcedureServer, createRegistry, electronPortOf } from "@procedures/client";
@@ -29,7 +30,6 @@ import {
   CONTENT_SECURITY_POLICY,
   LOAD_TIMEOUT_MS,
   PAGE_SCHEME,
-  PAGE_URL,
   PAINT_DELAY_MS,
   PICTURE_QUALITY,
   SHOW_TIMEOUT_MS,
@@ -37,6 +37,8 @@ import {
   STORE_FILE,
   allowsNavigation,
   pageFile,
+  pageUrlOf,
+  refuseDownloads,
   showWhenReady,
   windowOptions,
 } from "./index.ts";
@@ -44,7 +46,7 @@ import { electronCapture } from "./capture.ts";
 import { siteViews } from "./views.ts";
 
 const build = join(dirname(fileURLToPath(import.meta.url)), "..");
-const page = process.env["PAGE_URL"] ?? PAGE_URL;
+const page = pageUrlOf(app.isPackaged, process.env);
 const smoke = process.argv.includes("--smoke");
 
 /** This function stops the app with an exit code. It tells why on a fault, and in a smoke run. */
@@ -86,16 +88,23 @@ async function serveFile(request: Request): Promise<Response> {
 
 async function start(): Promise<void> {
   // The page and the sites ask for no permission: the camera, the microphone, the notifications and the others get no.
-  for (const each of [session.defaultSession, session.fromPartition(SITE_PARTITION)]) {
+  // They also download no file. The captures use the session of the sites.
+  const sites = session.fromPartition(SITE_PARTITION);
+  for (const each of [session.defaultSession, sites]) {
     each.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     each.setPermissionCheckHandler(() => false);
+    refuseDownloads(each);
   }
   protocol.handle(PAGE_SCHEME, serveFile);
 
   const store = openStore(smoke ? ":memory:" : (process.env["PAIRRANK_STORE"] ?? join(app.getPath("userData"), STORE_FILE)));
   app.on("will-quit", () => store.close());
   const bookmarks = bookmarksModule({ folders: chromeDataFolders(process.platform, process.env, homedir()), files: diskFiles });
-  const pictures = capturePool(electronCapture({ timeoutMs: LOAD_TIMEOUT_MS, paintDelayMs: PAINT_DELAY_MS, quality: PICTURE_QUALITY }), MAX_CAPTURES);
+  // A capture refuses a host name with an address on this computer or on the local network. The lookup uses the
+  // resolver of the session of the sites, which the load of the capture also uses.
+  const lookup: AddressLookup = async (hostname) => (await sites.resolveHost(hostname)).endpoints;
+  const capture = electronCapture({ timeoutMs: LOAD_TIMEOUT_MS, paintDelayMs: PAINT_DELAY_MS, quality: PICTURE_QUALITY });
+  const pictures = capturePool(publicCapture(capture, lookup), MAX_CAPTURES);
   const registry = createRegistry(pairrankModule(store, { key: canonicalUrl }), bookmarks, picturesModule(pictures.capture));
   const server = new ProcedureServer({ registry, autoRegister: true });
 
