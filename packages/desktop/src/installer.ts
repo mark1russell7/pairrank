@@ -53,14 +53,6 @@ export function stagedPackage(version: string): StagedPackage {
 /** The modules that Electron gives each main process, in addition to the modules of Node.js. */
 const ELECTRON_MODULES: ReadonlySet<string> = new Set(["electron", "electron/main", "electron/common", "electron/renderer", "original-fs"]);
 
-/** The forms of an import in a bundle: `from "x"`, `import "x"`, `import("x")` and `require("x")`. */
-const IMPORT_FORMS: readonly RegExp[] = [
-  /\bfrom\s*["']([^"'\n]+)["']/g,
-  /\bimport\s*["']([^"'\n]+)["']/g,
-  /\bimport\s*\(\s*["']([^"'\n]+)["']\s*\)/g,
-  /require\s*\(\s*["']([^"'\n]+)["']\s*\)/g,
-];
-
 /** This function tells if the installed app has a module: a module of Node.js or Electron, or a file of the build. */
 function isAvailable(name: string): boolean {
   if (name.startsWith("./") || name.startsWith("../") || name.startsWith("node:")) return true;
@@ -68,18 +60,12 @@ function isAvailable(name: string): boolean {
 }
 
 /**
- * This function gives the modules that a bundle imports and that the installed app does not have. The installer has no
- * `node_modules` folder, so each such import fails when the app starts.
+ * This function gives the modules that the installed app does not have, from the imports of the chunks of a bundle. The
+ * bundler gives these imports (`imports` and `dynamicImports` of each chunk). An import of a chunk of the build (`chunks`)
+ * is available. The installer has no `node_modules` folder, so each other import fails when the app starts.
  */
-export function foreignImports(code: string): string[] {
-  const found = new Set<string>();
-  for (const form of IMPORT_FORMS) {
-    for (const match of code.matchAll(form)) {
-      const name = match[1];
-      if (name !== undefined && !isAvailable(name)) found.add(name);
-    }
-  }
-  return [...found].sort();
+export function foreignImports(imports: readonly string[], chunks: readonly string[] = []): string[] {
+  return [...new Set(imports.filter((name) => !isAvailable(name) && !chunks.includes(name)))].sort();
 }
 
 /**

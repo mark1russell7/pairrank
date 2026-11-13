@@ -3,7 +3,8 @@
  * `node scripts/installer.ts` in `packages/desktop`, or `pnpm --filter @pairrank/desktop installer`.
  *
  * 1. It builds the three bundles with `tsdown`.
- * 2. It examines the bundles. They can import only Electron, the modules of Node.js and the files of the build.
+ * 2. It examines the imports of each chunk of the bundles, as the bundler records them. They can be only Electron, the
+ *    modules of Node.js and the files of the build.
  * 3. It writes a staging folder with `build/` and a `package.json` with no dependencies. Thus electron-builder does not
  *    collect the `node_modules` folders of the workspace.
  * 4. electron-builder makes an NSIS installer for one user from that folder, with `latest.yml` and the blockmap for the
@@ -24,16 +25,19 @@ const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(packageDir, "dist");
 const unpackedOnly = process.argv.includes("--dir");
 
-/** The bundles of the app, and the files of the build that go into the installer. */
-const BUNDLES = ["build/main/main.js", "build/preload/preload.cjs"] as const;
+/** The folders of the build that go into the installer. */
 const PARTS = ["main", "preload", "page"] as const;
 
 process.chdir(packageDir);
-await tsdown({ config: join(packageDir, "tsdown.config.ts") });
-
-for (const bundle of BUNDLES) {
-  const foreign = foreignImports(await readFile(join(packageDir, bundle), "utf8"));
-  if (foreign.length > 0) throw new Error(`${bundle} imports packages that the installed app does not have: ${foreign.join(", ")}`);
+const { bundles } = await tsdown({ config: join(packageDir, "tsdown.config.ts") });
+const chunks = bundles.flatMap((bundle) => bundle.chunks);
+for (const chunk of chunks) {
+  if (chunk.type !== "chunk") continue;
+  const foreign = foreignImports(
+    [...chunk.imports, ...chunk.dynamicImports],
+    chunks.map((other) => other.fileName),
+  );
+  if (foreign.length > 0) throw new Error(`${chunk.fileName} imports packages that the installed app does not have: ${foreign.join(", ")}`);
 }
 
 const { version } = JSON.parse(await readFile(join(packageDir, "package.json"), "utf8")) as { version: string };

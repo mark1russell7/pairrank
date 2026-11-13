@@ -21,28 +21,17 @@ describe("the names of the release", () => {
 
 describe("foreignImports", () => {
   it("accepts Electron, the modules of Node.js and the files of the build", () => {
-    const code = [
-      'import { app } from "electron";',
-      'import { readFile } from "node:fs/promises";',
-      'import path from "path";',
-      'import "./chunk.js";',
-      'const fs = __require("fs");',
-      'const original = require("original-fs");',
-      'const later = await import("../page/page.js");',
-      'export { thing } from "./thing.js";',
-    ].join("\n");
-    expect(foreignImports(code)).toEqual([]);
+    const imports = ["electron", "node:fs/promises", "path", "./chunk.js", "fs", "original-fs", "../page/page.js", "electron/main"];
+    expect(foreignImports(imports)).toEqual([]);
   });
 
   it("gives each package that the installed app does not have, once and in order", () => {
-    const code = [
-      'import { autoUpdater } from "electron-updater";',
-      'import "polite-crawler/urls";',
-      'const color = require("supports-color");',
-      'const again = require ( "supports-color" );',
-      'const lazy = import("@scope/lazy");',
-    ].join("\n");
-    expect(foreignImports(code)).toEqual(["@scope/lazy", "electron-updater", "polite-crawler/urls", "supports-color"]);
+    const imports = ["electron-updater", "polite-crawler/urls", "supports-color", "electron", "supports-color", "@scope/lazy"];
+    expect(foreignImports(imports)).toEqual(["@scope/lazy", "electron-updater", "polite-crawler/urls", "supports-color"]);
+  });
+
+  it("accepts a chunk of the build, also with no ./ before its name", () => {
+    expect(foreignImports(["main-a1b2.js", "lazy.js"], ["main.js", "main-a1b2.js"])).toEqual(["lazy.js"]);
   });
 });
 
