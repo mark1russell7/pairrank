@@ -24,15 +24,70 @@
 </header>
 
 <main>
-  <h1>pairrank</h1>
-  <p class="lead">Tag websites, pick the better of two, and rank them by ratings kept in a local database.</p>
+  <section class="intro">
+    <h1>Which is better: one, or two?</h1>
+    <p class="lead">pairrank shows you two sites. You pick the better one. After a few dozen picks, the ratings put all your sites in order.</p>
+  </section>
 
-  <h2>Get the code</h2>
-  <div class="command">
-    <code id="install">git clone https://github.com/mark1russell7/pairrank.git</code>
-    <button id="copy" type="button">Copy</button>
-  </div>
-  <p class="note"><a href="./releases/">Releases</a> shows each version, and <a href="./status/">Status</a> shows the open work.</p>
+  <section id="duel" class="duel" tabindex="0" aria-labelledby="duel-title" aria-describedby="duel-keys">
+    <h2 id="duel-title" class="visually-hidden">The duel</h2>
+    <div class="pair">
+      <button id="one" class="card" type="button" data-side="left"></button>
+      <span class="or" aria-hidden="true">or</span>
+      <button id="two" class="card" type="button" data-side="right"></button>
+    </div>
+    <div class="actions">
+      <button type="button" data-action="left" class="pick pick-one"><kbd>1</kbd> One is better</button>
+      <button type="button" data-action="tie"><kbd>T</kbd> Tie</button>
+      <button type="button" data-action="skip"><kbd>S</kbd> Skip</button>
+      <button type="button" data-action="right" class="pick pick-two"><kbd>2</kbd> Two is better</button>
+      <button id="undo" type="button" data-action="undo"><kbd>U</kbd> Undo</button>
+    </div>
+    <p id="duel-keys" class="hint">Click a site to pick it. In the duel, the keys work too: <kbd>←</kbd> and <kbd>→</kbd> pick a side, <kbd>↓</kbd> is a tie, and <kbd>Backspace</kbd> is an undo.</p>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="ranking" aria-labelledby="ranking-title">
+    <div class="ranking-head">
+      <h2 id="ranking-title">The ranking</h2>
+      <label class="model">Model
+        <select id="model"></select>
+      </label>
+    </div>
+    <div class="scale" aria-hidden="true"><span class="scale-track"><span>1100</span><span>1500</span><span>1900</span></span></div>
+    <ol id="ladder" class="ladder"></ol>
+    <p class="note">The dot is the rating. The line is the rating plus and minus its uncertainty. Each site starts at 1500.</p>
+
+    <div class="taste">
+      <h3>A hidden taste</h3>
+      <p>The demo has a hidden taste: a fixed order of the eight sample sites. Let it pick, and see the ranking find its order.</p>
+      <div class="taste-actions">
+        <button id="taste" type="button">Let the taste pick 10 times</button>
+        <button id="reveal" type="button" aria-pressed="false">Show the order of the taste</button>
+        <button id="restart" type="button">Start again</button>
+      </div>
+      <p id="agreement" class="agreement"></p>
+    </div>
+  </section>
+
+  <section class="explain">
+    <h2>How the duel chooses a pair</h2>
+    <p>Each pair has an expected information. Two sites with near ratings give a result that is not sure. A site with few picks has a rating that is not sure. The duel shows the pair with the most information, so each pick teaches the ranking more.</p>
+
+    <h2>How the ratings work</h2>
+    <p>A pick is a win, a loss or a tie. The Bradley-Terry model finds the ratings that best explain all the picks together. Elo and Glicko-2 change the ratings one pick at a time. On this scale, 400 points give odds of 10 to 1.</p>
+
+    <h2>The app</h2>
+    <p>The app runs on your computer, as a desktop app or in a browser. It imports your bookmarks, shows two sites side by side, and keeps each pick in a local database. Each tag of your sites gets its own ranking.</p>
+    <p class="note">This demo runs the code of the app in your browser, with sample sites. Nothing leaves the page, and a reload starts it again.</p>
+
+    <h2>Get the code</h2>
+    <div class="command">
+      <code id="install">git clone https://github.com/mark1russell7/pairrank.git</code>
+      <button id="copy" type="button">Copy</button>
+    </div>
+    <p class="note"><a href="./releases/">Releases</a> shows each version, and <a href="./status/">Status</a> shows the open work.</p>
+  </section>
 </main>
 
 <script type="module" src="./src/index.ts"></script>
