@@ -128,6 +128,35 @@ export function allowsSiteNavigation(target: string): boolean {
   }
 }
 
+/** The most tabs of one slot. A site that opens more windows gets a `blocked` event, so a flood of windows stops. */
+export const MAX_TABS = 8;
+
+/**
+ * The decision for a navigation of a site in its view: `allow` it, `refuse` it (not a web address), or `block` it (the
+ * lock stops it).
+ */
+export type NavigationDecision = "allow" | "refuse" | "block";
+
+/**
+ * This function decides a navigation that a site starts in its view: a click, a script or a form. A tab that is still
+ * in its first load is not armed, so the redirects of that load go on. After the first load, a locked slot blocks each
+ * navigation to another page.
+ */
+export function navigationOf(target: string, locked: boolean, armed: boolean): NavigationDecision {
+  if (!allowsSiteNavigation(target)) return "refuse";
+  return locked && armed ? "block" : "allow";
+}
+
+/**
+ * This function gives the tab to show after a close, from the tabs in their order. The close of a tab that the slot does
+ * not show keeps the open tab. The close of the open tab shows the tab before it. The first tab (the site) stays.
+ */
+export function tabAfterClose(tabs: readonly number[], active: number, closed: number): number {
+  const index = tabs.indexOf(closed);
+  if (index <= 0 || closed !== active) return active;
+  return tabs[index - 1] ?? active;
+}
+
 /**
  * This function gives the reason of a failed load from its Chromium error code. The code -3 (`ERR_ABORTED`) is a load
  * that a new load replaced, so it gives `undefined`.

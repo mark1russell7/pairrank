@@ -88,6 +88,8 @@ export function pictureSurface(capture: Capture, { size = PICTURE_SIZE, kind = "
       return load;
     },
     place() {},
+    // A still picture has no pages, so an action changes nothing
+    act() {},
     clear(slot) {
       open.delete(slot);
       emit({ type: "cleared", slot, load: counts.get(slot) ?? 0 });

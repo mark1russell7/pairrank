@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, captureWindowOptions, contentType, failureOf, pageFile, returnsKeys, siteViewPreferences, viewBounds, windowOptions } from "./index.ts";
+import { CONTENT_SECURITY_POLICY, PAGE_URL, SITE_PARTITION, allowsNavigation, allowsSiteNavigation, captureWindowOptions, contentType, failureOf, navigationOf, pageFile, returnsKeys, siteViewPreferences, tabAfterClose, viewBounds, windowOptions } from "./index.ts";
 
 const root = resolve("build", "page");
 
@@ -76,6 +76,23 @@ describe("the views of the sites", () => {
     expect(allowsSiteNavigation("https://a.example/next")).toBe(true);
     expect(allowsSiteNavigation("http://a.example/")).toBe(true);
     for (const url of ["file:///C:/secret.txt", "app://page/index.html", "javascript:alert(1)", "chrome://settings", "not an address"]) expect(allowsSiteNavigation(url), url).toBe(false);
+  });
+
+  it("let the redirects of the first load go, and then block each navigation of a locked slot", () => {
+    const next = "https://a.example/next";
+    expect(navigationOf(next, true, false)).toBe("allow");
+    expect(navigationOf(next, true, true)).toBe("block");
+    expect(navigationOf(next, false, true)).toBe("allow");
+    // A target that is not a web address is refused, locked or not
+    for (const [locked, armed] of [[true, true], [false, false]] as const) expect(navigationOf("file:///C:/secret.txt", locked, armed)).toBe("refuse");
+  });
+
+  it("show the tab before a closed open tab, and keep the site tab", () => {
+    expect(tabAfterClose([0, 3, 5], 5, 5)).toBe(3);
+    expect(tabAfterClose([0, 3, 5], 3, 3)).toBe(0);
+    expect(tabAfterClose([0, 3, 5], 5, 3)).toBe(5);
+    expect(tabAfterClose([0, 3, 5], 3, 0)).toBe(3);
+    expect(tabAfterClose([0, 3], 3, 9)).toBe(3);
   });
 
   it("give a reason for each failed load, and no reason for a replaced load", () => {

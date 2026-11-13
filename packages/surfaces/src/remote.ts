@@ -6,13 +6,17 @@
  * uses the number of the command, so the events of the two sides agree.
  */
 import type { Rect } from "@mark1russell7/layout-contract";
-import type { LoadId, SlotId, Surface, SurfaceEvent, SurfaceListener } from "./surface.ts";
+import type { LoadId, SlotAction, SlotId, Surface, SurfaceEvent, SurfaceListener, TabId } from "./surface.ts";
 
-/** A command of the page to the main process. A port sends `null` for a hidden slot, not `undefined`. */
+/**
+ * A command of the page to the main process. A port sends `null` for a hidden slot, not `undefined`. An action has the
+ * number of its load, so the main process does not apply an action of an earlier load to a new site.
+ */
 export type SurfaceCommand =
   | { readonly type: "show"; readonly slot: SlotId; readonly load: LoadId; readonly url: string }
   | { readonly type: "place"; readonly slot: SlotId; readonly box: Rect | null }
-  | { readonly type: "clear"; readonly slot: SlotId; readonly load: LoadId };
+  | { readonly type: "clear"; readonly slot: SlotId; readonly load: LoadId }
+  | { readonly type: "act"; readonly slot: SlotId; readonly load: LoadId; readonly action: SlotAction };
 
 /** The longest name of a slot. */
 export const MAX_SLOT = 64;
@@ -44,24 +48,58 @@ function boxOf(value: unknown): Rect | null {
   return { x, y, w, h };
 }
 
+function urlOf(value: unknown): string {
+  if (typeof value !== "string" || value.length > MAX_URL) throw new Error(`The address must be a text of ${MAX_URL} characters or fewer.`);
+  return value;
+}
+
+function tabOf(value: unknown): TabId {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) throw new Error("The tab must be an integer of 0 or more.");
+  return value;
+}
+
+/** This function examines an action of a command, and gives it with only its known fields. */
+export function parseAction(value: unknown): SlotAction {
+  const action = objectOf(value);
+  switch (action["type"]) {
+    case "lock":
+      if (typeof action["locked"] !== "boolean") throw new Error("The action lock must have a boolean locked.");
+      return { type: "lock", locked: action["locked"] };
+    case "back":
+    case "forward":
+    case "home":
+      return { type: action["type"] };
+    case "select":
+    case "close":
+      return { type: action["type"], tab: tabOf(action["tab"]) };
+    case "open": {
+      const where = action["where"];
+      if (where !== "tab" && where !== "here") throw new Error("The action open must have where tab or here.");
+      return { type: "open", url: urlOf(action["url"]), where };
+    }
+    default:
+      throw new Error("The type of an action must be lock, back, forward, home, select, close or open.");
+  }
+}
+
 /**
  * This function examines a command from the page, and gives it with only its known fields. A command that is not
- * valid throws. The address of `show` can be any text: the adapter refuses an address that is not a web address.
+ * valid throws. The address of `show` or `open` can be any text: the adapter refuses an address that is not a web
+ * address.
  */
 export function parseCommand(value: unknown): SurfaceCommand {
   const command = objectOf(value);
   switch (command["type"]) {
-    case "show": {
-      const url = command["url"];
-      if (typeof url !== "string" || url.length > MAX_URL) throw new Error(`The address must be a text of ${MAX_URL} characters or fewer.`);
-      return { type: "show", slot: slotOf(command["slot"]), load: loadOf(command["load"]), url };
-    }
+    case "show":
+      return { type: "show", slot: slotOf(command["slot"]), load: loadOf(command["load"]), url: urlOf(command["url"]) };
     case "place":
       return { type: "place", slot: slotOf(command["slot"]), box: boxOf(command["box"]) };
     case "clear":
       return { type: "clear", slot: slotOf(command["slot"]), load: loadOf(command["load"]) };
+    case "act":
+      return { type: "act", slot: slotOf(command["slot"]), load: loadOf(command["load"]), action: parseAction(command["action"]) };
     default:
-      throw new Error("The type of a command must be show, place or clear.");
+      throw new Error("The type of a command must be show, place, clear or act.");
   }
 }
 
@@ -72,6 +110,8 @@ export interface SlotHost {
   place(slot: SlotId, box: Rect | undefined): void;
   /** This method removes the page of the slot, and sends `cleared` with the number `load`. */
   clear(slot: SlotId, load: LoadId): void;
+  /** This method does an action on the pages of the slot. It ignores an action of a load that is not the open load. */
+  act(slot: SlotId, load: LoadId, action: SlotAction): void;
 }
 
 /** This function applies one command of the page to the views of the main process. */
@@ -85,6 +125,9 @@ export function applyCommand(host: SlotHost, command: SurfaceCommand): void {
       return;
     case "clear":
       host.clear(command.slot, command.load);
+      return;
+    case "act":
+      host.act(command.slot, command.load, command.action);
       return;
   }
 }
@@ -117,6 +160,10 @@ export function remoteSurface(send: (command: SurfaceCommand) => void, kind = "r
     },
     clear(slot) {
       if (!gone) send({ type: "clear", slot, load: counts.get(slot) ?? 0 });
+    },
+    act(slot, action) {
+      const load = counts.get(slot);
+      if (!gone && load !== undefined) send({ type: "act", slot, load, action });
     },
     subscribe(listener) {
       listeners.add(listener);
