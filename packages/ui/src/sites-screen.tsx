@@ -1,15 +1,29 @@
 /**
  * The Sites screen: the viewer. It lists the sites that agree with a tag query, in the order of a rating, a title or a
- * date. A text search narrows the list. A click on a site shows the list one site at a time, from that site.
+ * date. A text search narrows the list. A click on a site shows the list one site at a time, from that site. An order
+ * by rating shows the model of the ratings, and the test of the models of its ladder.
  */
 import { countOf, errorMessage, wordSearch } from "@mark1russell7/text";
+import type { Scope } from "@pairrank/core";
 import type { SiteView, StateView, TagView, ViewerAnswer, ViewerRow } from "@pairrank/host/views";
+import type { ModelChoice, ModelSetting } from "@pairrank/ratings";
 import { type ReactElement, useEffect, useMemo, useState } from "react";
 import type { PairrankApi } from "./api.ts";
 import { HiddenSites } from "./hidden-sites.tsx";
 import { nameOf } from "./look-screen.tsx";
 import { Swatch, type Write } from "./tags.tsx";
-import { MIX_LEVELS, type MixLevel, type ViewerSettings, mixLevelOf, orderChoices, orderOf, ratingText } from "./viewer.ts";
+import {
+  FIRST_SETTINGS,
+  MIX_LEVELS,
+  MODEL_CHOICES,
+  type MixLevel,
+  type ViewerSettings,
+  mixLevelOf,
+  modelHelp,
+  orderChoices,
+  orderOf,
+  ratingText,
+} from "./viewer.ts";
 
 /** A list of sites for a run of the Look screen, in its order, with a name. */
 export interface SiteList {
@@ -37,6 +51,9 @@ export function matches(site: SiteView, query: string): boolean {
 /** The time that the viewer waits after a change of the settings before it asks the host, in milliseconds. */
 const SETTLE_MS = 120;
 
+/** The result of the test of the models of a ladder, or the text of its failure. The key tells the ladder. */
+type ModelTest = { readonly key: string } & ({ readonly ok: true; readonly choice: ModelChoice } | { readonly ok: false; readonly detail: string });
+
 /** The Sites screen. */
 export function SitesScreen({ api, view, write, settings, setSettings, look, startImport }: SitesProps): ReactElement {
   const [search, setSearch] = useState("");
@@ -46,6 +63,7 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
   const [rows, setRows] = useState<readonly ViewerRow[] | undefined>(undefined);
   const [answer, setAnswer] = useState<ViewerAnswer | undefined>(undefined);
   const [failure, setFailure] = useState<string | undefined>(undefined);
+  const [test, setTest] = useState<ModelTest | undefined>(undefined);
 
   const tags = useMemo(() => new Map<string, TagView>(view.tags.map((tag) => [tag.id, tag])), [view]);
   const byId = useMemo(() => new Map(view.sites.map((site) => [site.id, site])), [view]);
@@ -53,11 +71,18 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
   const mean = useMemo(() => settings.mean.filter((tag) => tags.has(tag)), [settings.mean, tags]);
   const order = settings.order.startsWith("tag:") && !tags.has(settings.order.slice("tag:".length)) ? "added" : settings.order;
   const ask = useMemo(() => orderOf({ ...settings, order, mean }) ?? { kind: "title" as const }, [settings, order, mean]);
+  // The ladders of the order, with no mix. Thus a new draw of the mix does not test the models again.
+  const ladders = useMemo(() => {
+    const plain = orderOf({ ...FIRST_SETTINGS, order, mean });
+    return plain?.kind === "rating" ? plain.scopes : [];
+  }, [order, mean]);
+  // The key of the one ladder of the order, or "" for an order with no ladder or with more ladders
+  const testKey = ladders.length === 1 ? JSON.stringify(ladders[0]) : "";
 
   useEffect(() => {
     let live = true;
     const timer = setTimeout(() => {
-      api.viewer(settings.query, ask).then(
+      api.viewer(settings.query, ask, settings.model).then(
         (got) => {
           if (!live) return;
           setAnswer(got);
@@ -72,7 +97,25 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
       clearTimeout(timer);
     };
     // The view changes after each write, so the list follows the tags and the picks
-  }, [api, settings.query, ask, view]);
+  }, [api, settings.query, ask, settings.model, view]);
+
+  // The test of the models of an order with one ladder. A new pick changes the view, so the test follows the picks.
+  // The last result stays on the screen until the next result of the same ladder.
+  useEffect(() => {
+    if (testKey === "") return;
+    const scope = JSON.parse(testKey) as Scope;
+    let live = true;
+    const timer = setTimeout(() => {
+      api.model(scope).then(
+        (choice) => live && setTest({ key: testKey, ok: true, choice }),
+        (error: unknown) => live && setTest({ key: testKey, ok: false, detail: errorMessage(error) }),
+      );
+    }, SETTLE_MS);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [api, testKey, view]);
 
   const shown = useMemo(() => view.sites.filter((site) => !site.hidden), [view]);
   const hidden = useMemo(() => view.sites.filter((site) => site.hidden), [view]);
@@ -89,6 +132,8 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
   const level = mixLevelOf(settings.temperature);
   const mixLevel = MIX_LEVELS[level] as MixLevel;
   const problem = answer !== undefined && !answer.ok ? answer.problem : undefined;
+  const shownTest = test?.key === testKey ? test : undefined;
+  const testHelp = shownTest?.ok === false ? `The test of the models failed. ${shownTest.detail}` : modelHelp(settings.model, ladders.length, shownTest?.choice);
   // The Look screen adds the count to the name
   const named = answer?.ok === true && answer.query !== "" ? `Sites of ${answer.query}` : "Sites of the viewer";
   const list: SiteList = { ids: listed.map((each) => each.site.id), name: search.trim() === "" ? named : `${named}, found by "${search.trim()}"` };
@@ -191,6 +236,28 @@ export function SitesScreen({ api, view, write, settings, setSettings, look, sta
               Shuffle again
             </button>
           )}
+        </div>
+      )}
+      {rated && (
+        <div className="model" role="group" aria-label="Model of the ratings">
+          <label className="model-setting">
+            <span>Model</span>
+            <select
+              aria-label="Model"
+              aria-describedby="model-help"
+              value={settings.model}
+              onChange={(event) => setSettings({ ...settings, model: event.target.value as ModelSetting })}
+            >
+              {MODEL_CHOICES.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span id="model-help" className="help" role={shownTest?.ok === false ? "alert" : undefined}>
+            {testHelp}
+          </span>
         </div>
       )}
 

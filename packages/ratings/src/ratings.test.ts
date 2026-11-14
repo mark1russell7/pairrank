@@ -149,4 +149,12 @@ describe("selectModel", () => {
     const losses = choice.scores.map((score) => score.logLoss);
     expect([...losses].sort((x, y) => x - y)).toEqual(losses);
   });
+
+  it("gives the setting best the ladder of the chosen model, and Bradley-Terry before a test", () => {
+    const tested = replay(ordered(20)).state;
+    const chosen = selectModel(tested, overall).model;
+    expect(ladderOf(tested, overall, { model: "best" })).toEqual(ladderOf(tested, overall, { model: chosen }));
+    const untested = replay(ordered(3)).state;
+    expect(ladderOf(untested, overall, { model: "best" })).toEqual(ladderOf(untested, overall));
+  });
 });

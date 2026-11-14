@@ -4,11 +4,17 @@
  *
  * @packageDocumentation
  */
-import { type PairComparison, type RatingFitOptions, type RatingModel, fitRatings, strengthToRating } from "@mark1russell7/rigor-statistics";
+import { type PairComparison, type RatingFitOptions, type RatingModel, fitRatings, selectRatingModel, strengthToRating } from "@mark1russell7/rigor-statistics";
 import { type Pick, type Scope, type SiteId, type State, picksIn, scopeKey } from "@pairrank/core";
 
 /** The models of a ladder. */
 export type ModelName = RatingModel;
+
+/**
+ * The model setting of a ladder: a model, or `best`. The setting `best` gives the model with the lowest log-loss on the
+ * last picks of the scope. `selectModel` tells the test.
+ */
+export type ModelSetting = ModelName | "best";
 
 /** The rating of one site in one scope. */
 export interface Rating {
@@ -41,8 +47,8 @@ export interface Ladder {
  * SD of the Bradley-Terry fit is 1, and the K factor of Elo is 32, when the options do not set them.
  */
 export interface LadderOptions extends RatingFitOptions {
-  /** The model. The default is `bradley-terry`. */
-  readonly model?: ModelName;
+  /** The model, or `best` for the model that the test of the scope chooses. The default is `bradley-terry`. */
+  readonly model?: ModelSetting;
 }
 
 /** This function gives the sites that can be in a pair of a scope. A site must not be hidden, and in a tag scope it must have the tag. */
@@ -92,8 +98,8 @@ export function logOf(state: State, scope: Scope): ScopeLog {
 
 /** This function gives the ladder of one scope. `fitRatings` of `@mark1russell7/rigor-statistics` fits the model. */
 export function ladderOf(state: State, scope: Scope, options: LadderOptions = {}): Ladder {
-  const model = options.model ?? "bradley-terry";
   const { sites, comparisons } = logOf(state, scope);
+  const model = options.model === "best" ? selectRatingModel(sites.length, comparisons, options).model : (options.model ?? "bradley-terry");
   const result = fitRatings(model, sites.length, comparisons, options);
 
   const counts = sites.map(() => ({ wins: 0, losses: 0, ties: 0 }));

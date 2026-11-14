@@ -70,6 +70,9 @@ describe("pairrankModule", () => {
     await expect(call(["pairrank", "ladder"], { scope: { kind: "everything" } })).rejects.toThrow();
     const choice = await call<ModelChoice>(["pairrank", "model"], { scope: { kind: "overall" } });
     expect(choice.model).toBe("bradley-terry");
+    // The setting best gives the ladder of the chosen model
+    const best = await call<Ladder>(["pairrank", "ladder"], { scope: { kind: "overall" }, model: "best" });
+    expect(best.model).toBe(choice.model);
     store.close();
   });
 
@@ -105,7 +108,7 @@ describe("pairrankModule", () => {
     // The tag News has one site, so it has no pair
     const news = view.tags.find((tag) => tag.name === "News")!.id;
     expect(await call(["pairrank", "pair"], { scope: { kind: "tag", tag: news }, seed: 1, recent: [[ids[0], ids[1]]], model: "elo" })).toBeNull();
-    for (const bad of [{ scope: { kind: "overall" } }, { scope: { kind: "overall" }, seed: "" }, { scope: { kind: "overall" }, seed: 1, recent: [["a"]] }, { scope: { kind: "overall" }, seed: 1, model: "best" }]) {
+    for (const bad of [{ scope: { kind: "overall" } }, { scope: { kind: "overall" }, seed: "" }, { scope: { kind: "overall" }, seed: 1, recent: [["a"]] }]) {
       await expect(call(["pairrank", "pair"], bad), JSON.stringify(bad)).rejects.toThrow();
     }
     store.close();
@@ -153,6 +156,8 @@ describe("the input schemas of pairrankModule", () => {
     ["pair", { scope: overall, seed: "one" }],
     ["viewer", {}],
     ["viewer", { query: "", order: { kind: "rating", scopes: [overall], mix: { temperature: 1, seed: 2 } }, model: "elo" }],
+    ["viewer", { order: { kind: "rating", scopes: [overall] }, model: "best" }],
+    ["pair", { scope: overall, seed: 1, model: "best" }],
   ];
   /** The inputs of each procedure that the schema refuses, with a part of the message. */
   const invalid: [string, unknown, RegExp][] = [
@@ -168,7 +173,7 @@ describe("the input schemas of pairrankModule", () => {
     ["ladder", { scope: { kind: "tag" } }, /The scope must be/],
     ["ladder", { scope: { kind: "tag", tag: "" } }, /The scope must be/],
     ["ladder", { scope: { kind: "overall", tag: "t" } }, /Unrecognized key: "tag"/],
-    ["model", { scope: overall, model: "best" }, /The model must be bradley-terry, elo or glicko2/],
+    ["model", { scope: overall, model: "trueskill" }, /The model must be best, bradley-terry, elo or glicko2/],
     ["pair", { scope: overall }, /The seed must be a text or a finite number/],
     ["pair", { scope: overall, seed: Number.POSITIVE_INFINITY }, /The seed must be a text or a finite number/],
     ["pair", { scope: overall, seed: 1, recent: [["a"]] }, /Each recent pair must be a list of two site ids/],
