@@ -51,7 +51,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R29 | The model on the screen | done | R5 | On the Sites screen, an order by the ratings has a choice of the model. The default `best` uses the model with the lowest log-loss on the last picks of each ladder. The screen shows the log-loss of each model. |
 | R30 | A cache of the ladders | done | R5 | The host keeps each ladder and each model test in an LRU cache of `@mark1russell7/collections`. A new event clears the cache, so a request between two events does not fit the picks again. |
 | R31 | A bench of the pair choice | later | R14 | Simulated tastes measure the picks that each rule of the pairs uses to find the order. CI holds the best rule. The bench also sets `PAIR_FULL_SEARCH` of `@mark1russell7/rigor-statistics`. Above 200 sites, the ladder uses the sparse fit, with approximate standard errors. The bench compares its pairs to the pairs of the dense fit. |
-| R32 | Scale targets and a speed gate | later | R30, R35 | The roadmap gives targets for each power of ten of sites and picks. A bench with `@mark1russell7/rigor-bench` holds them in CI. |
+| R32 | Scale targets and a speed gate | active | R30, R35 | The section "Scale targets" gives the targets for each power of ten of sites and picks. The workflow `bench.yml` measures them with `@mark1russell7/rigor-bench`. After 5 CI runs, the gate locks each rung that holds. |
 | R33 | More tests | later | R26, R27 | Coverage limits, property tests with `@mark1russell7/rigor-testkit`, and unit tests of the views and the captures with a fake `WebContents`. |
 | R34 | An installer and updates | active |  | An installer for Windows, and updates from GitHub Releases. Without a signing certificate, Windows shows a warning at the install. The workflow `desktop.yml` builds an NSIS installer for one user, installs it and starts the installed app with `--smoke`. A run by hand on `main` makes the release `desktop-v<version>`. `electron-updater` downloads a new release and installs it when the app closes. Each run mode uses one folder of data, and the log of an earlier development run moves into it once. The item is done when a real release installs and updates. |
 | R35 | The ranking engine in rigor-statistics | done | R1 | The ladders, the choice of the model and the choice of the pair use `fitRatings`, `selectRatingModel` and `choosePair` of `@mark1russell7/rigor-statistics`. |
@@ -61,6 +61,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R39 | One rule for the lock | later | R23 | The lock and its quiet time become one state machine as data, with `@mark1russell7/algebra`. The `iframe` surface and the desktop views use it. |
 | R40 | Homes for three general parts | active |  | The bookmark reader and `isLocalName` come from `@procedures/browser` and `@procedures/http` 0.55.2, and the app deleted its copies. The event log goes to `@mark1russell7/sqlite`, and the safety rules of an Electron window go to `@mark1russell7/desktop`. Both wait for their first publish. |
 | R41 | Captures stay off the local network | later |  | The capture filters each request, also each redirect and subresource, by its resolved address. Thus DNS rebinding cannot reach a local address. |
+| R42 | The 10,000-site rung holds | later | R32 | At 10,000 sites, a duel step takes 1.1 s and the Sites screen takes 2.1 s. Each pick clears the cache of the ladders, so the next pair needs a new fit over all picks. A fit that starts from the last ratings, or a pair from the last ratings, can make the rung hold. |
 | B1 | Sites load, then disappear | done | | The screen of each site had no height, so the app hid the view after each load. A layout check in CI holds the fix. |
 | B2 | A race in the duel tests | done | | The tests read the slots before React gave them their sites. The tests wait for the pair that the screen names. A slow run of the tests holds the fix. |
 | B3 | A failed write kept its events in the state | done | | A write that fails after its checks rolls back the file. The state kept the events of the write, so the screens showed them. After a failed write, the store replays the file. |
@@ -68,3 +69,34 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | B5 | A fast second press of a tag key added the tag again | done | | The key handler read the tags of the view before the last write. Thus a second press before the view changed added the tag again, and did not remove it. The Look screen keeps the state of each write in flight, and the handler reads the values of the last render. A test holds it. |
 | B6 | The desktop check of a click missed the link | done | R23 | The check clicked the link right after the load of the page. Chromium ignores input before the first paint, so the click did not count. The check waits for two frames, and proves the click came before the quiet time. |
 | B7 | The window of the app stayed hidden | done | | The window shows at the first paint of its page. A fault of the GPU process can stop that paint, so the window stayed hidden. After 4 seconds with no paint, the window shows all the same. The terminal names each helper process that stops. |
+
+## Scale targets
+
+The ladder of the host is in `packages/host/src/bench/scale.ts`. Each rung has 20 sites for each tag and 10 picks for each site. A budget is the largest median time of one step, in milliseconds.
+
+| Rung | Sites | Picks | Start | Duel step | Sites screen |
+| --- | --- | --- | --- | --- | --- |
+| 100 sites | 100 | 1,000 | 1,000 | 100 | 100 |
+| 1,000 sites | 1,000 | 10,000 | 1,000 | 100 | 300 |
+| 10,000 sites | 10,000 | 100,000 | 3,000 | 300 | 1,000 |
+
+- **Start:** the store opens its SQLite file and replays the log, as when the app starts.
+- **Duel step:** the host writes one pick, then it chooses the next pair. The person waits for this after each pick.
+- **Sites screen:** the Sites screen in its default order, the overall ratings with the best model by test.
+
+The limits come from the time that a person waits. A reply in 100 ms looks instant, and a reply in 1 s keeps the flow of the work. Few people keep 10,000 sites, so that rung gets more time.
+
+- The workflow `bench.yml` measures each rung in its own job. Each step starts in a fresh process, with an A/A pair of the same build, for 12 rounds.
+- The data is synthetic: seeded sites, tags and picks of a hidden taste on the scale of Elo. The procedures, the SQLite file and the processes are real.
+- The medians of the two arms can differ by more than a quarter of the limit. Then the run is too noisy, and the budget cannot decide.
+- The rungs start open, so they only report. After 5 CI runs, the gate locks each rung that holds. A locked rung that does not hold fails the check `Bench OK`.
+
+The first CI run (#77) gives these medians, in milliseconds. The A/A medians differ by 11 ms or less.
+
+| Rung | Start | Duel step | Sites screen |
+| --- | --- | --- | --- |
+| 100 sites | 14 | 7 | 18 |
+| 1,000 sites | 48 | 64 | 138 |
+| 10,000 sites | 515 | 1,116 (beyond) | 2,110 (beyond) |
+
+The 100-site and 1,000-site rungs hold. R42 makes the 10,000-site rung hold.

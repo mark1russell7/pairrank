@@ -1,0 +1,126 @@
+# The scale bench of the host (R32 of docs/ROADMAP.md): the ladder of packages/host/src/bench/scale.ts.
+#
+#   changes   The action changes of the template. The other jobs run only on a pull request that changes the code
+#             of the bench, and on each run by hand.
+#   rung      One job for each rung. It writes the log of the rung to a SQLite file, then freshRun of
+#             @mark1russell7/rigor-bench times each step in a fresh process, with an A/A pair, for 12 rounds.
+#             The record and each raw time go to the artifact bench-rung-<sites>.
+#   verdict   ladderVerdict of rigor-bench over the records. The report goes to the summary of the run. The job
+#             fails when a locked rung is not "within". An open rung only reports.
+#   bench-ok  The summary check "Bench OK".
+#
+# A run by hand: gh workflow run bench.yml --ref <branch>
+name: Bench
+
+on:
+  # Each pull request starts this workflow, so its summary check is always there. The job changes skips the
+  # work when the pull request changes no file of the gate (CI.md of the template, "A gate with paths").
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+# A newer push cancels the run of a pull request. A run by hand on main ends with a result (main-runs-finish).
+concurrency:
+  group: bench-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      match: ${{ steps.changes.outputs.match }}
+    steps:
+      - id: changes
+        uses: mark1russell7/template/.github/actions/changes@214dbed7b52dac94c0dce1c170162e75672a556d # main
+        with:
+          paths: |
+            packages/core/src/**
+            packages/store/src/**
+            packages/ratings/src/**
+            packages/host/src/**
+            packages/host/package.json
+            pnpm-lock.yaml
+            .github/workflows/bench.yml
+
+  rung:
+    needs: changes
+    if: needs.changes.outputs.match == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      # The runners are shared by all repositories of the account (the rule runner-budget)
+      max-parallel: 3
+      matrix:
+        sites: [100, 1000, 10000]
+    env:
+      SITES: ${{ matrix.sites }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Time the steps of the rung
+        run: node packages/host/src/bench/run.ts --sites "$SITES" --out bench-records
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bench-rung-${{ matrix.sites }}
+          path: bench-records/rung-${{ matrix.sites }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  verdict:
+    needs: [changes, rung]
+    if: ${{ !cancelled() && needs.changes.outputs.match == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # A rung with no record is "cannot decide". That fails only a locked rung.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: bench-rung-*
+          path: bench-records
+          merge-multiple: true
+      - name: The verdict of the ladder
+        run: |
+          mkdir -p bench-records
+          node packages/host/src/bench/verdict.ts --records bench-records
+
+  bench-ok:
+    name: Bench OK
+    if: ${{ !cancelled() }}
+    needs: [changes, rung, verdict]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: mark1russell7/template/.github/actions/gate-summary@214dbed7b52dac94c0dce1c170162e75672a556d # main
+        with:
+          needs: ${{ toJSON(needs) }}
