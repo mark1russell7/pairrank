@@ -261,7 +261,7 @@ importers:
         version: 6.8.11(supports-color@7.2.0)
       polite-crawler:
         specifier: ^0.6.0
-        version: 0.6.0
+        version: 0.6.1
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0
@@ -602,7 +602,7 @@ importers:
         version: 0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)
       polite-crawler:
         specifier: ^0.6.0
-        version: 0.6.0
+        version: 0.6.1
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -2755,8 +2755,8 @@ packages:
     resolution: {integrity: sha512-uysumyrvkUX0rX/dEVqt8gC3sTBzd4zoWfLeS29nb53imdaXVvLINYXTI2GNqzaMuvacNx4uJQ8+b3zXR0pkgQ==}
     engines: {node: '>=10.4.0'}
 
-  polite-crawler@0.6.0:
-    resolution: {integrity: sha512-7o/GoW//dUXirGxSkLhZ6bPQim2/vis+shMxhsmca+UFxKuquhuzETLppspx+WuXp/PmJPkXd5CtYCEXywz1yw==}
+  polite-crawler@0.6.1:
+    resolution: {integrity: sha512-zxMCuyNTzkWFfVOtpXXgncBOQNQfksnCoHQwI3VSQ3YeOVHTNoE/39wRpSTbPc8cpQT6bdGkdHhLZBHaslhHiQ==}
     engines: {node: '>=22.19'}
     hasBin: true
     peerDependencies:
@@ -5361,7 +5361,7 @@ snapshots:
       base64-js: 1.5.1
       xmlbuilder: 15.1.1
 
-  polite-crawler@0.6.0:
+  polite-crawler@0.6.1:
     dependencies:
       '@mozilla/readability': 0.6.0
       linkedom: 0.18.15
