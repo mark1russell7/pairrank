@@ -1,8 +1,8 @@
 import { join } from "node:path";
-import { type BookmarkSource, type ChromeBookmarks, MAX_BOOKMARKS_BYTES } from "@pairrank/input";
+import { type BookmarkSource, type ChromeBookmarks, type FileAccess, MAX_BOOKMARKS_BYTES } from "@procedures/browser";
 import { callerOf } from "@procedures/client";
 import { describe, expect, it } from "vitest";
-import { type Files, bookmarksModule, chromeDataFolders, findSources } from "./bookmarks.ts";
+import { bookmarksModule, chromeFolders } from "./bookmarks.ts";
 
 const DATA = join("home", "chrome");
 
@@ -10,7 +10,7 @@ const DATA = join("home", "chrome");
 const bookmarks = (url: string) => JSON.stringify({ roots: { bookmark_bar: { type: "folder", name: "Bookmarks bar", guid: "bar", children: [{ type: "url", name: "A", url }] } } });
 
 /** This function gives files in memory. A size in `sizes` replaces the real size of a file. */
-function memory(contents: Record<string, string>, sizes: Record<string, number> = {}): Files {
+function memory(contents: Record<string, string>, sizes: Record<string, number> = {}): FileAccess {
   return {
     list: async (folder) => [...new Set(Object.keys(contents).filter((path) => path.startsWith(folder + "/") || path.startsWith(folder + "\\")).map((path) => path.slice(folder.length + 1).split(/[\\/]/)[0] ?? ""))],
     size: async (file) => (file in contents ? (sizes[file] ?? contents[file]?.length) : undefined),
@@ -23,7 +23,7 @@ function memory(contents: Record<string, string>, sizes: Record<string, number> 
 }
 
 const FILES = {
-  [join(DATA, "Local State")]: JSON.stringify({ profile: { info_cache: { Default: { name: "Mark" }, "Profile 2": { name: "Work" } } } }),
+  [join(DATA, "Local State")]: JSON.stringify({ profile: { info_cache: { Default: { name: "Home" }, "Profile 2": { name: "Work" } } } }),
   [join(DATA, "Default", "Bookmarks")]: bookmarks("https://a.example/"),
   [join(DATA, "Default", "AccountBookmarks")]: bookmarks("https://b.example/"),
   [join(DATA, "Profile 10", "Bookmarks")]: bookmarks("https://c.example/"),
@@ -32,40 +32,26 @@ const FILES = {
   [join(DATA, "Profile 3", "Preferences")]: "{}",
 };
 
-describe("chromeDataFolders", () => {
-  it("gives the folder of the user data of Chrome on each platform", () => {
-    expect(chromeDataFolders("win32", { LOCALAPPDATA: "C:\\Users\\m\\AppData\\Local" }, "C:\\Users\\m")).toEqual([join("C:\\Users\\m\\AppData\\Local", "Google", "Chrome", "User Data")]);
-    expect(chromeDataFolders("darwin", {}, "/Users/m")).toEqual([join("/Users/m", "Library", "Application Support", "Google", "Chrome")]);
-    expect(chromeDataFolders("linux", {}, "/home/m")).toEqual([join("/home/m", ".config", "google-chrome")]);
-    expect(chromeDataFolders("linux", { XDG_CONFIG_HOME: "/cfg" }, "/home/m")).toEqual([join("/cfg", "google-chrome")]);
-  });
-});
-
-describe("findSources", () => {
-  it("finds the bookmarks files of each profile, with the names of Chrome, in the order of the profiles", async () => {
-    const found = await findSources([DATA], memory(FILES));
-    expect(found.map(({ id, name, kind }) => [id, name, kind])).toEqual([
-      ["chrome:Default:Bookmarks", "Mark", "profile"],
-      ["chrome:Default:AccountBookmarks", "Mark", "account"],
-      ["chrome:Profile 2:Bookmarks", "Work", "profile"],
-      ["chrome:Profile 10:Bookmarks", "Profile 10", "profile"],
-    ]);
-  });
-
-  it("finds no file in a folder that does not exist, and reads the folders with a broken Local State", async () => {
-    expect(await findSources([join("no", "where")], memory(FILES))).toEqual([]);
-    const broken = { ...FILES, [join(DATA, "Local State")]: "{" };
-    expect((await findSources([DATA], memory(broken))).map((source) => source.name)).toEqual(["Default", "Default", "Profile 2", "Profile 10"]);
+describe("chromeFolders", () => {
+  it("gives the one folder of the user data of Chrome on this computer", () => {
+    const folders = chromeFolders();
+    expect(folders).toHaveLength(1);
+    expect(folders[0]?.browser).toBe("chrome");
   });
 });
 
 describe("bookmarksModule", () => {
-  const open = (files: Files) => callerOf(bookmarksModule({ folders: [DATA], files }));
+  const open = (files: FileAccess) => callerOf(bookmarksModule({ folders: [{ browser: "chrome", folder: DATA }], files }));
 
-  it("reads a source that it found, and gives no path to the page", async () => {
+  it("finds the files of each profile, with the names of Chrome, and gives no path to the page", async () => {
     const call = open(memory(FILES));
     const sources = await call<BookmarkSource[]>(["bookmarks", "sources"], {});
-    expect(JSON.stringify(sources)).not.toContain("home");
+    expect(sources).toEqual([
+      { id: "chrome:Default:Bookmarks", name: "Home", kind: "profile" },
+      { id: "chrome:Default:AccountBookmarks", name: "Home", kind: "account" },
+      { id: "chrome:Profile 2:Bookmarks", name: "Work", kind: "profile" },
+      { id: "chrome:Profile 10:Bookmarks", name: "Profile 10", kind: "profile" },
+    ]);
     const read = await call<ChromeBookmarks>(["bookmarks", "read"], { source: "chrome:Profile 2:Bookmarks" });
     expect(read.roots[0]?.sites.map((site) => site.url)).toEqual(["https://d.example/"]);
     expect(read.roots[0]?.key).toBe("chrome:Profile 2:Bookmarks:bar");
@@ -94,8 +80,8 @@ describe("bookmarksModule", () => {
     const call = open(disk);
     await call(["bookmarks", "sources"], {});
     await expect(call(["bookmarks", "read"], { source: "chrome:Profile 2:Bookmarks" })).rejects.toThrow("is not a bookmarks file");
-    await expect(call(["bookmarks", "read"], { source: "chrome:Profile 10:Bookmarks" })).rejects.toThrow("is not a bookmarks file");
-    await expect(call(["bookmarks", "read"], { source: "chrome:Default:Bookmarks" })).rejects.toThrow("larger than 64 MB");
+    await expect(call(["bookmarks", "read"], { source: "chrome:Profile 10:Bookmarks" })).rejects.toThrow("roots");
+    await expect(call(["bookmarks", "read"], { source: "chrome:Default:Bookmarks" })).rejects.toThrow("bytes at most");
     delete files[join(DATA, "Default", "AccountBookmarks")];
     await expect(call(["bookmarks", "read"], { source: "chrome:Default:AccountBookmarks" })).rejects.toThrow("is not there now");
     // A new search forgets the files that went away

@@ -8,11 +8,11 @@
  * - The page gets a strict content security policy. Only its frames can show other origins.
  * - Only the entry (`main.ts`) starts the host.
  */
-import { homedir } from "node:os";
 import { pairrankModule } from "@pairrank/host";
-import { type Files, bookmarksModule, chromeDataFolders, diskFiles } from "@pairrank/host/bookmarks";
+import { bookmarksModule } from "@pairrank/host/bookmarks";
 import { type CapturePool, picturesModule } from "@pairrank/host/pictures";
 import type { Store } from "@pairrank/store";
+import type { FileAccess } from "@procedures/browser";
 import { createRegistry } from "@procedures/client";
 import { type HostFetch, createHostFetch } from "@procedures/http";
 import { type HostListener, LOCAL_LISTENER_KNOBS, type ProcedureHostOptions, httpFace, staticFace } from "@procedures/peer";
@@ -65,7 +65,7 @@ export interface WebHostOptions {
   /** The folders of the user data of Chrome. The default is the folders of this computer and user. */
   readonly chromeFolders?: readonly string[] | undefined;
   /** The file operations of the bookmarks procedures. The default is the disk. */
-  readonly files?: Files | undefined;
+  readonly files?: FileAccess | undefined;
   /**
    * The captures of the still pictures (`capturePool` of `@pairrank/host/pictures`). The caller makes the pool and stops
    * it. Without it, the host has no procedure `pictures.capture`, and a refused site stays failed.
@@ -83,8 +83,8 @@ export interface WebHostOptions {
  * and the files of the page under `/`. It starts nothing.
  */
 export function webHost(options: WebHostOptions): ProcedureHostOptions {
-  const { store, page, port, fetch = createHostFetch(), files = diskFiles } = options;
-  const folders = options.chromeFolders ?? chromeDataFolders(process.platform, process.env, homedir());
+  const { store, page, port, fetch = createHostFetch(), files } = options;
+  const folders = options.chromeFolders?.map((folder) => ({ browser: "chrome", folder }));
   const listener: HostListener = { port, host: "127.0.0.1", knobs: LOCAL_LISTENER_KNOBS };
   // A site compares its frame-ancestors with the origin of the page. With the port 0, the origin is not known before
   // the start, and the check uses the default port. No site names a loopback origin, so the decision is the same.

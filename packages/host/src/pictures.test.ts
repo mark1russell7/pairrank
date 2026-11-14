@@ -1,7 +1,7 @@
 import { type CaptureResult, MAX_URL, type PictureSize } from "@pairrank/surfaces";
 import { callerOf } from "@procedures/client";
 import { describe, expect, it } from "vitest";
-import { type AddressLookup, REPLACED, STOPPED, type StoppableCapture, capturePool, hostRefusal, isLocalName, picturesModule, publicCapture } from "./pictures.ts";
+import { type AddressLookup, REPLACED, STOPPED, type StoppableCapture, capturePool, hostRefusal, picturesModule, publicCapture } from "./pictures.ts";
 
 const size: PictureSize = { w: 1280, h: 800 };
 const PICTURE = "data:image/jpeg;base64,/9j/";
@@ -75,13 +75,6 @@ describe("picturesModule", () => {
     await expect(caller(["pictures", "capture"], { url: "https://a.example/", size: { w: 10, h: 800 } })).rejects.toThrow("integers from 64 to 4096");
     await expect(caller(["pictures", "capture"], { url: "https://a.example/", size: { w: 1280.5, h: 800 } })).rejects.toThrow("integers");
     await expect(caller(["pictures", "capture"], { url: "https://a.example/" })).rejects.toThrow("integers");
-  });
-});
-
-describe("isLocalName", () => {
-  it("knows the names of this computer and of the local network, also with a final dot and in capitals", () => {
-    for (const name of ["localhost", "LOCALHOST", "localhost.", "app.localhost", "printer.local", "db.internal", "router.home.arpa"]) expect(isLocalName(name), name).toBe(true);
-    for (const name of ["example.com", "localhost.example.com", "local.example", "mylocal", "internal.example.org"]) expect(isLocalName(name), name).toBe(false);
   });
 });
 

@@ -35,8 +35,8 @@
     "@pairrank/store": "workspace:*",
     "@pairrank/surfaces": "workspace:*",
     "@pairrank/ui": "workspace:*",
-    "@procedures/client": "^0.55.0",
-    "@procedures/peer": "^0.55.0",
+    "@procedures/client": "^0.55.2",
+    "@procedures/peer": "^0.55.2",
     "electron-updater": "^6.8.11",
     "polite-crawler": "^0.6.0"
   }
