@@ -342,6 +342,9 @@ importers:
       '@mark1russell7/cue':
         specifier: ^2.0.0
         version: 2.1.4
+      '@mark1russell7/rigor-bench':
+        specifier: ^0.2.37
+        version: 0.2.37(esbuild@0.28.2)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -1032,6 +1035,16 @@ packages:
   '@mark1russell7/rational@0.1.2':
     resolution: {integrity: sha512-hn2C5jjOFCGKJqFQPHt57C/Cn1l9Lb9MltVNtL71KSu+nRrfPOmg8ujYB5n3oDFFWNdNA4bE/8LLT4tG3lmrGA==}
     engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-bench@0.2.37':
+    resolution: {integrity: sha512-yryWgRCM3oGs9hDS2Y8wJxLnyQGqcRdKmCFwSyqeSlQoPkN16Bpe+dnfq/bzPBZMwXmJJfnzjodYmn3KWvyNMQ==}
+    engines: {node: '>=22'}
+    hasBin: true
+    peerDependencies:
+      esbuild: ^0.28.2
+    peerDependenciesMeta:
+      esbuild:
+        optional: true
 
   '@mark1russell7/rigor-generators@0.1.12':
     resolution: {integrity: sha512-f9JzXfxcAHPMGvjKJJQYBUuICWeqikk/gZnf5f8Kmj5i06ViD+cstZ0xD+RGoRQVfd2SBf32UPcrMnzWlzUz5Q==}
@@ -3739,6 +3752,14 @@ snapshots:
       zod: 4.6.7
 
   '@mark1russell7/rational@0.1.2': {}
+
+  '@mark1russell7/rigor-bench@0.2.37(esbuild@0.28.2)':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.16
+      '@mark1russell7/rigor-statistics': 0.1.29
+      '@mark1russell7/text': 0.0.5
+    optionalDependencies:
+      esbuild: 0.28.2
 
   '@mark1russell7/rigor-generators@0.1.12': {}
 
