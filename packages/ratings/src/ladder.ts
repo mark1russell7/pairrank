@@ -4,7 +4,15 @@
  *
  * @packageDocumentation
  */
-import { type PairComparison, type RatingFitOptions, type RatingModel, fitRatings, selectRatingModel, strengthToRating } from "@mark1russell7/rigor-statistics";
+import {
+  type PairComparison,
+  type RatingFitOptions,
+  type RatingModel,
+  fitRatings,
+  ratingToStrength,
+  selectRatingModel,
+  strengthToRating,
+} from "@mark1russell7/rigor-statistics";
 import { type Pick, type Scope, type SiteId, type State, picksIn, scopeKey } from "@pairrank/core";
 
 /** The models of a ladder. */
@@ -49,6 +57,25 @@ export interface Ladder {
 export interface LadderOptions extends RatingFitOptions {
   /** The model, or `best` for the model that the test of the scope chooses. The default is `bradley-terry`. */
   readonly model?: ModelSetting;
+  /**
+   * A ladder of the same scope in an earlier state. The Bradley-Terry fit starts from its ratings, so a fit after a few
+   * new picks needs few steps. The fit goes to the same optimum, within its tolerance.
+   */
+  readonly from?: Ladder;
+}
+
+/**
+ * This function gives the options of a fit of `sites` with a start from the ladder `from`. A site that is not in `from`
+ * starts at the prior mean. Without `from`, the options do not change.
+ */
+export function startFrom<T extends RatingFitOptions>(options: T, sites: readonly SiteId[], from: Ladder | undefined): T {
+  if (from === undefined) return options;
+  const priorMean = options.bradleyTerry?.priorMean ?? 0;
+  const known = new Map(from.ratings.map((rating) => [rating.site, ratingToStrength(rating.rating)]));
+  const strengths = sites.map((site) => known.get(site) ?? priorMean);
+  // A ladder of Elo or Glicko-2 has the tie parameter 0. The fit then starts from its default tie parameter.
+  const start = from.tie > 0 ? { strengths, tie: from.tie } : { strengths };
+  return { ...options, bradleyTerry: { ...options.bradleyTerry, start } };
 }
 
 /** This function gives the sites that can be in a pair of a scope. A site must not be hidden, and in a tag scope it must have the tag. */
@@ -99,8 +126,10 @@ export function logOf(state: State, scope: Scope): ScopeLog {
 /** This function gives the ladder of one scope. `fitRatings` of `@mark1russell7/rigor-statistics` fits the model. */
 export function ladderOf(state: State, scope: Scope, options: LadderOptions = {}): Ladder {
   const { sites, comparisons } = logOf(state, scope);
-  const model = options.model === "best" ? selectRatingModel(sites.length, comparisons, options).model : (options.model ?? "bradley-terry");
-  const result = fitRatings(model, sites.length, comparisons, options);
+  const { model: setting, from, ...rest } = options;
+  const fit = startFrom(rest, sites, from);
+  const model = setting === "best" ? selectRatingModel(sites.length, comparisons, fit).model : (setting ?? "bradley-terry");
+  const result = fitRatings(model, sites.length, comparisons, fit);
 
   const counts = sites.map(() => ({ wins: 0, losses: 0, ties: 0 }));
   for (const { a, b, outcome } of comparisons) {
