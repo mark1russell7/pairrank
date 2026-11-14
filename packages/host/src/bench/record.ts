@@ -4,13 +4,14 @@
  */
 import type { LadderVerdict, RungRecord } from "@mark1russell7/rigor-bench";
 import type { FreshRun } from "@mark1russell7/rigor-bench/fresh";
+import { median } from "@mark1russell7/rigor-statistics";
 import { MEASURES, type ScaleRung } from "./scale.ts";
 
 /** The id of the arm of the bench. The two arms of its A/A pair run the same build. */
 export const BENCH_ARM = "host";
 
 /** The id of the A/A pair of a fresh run. */
-export const AA_PAIR = `${BENCH_ARM}~aa`;
+export const AA_PAIR: string = `${BENCH_ARM}~aa`;
 
 /** The parts of a run that are real. */
 export const REAL: readonly string[] = [
@@ -61,17 +62,9 @@ export interface RungOutput {
   readonly run: FreshRun;
 }
 
-/** This function gives the median of a list of numbers, or `undefined` for an empty list. */
-function median(values: readonly number[]): number | undefined {
-  if (values.length === 0) return undefined;
-  const sorted = [...values].sort((x, y) => x - y);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 1 ? sorted[middle] : (sorted[middle - 1]! + sorted[middle]!) / 2;
-}
-
-/** This function gives a time in milliseconds as text, or a dash when there is no time. */
-function msText(value: number | undefined): string {
-  return value === undefined ? "–" : `${value.toFixed(1)} ms`;
+/** This function gives the median of a list of times in milliseconds as text, or a dash for an empty list. */
+function medianText(values: readonly number[]): string {
+  return values.length === 0 ? "–" : `${median(values).toFixed(1)} ms`;
 }
 
 /**
@@ -95,7 +88,7 @@ export function benchReport(verdict: LadderVerdict, outputs: readonly RungOutput
       const evidence = output?.record.evidence.find((item) => item.measure === budget.measure);
       const rounds = evidence?.kind === "median" ? evidence.rounds.map((round) => round.value) : [];
       const aa = evidence?.kind === "median" ? evidence.aa.map((round) => round.value) : [];
-      lines.push(`| ${rung.rung} | ${rung.locked ? "locked" : "open"} | ${budget.measure} | ${msText(median(rounds))} | ${msText(median(aa))} | ${budget.outcome} |`);
+      lines.push(`| ${rung.rung} | ${rung.locked ? "locked" : "open"} | ${budget.measure} | ${medianText(rounds)} | ${medianText(aa)} | ${budget.outcome} |`);
     }
   }
   lines.push("", "### The reasons", "");
