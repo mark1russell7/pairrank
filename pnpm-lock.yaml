@@ -252,10 +252,10 @@ importers:
         version: link:../ui
       '@procedures/client':
         specifier: ^0.55.0
-        version: 0.55.0
+        version: 0.55.2
       '@procedures/peer':
         specifier: ^0.55.0
-        version: 0.55.0(@opentelemetry/api@1.10.0)(ws@8.22.1)
+        version: 0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)
       electron-updater:
         specifier: ^6.8.11
         version: 6.8.11(supports-color@7.2.0)
@@ -325,10 +325,10 @@ importers:
         version: link:../surfaces
       '@procedures/client':
         specifier: ^0.55.0
-        version: 0.55.0
+        version: 0.55.2
       '@procedures/http':
         specifier: ^0.55.0
-        version: 0.55.0
+        version: 0.55.2
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -536,7 +536,7 @@ importers:
         version: link:../store
       '@procedures/client':
         specifier: ^0.55.0
-        version: 0.55.0
+        version: 0.55.2
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -587,19 +587,19 @@ importers:
         version: link:../ui
       '@procedures/browser':
         specifier: ^0.55.0
-        version: 0.55.0
+        version: 0.55.2
       '@procedures/client':
         specifier: ^0.55.0
-        version: 0.55.0
+        version: 0.55.2
       '@procedures/http':
         specifier: ^0.55.0
-        version: 0.55.0
+        version: 0.55.2
       '@procedures/peer':
         specifier: ^0.55.0
-        version: 0.55.0(@opentelemetry/api@1.10.0)(ws@8.22.1)
+        version: 0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)
       '@procedures/server':
         specifier: ^0.55.0
-        version: 0.55.0(@opentelemetry/api@1.10.0)(ws@8.22.1)
+        version: 0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)
       polite-crawler:
         specifier: ^0.6.0
         version: 0.6.0
@@ -1041,36 +1041,6 @@ packages:
     resolution: {integrity: sha512-Wh91NJIwxIRN3+a5V2bqUkMhdPcjHI+gVZBCnohf12ZegdSTNqGlpqS2WXYmrRVjasF9EBgm1lC8GQNYpBSg7Q==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/service@0.8.6':
-    resolution: {integrity: sha512-BX5effgTFE+EyT1Id/w9Xr8xcUmRfs+PuvaLhYGGXraXTe1v0ISRiqL3hM3MNi7gCpfvve/n6lSvZoC8pBPlnw==}
-    engines: {node: '>=22.19'}
-    peerDependencies:
-      '@grpc/grpc-js': ^1.14.6
-      '@opentelemetry/api': ^1.9.0
-      amqplib: ^2.2.0
-      ioredis: ^6.0.0
-      mongodb: ^7.7.0
-      pg: ^8.23.1
-      ws: ^8.22.0
-      zod: ^4.1.0
-    peerDependenciesMeta:
-      '@grpc/grpc-js':
-        optional: true
-      '@opentelemetry/api':
-        optional: true
-      amqplib:
-        optional: true
-      ioredis:
-        optional: true
-      mongodb:
-        optional: true
-      pg:
-        optional: true
-      ws:
-        optional: true
-      zod:
-        optional: true
-
   '@mark1russell7/service@0.8.9':
     resolution: {integrity: sha512-QIEkSnv8FYymP1ymiIUizu3G4tkgTKEpNLaKRZlUgTbqruhdy5GsPiKmTfSMGsSialbQ/A/E1kMiZs2gNDnTVw==}
     engines: {node: '>=22.19'}
@@ -1119,10 +1089,6 @@ packages:
     resolution: {integrity: sha512-Wy4xa6OgNXyMunSyXOArxmrspLSCuyw1pf1P5X45Uiwe1aWHzn0LJptUYVGUSwT3GTp9FGVDhFMeOnKlapD3Xw==}
     engines: {node: '>=22.12'}
     hasBin: true
-
-  '@mark1russell7/text@0.0.2':
-    resolution: {integrity: sha512-m1aIB8X+PDekktzr1fYOp1/7gvlh9iL/2M7ktj/GnmPmVrWin0rTADgTm00dKFdWFRzXraCUYkjyCl3jQZHEVg==}
-    engines: {node: '>=22.12'}
 
   '@mark1russell7/text@0.0.5':
     resolution: {integrity: sha512-Ql1eBET3PgEBL5DWZHZ20GRZmorkq6mWdnfj21cqXfLvZdikO+GlvSAfbv1ld7YCnEqxOa7eg6ESfl+jzPGe9w==}
@@ -1178,12 +1144,12 @@ packages:
     resolution: {integrity: sha512-ktTSACRJ5WdpfjHjFT2EWJQQPacGv1cPCDfEbdmpAHOxdFiYqPe4lfnXGA3D8Dg9/0kHPYSvyRlgujIOVlTdvQ==}
     engines: {node: '>=14.18.0'}
 
-  '@procedures/browser@0.55.0':
-    resolution: {integrity: sha512-pgPNmWtgjF6gioKOKem/qIfJZKfkn9Wdm8MOl2nuJZ9161rJZuMNxKmHAfeNMvIXqI+AaDV6d33SpfHjnV8/EQ==}
+  '@procedures/browser@0.55.2':
+    resolution: {integrity: sha512-sV70xhJojcAuHzhALvwhcyEswHoDARI2Y1zvelpP0DSFWTV59Xu2z90gjxT52AVnUVbwjIqPrmPacZLLIWIiCw==}
     engines: {node: '>=22'}
 
-  '@procedures/client@0.55.0':
-    resolution: {integrity: sha512-+JU/TDgY9umJtX0XFR7X4v8pHRdseBGm7fSWRGJ7hoXkqBcQVszMP7OCZWdhNkK2rfUvBscrWTHCN0O8DaZYYw==}
+  '@procedures/client@0.55.2':
+    resolution: {integrity: sha512-yzT4KH/WZe9yx8YICr83jE+UYZJFuzFwmsEYGx32hxRKCTgrx6xKg9RE9laxJMeKiXS9DQNq/33Zjx1ku7Em3Q==}
     engines: {node: '>=22'}
     peerDependencies:
       express: ^4.0.0 || ^5.0.0
@@ -1191,26 +1157,26 @@ packages:
       express:
         optional: true
 
-  '@procedures/http@0.55.0':
-    resolution: {integrity: sha512-17h+w2pwflwgRcXkhc1EZqi9gpSsaQnA8f+IJIhxtKxuY4fLcYiWoMxqvFT6BUru0IiZtIu93alwf8jBI+lFbw==}
+  '@procedures/http@0.55.2':
+    resolution: {integrity: sha512-T56sz6OJP4lIO8OaV3GERIOFVYvjSHxGtfOLEe/UQKiy9nLJdLywbCUSH4AorFW12p2CN+gXxj/raxtEKtjqbw==}
     engines: {node: '>=22'}
 
-  '@procedures/peer@0.55.0':
-    resolution: {integrity: sha512-VckDSR/27RJcCbXZuLFY+SJO2WN545R6tz3psyCPB/EsIiB2o+142CBlss7WIleakTXkrwIq84D78ie6AnKZug==}
+  '@procedures/peer@0.55.2':
+    resolution: {integrity: sha512-TT02PnDe0BhSeRpxzRokWkaVVNN8LtjFN5BCdxRPTJljq5GU3b/bINDfToLleG1VlkLbCXbC7rcg3vemqQvesg==}
     engines: {node: '>=22'}
 
-  '@procedures/server@0.55.0':
-    resolution: {integrity: sha512-YoaduxsQgGCZYaov/IAa/E671zKBO5Ra0geI+SZkudI6pykRwta4vjgKleIqMtlU1XBln7cWV7TLqjhEay3eqA==}
+  '@procedures/server@0.55.2':
+    resolution: {integrity: sha512-qDKcF9HUOsAua8k2jn4rgZSuGyVcayLNJ/1SnyR2sqjxxHFUCb8pSgalIeockmOKnOxzHfUfitXv6qHtUSpc2w==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
-      '@procedures/fs': ^0.55.0
+      '@procedures/fs': ^0.55.2
     peerDependenciesMeta:
       '@procedures/fs':
         optional: true
 
-  '@procedures/shell@0.55.0':
-    resolution: {integrity: sha512-DpYaAgr3zfVlBsNW++VBF2IurWYdaxRxhL+5KWPkJpJdcixnUdP3CZU002tqIA8ysjPKc54ERfPM4OF/gvuiLQ==}
+  '@procedures/shell@0.55.2':
+    resolution: {integrity: sha512-JQ9PnVhwqoLki5IBKgko8FAKcejr0g07ksLOpJX8mQ3+r4H5351Sb8Hvtlen3O9FtF6tG/nX4zip2r9Xg3Kwjw==}
     engines: {node: '>=22'}
 
   '@publint/pack@0.1.7':
@@ -3697,8 +3663,8 @@ snapshots:
 
   '@mark1russell7/coeval@0.29.0(zod@4.6.7)':
     dependencies:
-      '@mark1russell7/collections': 0.10.0(zod@4.6.7)
-      '@mark1russell7/rigor-generators': 0.1.14
+      '@mark1russell7/collections': 0.10.1(zod@4.6.7)
+      '@mark1russell7/rigor-generators': 0.1.16
     transitivePeerDependencies:
       - zod
 
@@ -3776,18 +3742,6 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
 
-  '@mark1russell7/service@0.8.6(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)':
-    dependencies:
-      '@mark1russell7/algebra': 0.8.4(zod@4.6.7)
-      '@mark1russell7/collections': 0.10.0(zod@4.6.7)
-      '@mark1russell7/quantity': 0.3.5(zod@4.6.7)
-      '@mark1russell7/rigor-generators': 0.1.12
-      '@mark1russell7/text': 0.0.2
-    optionalDependencies:
-      '@opentelemetry/api': 1.10.0
-      ws: 8.22.1
-      zod: 4.6.7
-
   '@mark1russell7/service@0.8.9(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)':
     dependencies:
       '@mark1russell7/algebra': 0.8.5(zod@4.6.7)
@@ -3816,8 +3770,6 @@ snapshots:
   '@mark1russell7/template-cli@0.1.7':
     dependencies:
       '@clack/prompts': 1.8.1
-
-  '@mark1russell7/text@0.0.2': {}
 
   '@mark1russell7/text@0.0.5': {}
 
@@ -3875,9 +3827,9 @@ snapshots:
       tslib: 2.9.1
       webcrypto-core: 1.9.2
 
-  '@procedures/browser@0.55.0':
+  '@procedures/browser@0.55.2':
     dependencies:
-      '@procedures/shell': 0.55.0
+      '@procedures/shell': 0.55.2
     transitivePeerDependencies:
       - '@grpc/grpc-js'
       - amqplib
@@ -3888,13 +3840,13 @@ snapshots:
       - pg
       - utf-8-validate
 
-  '@procedures/client@0.55.0':
+  '@procedures/client@0.55.2':
     dependencies:
-      '@mark1russell7/algebra': 0.8.4(zod@4.6.7)
+      '@mark1russell7/algebra': 0.8.5(zod@4.6.7)
       '@mark1russell7/coeval': 0.29.0(zod@4.6.7)
-      '@mark1russell7/collections': 0.10.0(zod@4.6.7)
+      '@mark1russell7/collections': 0.10.1(zod@4.6.7)
       '@mark1russell7/quantity': 0.3.5(zod@4.6.7)
-      '@mark1russell7/service': 0.8.6(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@mark1russell7/service': 0.8.9(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
       '@opentelemetry/api': 1.10.0
       '@types/ws': 8.18.2
       ws: 8.22.1
@@ -3908,9 +3860,9 @@ snapshots:
       - pg
       - utf-8-validate
 
-  '@procedures/http@0.55.0':
+  '@procedures/http@0.55.2':
     dependencies:
-      '@procedures/client': 0.55.0
+      '@procedures/client': 0.55.2
       zod: 4.6.7
     transitivePeerDependencies:
       - '@grpc/grpc-js'
@@ -3922,11 +3874,11 @@ snapshots:
       - pg
       - utf-8-validate
 
-  '@procedures/peer@0.55.0(@opentelemetry/api@1.10.0)(ws@8.22.1)':
+  '@procedures/peer@0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)':
     dependencies:
       '@mark1russell7/files': 0.0.2
-      '@mark1russell7/service': 0.8.6(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
-      '@procedures/client': 0.55.0
+      '@mark1russell7/service': 0.8.9(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@procedures/client': 0.55.2
       zod: 4.6.7
     transitivePeerDependencies:
       - '@grpc/grpc-js'
@@ -3940,11 +3892,11 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@procedures/server@0.55.0(@opentelemetry/api@1.10.0)(ws@8.22.1)':
+  '@procedures/server@0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)':
     dependencies:
       '@mark1russell7/service': 0.8.9(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
-      '@procedures/client': 0.55.0
-      '@procedures/peer': 0.55.0(@opentelemetry/api@1.10.0)(ws@8.22.1)
+      '@procedures/client': 0.55.2
+      '@procedures/peer': 0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)
       zod: 4.6.7
     transitivePeerDependencies:
       - '@grpc/grpc-js'
@@ -3958,9 +3910,9 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@procedures/shell@0.55.0':
+  '@procedures/shell@0.55.2':
     dependencies:
-      '@procedures/client': 0.55.0
+      '@procedures/client': 0.55.2
       zod: 4.6.7
     transitivePeerDependencies:
       - '@grpc/grpc-js'
