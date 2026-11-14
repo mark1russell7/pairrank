@@ -61,6 +61,7 @@ pairrank is a desktop app. It shows websites one at a time for tags. It also sho
 | R39 | One rule for the lock | later | R23 | The lock and its quiet time become one state machine as data, with `@mark1russell7/algebra`. The `iframe` surface and the desktop views use it. |
 | R40 | Homes for three general parts | active |  | The bookmark reader and `isLocalName` come from `@procedures/browser` and `@procedures/http` 0.55.2, and the app deleted its copies. The event log goes to `@mark1russell7/sqlite`, and the safety rules of an Electron window go to `@mark1russell7/desktop`. Both wait for their first publish. |
 | R41 | Captures stay off the local network | later |  | The capture filters each request, also each redirect and subresource, by its resolved address. Thus DNS rebinding cannot reach a local address. |
+| R42 | The 10,000-site rung holds | later | R32 | At 10,000 sites, a duel step takes 1.1 s and the Sites screen takes 2.1 s. Each pick clears the cache of the ladders, so the next pair needs a new fit over all picks. A fit that starts from the last ratings, or a pair from the last ratings, can make the rung hold. |
 | B1 | Sites load, then disappear | done | | The screen of each site had no height, so the app hid the view after each load. A layout check in CI holds the fix. |
 | B2 | A race in the duel tests | done | | The tests read the slots before React gave them their sites. The tests wait for the pair that the screen names. A slow run of the tests holds the fix. |
 | B3 | A failed write kept its events in the state | done | | A write that fails after its checks rolls back the file. The state kept the events of the write, so the screens showed them. After a failed write, the store replays the file. |
@@ -89,3 +90,13 @@ The limits come from the time that a person waits. A reply in 100 ms looks insta
 - The data is synthetic: seeded sites, tags and picks of a hidden taste on the scale of Elo. The procedures, the SQLite file and the processes are real.
 - The medians of the two arms can differ by more than a quarter of the limit. Then the run is too noisy, and the budget cannot decide.
 - The rungs start open, so they only report. After 5 CI runs, the gate locks each rung that holds. A locked rung that does not hold fails the check `Bench OK`.
+
+The first CI run (#77) gives these medians, in milliseconds. The A/A medians differ by 11 ms or less.
+
+| Rung | Start | Duel step | Sites screen |
+| --- | --- | --- | --- |
+| 100 sites | 14 | 7 | 18 |
+| 1,000 sites | 48 | 64 | 138 |
+| 10,000 sites | 515 | 1,116 (beyond) | 2,110 (beyond) |
+
+The 100-site and 1,000-site rungs hold. R42 makes the 10,000-site rung hold.
