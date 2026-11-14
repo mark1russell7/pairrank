@@ -5,6 +5,7 @@
 import { type RatedItem, choosePair, mean, pairInformation } from "@mark1russell7/rigor-statistics";
 import { type Ask, type Scope, type Site, type SiteId, type State, type TagQuery, asksOf, scopeKey } from "@pairrank/core";
 import { type LadderOptions, type PairOptions, type Rating, ladderOf, picksOf, ratedOf } from "@pairrank/ratings";
+import type { LadderSource } from "./ladders.ts";
 import { sitesOfQuery } from "./viewer.ts";
 import type { DuelPair } from "./views.ts";
 
@@ -22,13 +23,13 @@ export interface ModeRule {
  *
  * @returns the pair and its asks, or `undefined` when there is no pair
  */
-export function modePair(state: State, mode: ModeRule, options: PairOptions, ladderOptions: LadderOptions = {}): DuelPair | undefined {
+export function modePair(state: State, mode: ModeRule, options: PairOptions, ladderOptions: LadderOptions = {}, source: LadderSource = ladderOf): DuelPair | undefined {
   const ladders = new Map<string, ReadonlyMap<SiteId, Rating>>();
   const ratingIn = (scope: Scope, site: SiteId): Rating => {
     const key = scopeKey(scope);
     let ladder = ladders.get(key);
     if (ladder === undefined) {
-      ladder = new Map(ladderOf(state, scope, ladderOptions).ratings.map((rating) => [rating.site, rating]));
+      ladder = new Map(source(state, scope, ladderOptions).ratings.map((rating) => [rating.site, rating]));
       ladders.set(key, ladder);
     }
     return ladder.get(site) ?? { site, rating: 1500, se: undefined, wins: 0, losses: 0, ties: 0 };
