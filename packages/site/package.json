@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@mark1russell7/rigor-generators": "^0.1.16",
-    "@mark1russell7/rigor-statistics": "^0.1.29",
+    "@mark1russell7/rigor-statistics": "^0.2.1",
     "@pairrank/core": "workspace:*",
     "@pairrank/ratings": "workspace:*",
     "@pairrank/ui": "workspace:*"
