@@ -298,10 +298,10 @@ importers:
         version: 0.1.16
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.1
-        version: 0.2.1
+        version: 0.2.4
       '@mark1russell7/service':
         specifier: ^0.8.5
-        version: 0.8.19(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+        version: 0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
       '@mark1russell7/text':
         specifier: ^0.0.6
         version: 0.0.6
@@ -344,7 +344,7 @@ importers:
         version: 2.1.4
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.37
-        version: 0.2.38(esbuild@0.28.2)
+        version: 0.2.45(esbuild@0.28.2)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -393,7 +393,7 @@ importers:
         version: 0.1.16
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.1
-        version: 0.2.1
+        version: 0.2.4
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -421,7 +421,7 @@ importers:
         version: 0.1.16
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.1
-        version: 0.2.1
+        version: 0.2.4
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -630,7 +630,7 @@ importers:
         version: 2.1.4
       '@mark1russell7/service':
         specifier: ^0.8.5
-        version: 0.8.19(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+        version: 0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -1048,12 +1048,21 @@ packages:
       zod:
         optional: true
 
+  '@mark1russell7/quantity@0.4.1':
+    resolution: {integrity: sha512-L3yZOBpJ1ZMd9CWSLVhz/pJOAQVnN68xpg2sAzHdQiyeOsgG8D3sTDIRIVJ4mTjasJfPQfgcpu8y2txQcS6u4w==}
+    engines: {node: '>=22.19'}
+    peerDependencies:
+      zod: ^4.1.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
   '@mark1russell7/rational@0.1.2':
     resolution: {integrity: sha512-hn2C5jjOFCGKJqFQPHt57C/Cn1l9Lb9MltVNtL71KSu+nRrfPOmg8ujYB5n3oDFFWNdNA4bE/8LLT4tG3lmrGA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-bench@0.2.38':
-    resolution: {integrity: sha512-sWALcWvRDZ+menHYaMC5dmTeZjS5gTkm/qZEG0KLEmmPJ52HNpdhL5hhYd2Bhm6MVAQvbZLo/V7YcfZDD9DQWA==}
+  '@mark1russell7/rigor-bench@0.2.45':
+    resolution: {integrity: sha512-UtKh4ubtp6FqK3Vj0owuLZp0WiHntuEmtoUgXYba8gg41ub1ULYjwbxkJVZrac+O/H57jXvQUwblyPCD7qHO1g==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -1082,12 +1091,12 @@ packages:
     resolution: {integrity: sha512-Wh91NJIwxIRN3+a5V2bqUkMhdPcjHI+gVZBCnohf12ZegdSTNqGlpqS2WXYmrRVjasF9EBgm1lC8GQNYpBSg7Q==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-statistics@0.2.1':
-    resolution: {integrity: sha512-4m8yw4giLH/y1HcsroBQSHAWByC5fK/iJb4dNGCPT6Eelr26bxvBz7kMC7UMFSzGcR+W8GTrAwlAQmmFnQDMuA==}
+  '@mark1russell7/rigor-statistics@0.2.4':
+    resolution: {integrity: sha512-0L075rT+toD6edxEwDdZHiFzHP4+dJrI64Pw5gh9V33VwCfNRUMQY90AooDpMgVcC9cuxHNXegDLSOYU9ZMIlA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/service@0.8.19':
-    resolution: {integrity: sha512-d5JcSbhpK/zpHXfE38dGu6JOYHOfHUn3U1JZmYzOIp3ZbwtlFVqz7QqRXn/o6iZu8eXrwgXOQuctGrW1qYpDng==}
+  '@mark1russell7/service@0.8.20':
+    resolution: {integrity: sha512-8yo1hu4MMXCdzRk43tSvB1xqb9MBgOqAmKisspOGszqsRCZVjdmSbZ1Hgli6RtE5jrF7I7eaGEQLHADnhxxHGQ==}
     engines: {node: '>=22.19'}
     peerDependencies:
       '@grpc/grpc-js': ^1.14.6
@@ -3777,7 +3786,7 @@ snapshots:
     dependencies:
       '@mark1russell7/algebra': 0.8.5(zod@4.6.7)
       '@mark1russell7/optional': 1.2.0
-      '@mark1russell7/rigor-statistics': 0.2.1
+      '@mark1russell7/rigor-statistics': 0.2.4
     transitivePeerDependencies:
       - zod
 
@@ -3823,13 +3832,19 @@ snapshots:
     optionalDependencies:
       zod: 4.6.7
 
+  '@mark1russell7/quantity@0.4.1(zod@4.6.7)':
+    dependencies:
+      '@mark1russell7/rational': 0.1.2
+    optionalDependencies:
+      zod: 4.6.7
+
   '@mark1russell7/rational@0.1.2': {}
 
-  '@mark1russell7/rigor-bench@0.2.38(esbuild@0.28.2)':
+  '@mark1russell7/rigor-bench@0.2.45(esbuild@0.28.2)':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
-      '@mark1russell7/rigor-statistics': 0.2.1
-      '@mark1russell7/text': 0.0.5
+      '@mark1russell7/rigor-statistics': 0.2.4
+      '@mark1russell7/text': 0.0.6
     optionalDependencies:
       esbuild: 0.28.2
 
@@ -3847,15 +3862,16 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
 
-  '@mark1russell7/rigor-statistics@0.2.1':
+  '@mark1russell7/rigor-statistics@0.2.4':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
 
-  '@mark1russell7/service@0.8.19(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)':
+  '@mark1russell7/service@0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)':
     dependencies:
       '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
       '@mark1russell7/collections': 0.11.0(zod@4.6.7)
-      '@mark1russell7/quantity': 0.4.0(zod@4.6.7)
+      '@mark1russell7/quantity': 0.4.1(zod@4.6.7)
+      '@mark1russell7/rational': 0.1.2
       '@mark1russell7/rigor-generators': 0.1.16
       '@mark1russell7/text': 0.0.6
     optionalDependencies:
@@ -4019,7 +4035,7 @@ snapshots:
 
   '@procedures/server@0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)':
     dependencies:
-      '@mark1russell7/service': 0.8.19(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
+      '@mark1russell7/service': 0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
       '@procedures/client': 0.55.2
       '@procedures/peer': 0.55.2(@opentelemetry/api@1.10.0)(ws@8.22.1)
       zod: 4.6.7
