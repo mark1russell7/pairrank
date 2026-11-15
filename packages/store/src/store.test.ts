@@ -2,9 +2,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { EVENT_LOG_SCHEMA_VERSION } from "@mark1russell7/sqlite";
 import type { Event } from "@pairrank/core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { SCHEMA_VERSION, openEventLog } from "./log.ts";
 import { openStore } from "./store.ts";
 
 let folder: string;
@@ -98,67 +98,59 @@ describe("openStore", () => {
     expect(store.state.sites.size).toBe(1);
     store.close();
   });
-});
 
-describe("openEventLog", () => {
-  const parse = (value: unknown) => value as { id: string; at: string; type: string };
-
-  it("sets the schema version and the WAL mode", () => {
-    openEventLog(file, parse).close();
+  it("opens a file of the earlier local log, keeps its events and moves it to the schema of the home", () => {
+    // The schema of the earlier local log is the first step of the home, at user_version 1.
+    const first = site("a");
     const db = new DatabaseSync(file);
-    expect(db.prepare("PRAGMA user_version").get()).toEqual({ user_version: SCHEMA_VERSION });
-    expect(db.prepare("PRAGMA journal_mode").get()).toEqual({ journal_mode: "wal" });
+    db.exec("PRAGMA journal_mode = WAL");
+    db.exec("CREATE TABLE events (seq INTEGER PRIMARY KEY, id TEXT NOT NULL UNIQUE, at TEXT NOT NULL, type TEXT NOT NULL, body TEXT NOT NULL) STRICT");
+    db.prepare("INSERT INTO events (id, at, type, body) VALUES (?, ?, ?, ?)").run(first.id, first.at, first.type, JSON.stringify(first));
+    db.exec("PRAGMA user_version = 1");
     db.close();
+
+    const store = openStore(file);
+    expect(store.problems).toEqual([]);
+    expect([...store.state.sites.keys()]).toEqual(["a"]);
+    expect(store.append(site("b"))).toBeUndefined();
+    store.close();
+
+    const check = new DatabaseSync(file);
+    expect(check.prepare("PRAGMA user_version").get()).toEqual({ user_version: EVENT_LOG_SCHEMA_VERSION });
+    expect(check.prepare("SELECT count(*) AS n FROM events").get()).toEqual({ n: 2 });
+    check.close();
   });
 
-  it("refuses a file from a newer version", () => {
+  it("gives the problem duplicate-event for a known id, and writes nothing for it", () => {
+    const store = openStore(file);
+    const first = site("a");
+    expect(store.append(first)).toBeUndefined();
+    expect(store.append(first)).toEqual({ event: first.id, code: "duplicate-event", message: `The event ${first.id} is in the log.` });
+    const changed = { ...first, url: "https://other.example/" } as Event;
+    expect(store.append(changed)?.message).toMatch(/different body/);
+    expect(store.appendAll([site("b"), first]).map((problem) => problem.code)).toEqual(["duplicate-event"]);
+    expect([...store.events()]).toHaveLength(2);
+    expect([...store.state.sites.keys()]).toEqual(["a", "b"]);
+    store.close();
+  });
+
+  it("does not apply a known id that the rules refused at the replay", () => {
+    const store = openStore(file);
+    store.append(site("a"));
+    store.close();
+    // The rules refuse this event at the replay, because the tag is not there before it.
+    const tagged = event({ type: "site.tagged", site: "a", tag: "t" });
     const db = new DatabaseSync(file);
-    db.exec(`PRAGMA user_version = ${SCHEMA_VERSION + 1}`);
+    db.prepare("INSERT INTO events (id, at, type, body) VALUES (?, ?, ?, ?)").run(tagged.id, tagged.at, tagged.type, JSON.stringify(tagged));
     db.close();
-    expect(() => openEventLog(file, parse)).toThrow(/newer version/);
-  });
 
-  it("names the position of an event that does not parse", () => {
-    const log = openEventLog(file, parse);
-    log.append({ id: "x", at: "2026-11-08T12:00:00Z", type: "bad" }, () => undefined);
-    log.close();
-    const strict = openEventLog(file, (value) => {
-      throw new Error(`not an event: ${JSON.stringify(value)}`);
-    });
-    expect(() => [...strict.read()]).toThrow(/position 1/);
-    strict.close();
-  });
-
-  it("writes nothing of a batch when an accept fails, and then refuses each call", () => {
-    const log = openEventLog(file, parse);
-    const records = [1, 2, 3].map((n) => ({ id: `r${n}`, at: "2026-11-08T12:00:00Z", type: "t" }));
-    expect(() =>
-      log.appendAll(records, (record) => {
-        if (record.id === "r3") throw new Error("a bug");
-        return undefined;
-      }),
-    ).toThrow("a bug");
-    expect(() => log.count()).toThrow(/broken/);
-    log.close();
-    const again = openEventLog(file, parse);
-    expect(again.count()).toBe(0);
+    const again = openStore(file);
+    expect(again.problems.map((problem) => problem.code)).toEqual(["unknown-tag"]);
+    expect(again.append(event({ type: "tag.created", tag: "t", name: "T" }))).toBeUndefined();
+    // The rules now accept the event, but the file has its id. Thus the state must not get it.
+    expect(again.append(tagged)?.code).toBe("duplicate-event");
+    expect(again.state.events.has(tagged.id)).toBe(false);
+    expect([...again.events()]).toHaveLength(3);
     again.close();
-  });
-
-  it("is usable again after recover, and recover of a log that is not broken does nothing", () => {
-    const log = openEventLog(file, parse);
-    log.recover();
-    const record = { id: "r1", at: "2026-11-08T12:00:00Z", type: "t" };
-    expect(() =>
-      log.append(record, () => {
-        throw new Error("a bug");
-      }),
-    ).toThrow("a bug");
-    expect(() => log.count()).toThrow(/broken/);
-    log.recover();
-    expect(log.count()).toBe(0);
-    expect(log.append(record, () => undefined)).toBeUndefined();
-    expect(log.count()).toBe(1);
-    log.close();
   });
 });

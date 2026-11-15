@@ -18,6 +18,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@mark1russell7/sqlite": "^0.3.2",
     "@pairrank/core": "workspace:*"
   }
 }
