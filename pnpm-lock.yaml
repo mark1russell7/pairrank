@@ -458,7 +458,7 @@ importers:
     dependencies:
       '@mark1russell7/sqlite':
         specifier: ^0.3.2
-        version: 0.3.2
+        version: 0.3.3
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -1160,8 +1160,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/sqlite@0.3.2':
-    resolution: {integrity: sha512-3eX6QuGbiLjpSxdYHaJUQ8Ow6mYPIA/N5qZuxKgon4iq2v3wr0Hp888ZbkSWhxQdpo4rD7MVZoQXWL4g5VjxEA==}
+  '@mark1russell7/sqlite@0.3.3':
+    resolution: {integrity: sha512-FQmvcDymVQtT/atS1Yv7khd05GF3rc5D62YXRsDG2ICJP96leTNnpAwSNDbaKwKBbQyBbgQ9rux7MQOd3sefUg==}
     engines: {node: '>=22.16'}
 
   '@mark1russell7/ste-lint@0.3.2':
@@ -3895,7 +3895,7 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-statistics': 0.2.4
 
-  '@mark1russell7/sqlite@0.3.2': {}
+  '@mark1russell7/sqlite@0.3.3': {}
 
   '@mark1russell7/ste-lint@0.3.2':
     dependencies:
