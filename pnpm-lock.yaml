@@ -292,7 +292,7 @@ importers:
     dependencies:
       '@mark1russell7/collections':
         specifier: ^0.11.0
-        version: 0.11.0(zod@4.6.7)
+        version: 0.11.1(zod@4.6.7)
       '@mark1russell7/rigor-generators':
         specifier: ^0.1.16
         version: 0.1.16
@@ -344,7 +344,7 @@ importers:
         version: 2.1.4
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.37
-        version: 0.2.45(esbuild@0.28.2)
+        version: 0.2.46(esbuild@0.28.2)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -486,7 +486,7 @@ importers:
         version: 0.8.10(zod@4.6.7)
       '@mark1russell7/collections':
         specifier: ^0.11.0
-        version: 0.11.0(zod@4.6.7)
+        version: 0.11.1(zod@4.6.7)
       '@mark1russell7/layout-contract':
         specifier: ^0.10.0
         version: 0.10.0(zod@4.6.7)
@@ -987,8 +987,8 @@ packages:
     resolution: {integrity: sha512-z0Js1n8Df/XsS8nGEpBYpZElRxquTcaPZluL5ZSHod14PnGAGLcoQoSkl7AlbSyLk9H0i6MozwX6mYlaYdXq1g==}
     engines: {node: '>=22.12'}
 
-  '@mark1russell7/collections@0.11.0':
-    resolution: {integrity: sha512-s2DyC8i8JhP0Ue6oG+dLUHrjwvUjz+UQrrSIViLkDdU0t+LhLChLrkRpcwr/eof62ffOSPXifLVYuzM7alEEPw==}
+  '@mark1russell7/collections@0.11.1':
+    resolution: {integrity: sha512-A8WllF8xDdMzIC1WBJYEf5PHO5zt+TJ/qVYGGHZMRbAu5y/U0ngToSdy7AkQeFlk/dLaPDydY+lCs18X817Cpw==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/conventions@0.41.14':
@@ -1061,8 +1061,8 @@ packages:
     resolution: {integrity: sha512-hn2C5jjOFCGKJqFQPHt57C/Cn1l9Lb9MltVNtL71KSu+nRrfPOmg8ujYB5n3oDFFWNdNA4bE/8LLT4tG3lmrGA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-bench@0.2.45':
-    resolution: {integrity: sha512-UtKh4ubtp6FqK3Vj0owuLZp0WiHntuEmtoUgXYba8gg41ub1ULYjwbxkJVZrac+O/H57jXvQUwblyPCD7qHO1g==}
+  '@mark1russell7/rigor-bench@0.2.46':
+    resolution: {integrity: sha512-mAiHobMKqMyPFX3ro/X6uX4Pg9aKMYm6a6YmgZJmlTODCTBklpbkgt5nV31kZ4lZmyUHSzH/TWaqnwyiYG9XhA==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -3782,9 +3782,9 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  '@mark1russell7/collections@0.11.0(zod@4.6.7)':
+  '@mark1russell7/collections@0.11.1(zod@4.6.7)':
     dependencies:
-      '@mark1russell7/algebra': 0.8.5(zod@4.6.7)
+      '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
       '@mark1russell7/optional': 1.2.0
       '@mark1russell7/rigor-statistics': 0.2.4
     transitivePeerDependencies:
@@ -3840,7 +3840,7 @@ snapshots:
 
   '@mark1russell7/rational@0.1.2': {}
 
-  '@mark1russell7/rigor-bench@0.2.45(esbuild@0.28.2)':
+  '@mark1russell7/rigor-bench@0.2.46(esbuild@0.28.2)':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
       '@mark1russell7/rigor-statistics': 0.2.4
@@ -3869,7 +3869,7 @@ snapshots:
   '@mark1russell7/service@0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)':
     dependencies:
       '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
-      '@mark1russell7/collections': 0.11.0(zod@4.6.7)
+      '@mark1russell7/collections': 0.11.1(zod@4.6.7)
       '@mark1russell7/quantity': 0.4.1(zod@4.6.7)
       '@mark1russell7/rational': 0.1.2
       '@mark1russell7/rigor-generators': 0.1.16
