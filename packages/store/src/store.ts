@@ -1,10 +1,11 @@
 /**
- * The store of pairrank: the log of events in a SQLite file, and the state that its replay gives.
+ * The store of pairrank: the log of events in a SQLite file, and the state that its replay gives. The log is the event
+ * log of `@mark1russell7/sqlite`.
  *
  * @packageDocumentation
  */
+import { type Appended, openEventLog } from "@mark1russell7/sqlite";
 import { type Event, type Problem, type State, apply, parseEvent, replay } from "@pairrank/core";
-import { openEventLog } from "./log.ts";
 
 /** An open store. */
 export interface Store {
@@ -22,6 +23,26 @@ export interface Store {
   /** This function gives each event of the file, in order. */
   events(): Generator<Event>;
   close(): void;
+}
+
+/**
+ * This function gives the problem of one result of the log, or `undefined` for an added event.
+ *
+ * The log does not give an event with a known id to `accept`. Thus this function gives the problem `duplicate-event` for
+ * it, as the rules do. This function does not use `apply` for it. A refused event of the file has no id in the state.
+ * Thus `apply` can change the state, and the file gets no new row.
+ */
+function problemOf(event: Event, result: Appended<Event, Problem>): Problem | undefined {
+  switch (result.kind) {
+    case "added":
+      return undefined;
+    case "refused":
+      return result.problem;
+    case "duplicate":
+      return { event: event.id, code: "duplicate-event", message: `The event ${event.id} is in the log.` };
+    case "conflict":
+      return { event: event.id, code: "duplicate-event", message: `The event ${event.id} is in the log with a different body.` };
+  }
 }
 
 /** This function opens a store, and replays its log. `:memory:` gives a store with no file. */
@@ -57,8 +78,18 @@ export function openStore(path: string): Store {
     get problems() {
       return problems;
     },
-    append: (event) => write(() => log.append(event, accept)),
-    appendAll: (events) => write(() => log.appendAll(events, accept)),
+    append: (event) => write(() => problemOf(event, log.append(event, accept))),
+    appendAll: (events) =>
+      write(() => {
+        const list = [...events];
+        const results = log.appendAll(list, accept);
+        const found: Problem[] = [];
+        list.forEach((event, index) => {
+          const problem = problemOf(event, results[index] as Appended<Event, Problem>);
+          if (problem !== undefined) found.push(problem);
+        });
+        return found;
+      }),
     events: () => log.read(),
     close: () => log.close(),
   };
