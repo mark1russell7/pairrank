@@ -298,7 +298,7 @@ importers:
         version: 0.1.16
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.1
-        version: 0.2.4
+        version: 0.2.5
       '@mark1russell7/service':
         specifier: ^0.8.5
         version: 0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
@@ -344,7 +344,7 @@ importers:
         version: 2.1.4
       '@mark1russell7/rigor-bench':
         specifier: ^0.2.37
-        version: 0.2.46(esbuild@0.28.2)
+        version: 0.2.49(esbuild@0.28.2)
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -393,7 +393,7 @@ importers:
         version: 0.1.16
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.1
-        version: 0.2.4
+        version: 0.2.5
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -421,7 +421,7 @@ importers:
         version: 0.1.16
       '@mark1russell7/rigor-statistics':
         specifier: ^0.2.1
-        version: 0.2.4
+        version: 0.2.5
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -458,7 +458,7 @@ importers:
     dependencies:
       '@mark1russell7/sqlite':
         specifier: ^0.3.2
-        version: 0.3.3
+        version: 0.3.4
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -1061,8 +1061,8 @@ packages:
     resolution: {integrity: sha512-hn2C5jjOFCGKJqFQPHt57C/Cn1l9Lb9MltVNtL71KSu+nRrfPOmg8ujYB5n3oDFFWNdNA4bE/8LLT4tG3lmrGA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-bench@0.2.46':
-    resolution: {integrity: sha512-mAiHobMKqMyPFX3ro/X6uX4Pg9aKMYm6a6YmgZJmlTODCTBklpbkgt5nV31kZ4lZmyUHSzH/TWaqnwyiYG9XhA==}
+  '@mark1russell7/rigor-bench@0.2.49':
+    resolution: {integrity: sha512-cw+/ua9k+1m366mxhlUYDQqPD5yDYmNLHLvhgwjVvfJ4HRDA+QYBveHnL8UklH9eS6RJ3u1KJo1+yz+UP8WByw==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -1093,6 +1093,10 @@ packages:
 
   '@mark1russell7/rigor-statistics@0.2.4':
     resolution: {integrity: sha512-0L075rT+toD6edxEwDdZHiFzHP4+dJrI64Pw5gh9V33VwCfNRUMQY90AooDpMgVcC9cuxHNXegDLSOYU9ZMIlA==}
+    engines: {node: '>=22'}
+
+  '@mark1russell7/rigor-statistics@0.2.5':
+    resolution: {integrity: sha512-jaUqrz8FmsUoR9n0MeRUIk9UTpG5QL+dF/moh+C23fyihb00LgOD42Up//1piIPVZZDiq6lua0sBcSKMwh5IFg==}
     engines: {node: '>=22'}
 
   '@mark1russell7/service@0.8.20':
@@ -1160,9 +1164,9 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/sqlite@0.3.3':
-    resolution: {integrity: sha512-FQmvcDymVQtT/atS1Yv7khd05GF3rc5D62YXRsDG2ICJP96leTNnpAwSNDbaKwKBbQyBbgQ9rux7MQOd3sefUg==}
-    engines: {node: '>=22.16'}
+  '@mark1russell7/sqlite@0.3.4':
+    resolution: {integrity: sha512-IVmkdnP5WawL1ChEVkmnJAf75UJ7GOursZRsOrcKpeWFriw9ydkxKyApDlJwpO0oFeQIxsprKMqapWE0UqR8fg==}
+    engines: {node: '>=22.13'}
 
   '@mark1russell7/ste-lint@0.3.2':
     resolution: {integrity: sha512-0WRNon1oYKX1mmTP/AhrPnpoGAGolmpkJWHaTkHXc4SKe1tQhUvPrY/0TQ4gvu7aN+TEPpypiZDIkOjYZG8qBA==}
@@ -3840,10 +3844,10 @@ snapshots:
 
   '@mark1russell7/rational@0.1.2': {}
 
-  '@mark1russell7/rigor-bench@0.2.46(esbuild@0.28.2)':
+  '@mark1russell7/rigor-bench@0.2.49(esbuild@0.28.2)':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
-      '@mark1russell7/rigor-statistics': 0.2.4
+      '@mark1russell7/rigor-statistics': 0.2.5
       '@mark1russell7/text': 0.0.6
     optionalDependencies:
       esbuild: 0.28.2
@@ -3863,6 +3867,10 @@ snapshots:
       '@mark1russell7/rigor-generators': 0.1.16
 
   '@mark1russell7/rigor-statistics@0.2.4':
+    dependencies:
+      '@mark1russell7/rigor-generators': 0.1.16
+
+  '@mark1russell7/rigor-statistics@0.2.5':
     dependencies:
       '@mark1russell7/rigor-generators': 0.1.16
 
@@ -3893,9 +3901,9 @@ snapshots:
 
   '@mark1russell7/site-pages@0.5.0':
     dependencies:
-      '@mark1russell7/rigor-statistics': 0.2.4
+      '@mark1russell7/rigor-statistics': 0.2.5
 
-  '@mark1russell7/sqlite@0.3.3': {}
+  '@mark1russell7/sqlite@0.3.4': {}
 
   '@mark1russell7/ste-lint@0.3.2':
     dependencies:
