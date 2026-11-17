@@ -14,7 +14,6 @@ on:
   schedule:
     - cron: "24 */3 * * *"
   workflow_dispatch:
-  pull_request:
 
 permissions: {}
 
@@ -26,7 +25,7 @@ concurrency:
 
 jobs:
   pages:
-    uses: mark1russell7/template/.github/workflows/reusable-pages.yml@e34da837089781ed64d4619b1391938e1219664c # main
+    uses: mark1russell7/template/.github/workflows/reusable-pages.yml@2030c7dec9485afebb504772f79f41f23bdb2df7 # main
     # The build job of the shared workflow gets only the read permissions. Only its deploy job,
     # which runs no code of the repository, writes to Pages.
     permissions:
@@ -39,18 +38,3 @@ jobs:
       statuses: read
       pages: write
       id-token: write
-    with:
-      # site-pages adds releases/ and status/ next to the home page.
-      build: pnpm --filter @pairrank/site run build
-      out: packages/site/dist
-      env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'
-      deploy: ${{ github.event_name != 'pull_request' }}
-      site-name: pairrank
-      # The open items for the Status page. check:conventions parses the file on each pull request (roadmap-parses).
-      roadmap: docs/ROADMAP.md
-      # The check opens each page in a browser at each width, in light and dark.
-      site-check: true
-      site-check-pages: /,/releases/,/status/
-      site-check-widths: 360,390,1280
-      # The probe picks in the duel with the keys and the mouse. The check reads the TypeScript source and removes its types.
-      site-check-probe: packages/site/src/check-probe.ts
