@@ -27,10 +27,10 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "@mark1russell7/files": "^0.0.3",
+    "@mark1russell7/files": "^0.0.4",
     "@mark1russell7/layout-contract": "^0.10.0",
-    "@mark1russell7/sqlite": "^0.3.4",
-    "@mark1russell7/text": "^0.0.10",
+    "@mark1russell7/sqlite": "^0.6.0",
+    "@mark1russell7/text": "^0.0.17",
     "@pairrank/host": "workspace:*",
     "@pairrank/input": "workspace:*",
     "@pairrank/store": "workspace:*",
