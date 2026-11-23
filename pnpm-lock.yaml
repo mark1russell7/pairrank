@@ -240,7 +240,7 @@ importers:
         version: 0.0.4
       '@mark1russell7/layout-contract':
         specifier: ^0.11.0
-        version: 0.11.0(zod@4.6.7)
+        version: 0.11.1(zod@4.6.7)
       '@mark1russell7/sqlite':
         specifier: ^0.6.0
         version: 0.6.0
@@ -501,7 +501,7 @@ importers:
         version: 0.11.1(zod@4.6.7)
       '@mark1russell7/layout-contract':
         specifier: ^0.11.0
-        version: 0.11.0(zod@4.6.7)
+        version: 0.11.1(zod@4.6.7)
       '@mark1russell7/text':
         specifier: ^0.0.17
         version: 0.0.17
@@ -529,7 +529,7 @@ importers:
     dependencies:
       '@mark1russell7/layout-contract':
         specifier: ^0.11.0
-        version: 0.11.0(zod@4.6.7)
+        version: 0.11.1(zod@4.6.7)
       '@mark1russell7/text':
         specifier: ^0.0.17
         version: 0.0.17
@@ -1021,8 +1021,8 @@ packages:
     resolution: {integrity: sha512-Pb978ZnvlAxzcdWtRtqTGb7mZFCvlNrdKnpZqhxQ7gafzeNGf1JqYFuB4RWiLbJzRuFUWjEoAVG5f2TndCIlSg==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/layout-contract@0.11.0':
-    resolution: {integrity: sha512-cdDV4LZo5gxBL/iaoWec1EL0YzvI3HkrDxDOgPHjRln2xLtmjTqE9uXSvUfvM/35Ns93MTjYFSSbbdE2ptspRA==}
+  '@mark1russell7/layout-contract@0.11.1':
+    resolution: {integrity: sha512-1ERbIJoHmYNBWg4Wdv1Nxseec/FuKO+YU8yHJ87U4NpbVNBK6ffngMufjTVTZ0NmpwgcSJkv3TdpPHawVWHiiQ==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
@@ -3826,7 +3826,7 @@ snapshots:
 
   '@mark1russell7/files@0.0.4': {}
 
-  '@mark1russell7/layout-contract@0.11.0(zod@4.6.7)':
+  '@mark1russell7/layout-contract@0.11.1(zod@4.6.7)':
     dependencies:
       '@mark1russell7/predicates': 0.1.2
       '@mark1russell7/rigor-generators': 0.2.0
