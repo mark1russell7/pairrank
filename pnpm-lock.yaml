@@ -188,8 +188,8 @@ importers:
         specifier: ^2.0.0
         version: 2.1.4
       '@mark1russell7/ste-lint':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: ^0.6.0
+        version: 0.6.0
       '@mark1russell7/template-cli':
         specifier: ^0.1.6
         version: 0.1.9
@@ -236,17 +236,17 @@ importers:
   packages/desktop:
     dependencies:
       '@mark1russell7/files':
-        specifier: ^0.0.4
-        version: 0.0.4
+        specifier: ^0.0.6
+        version: 0.0.6
       '@mark1russell7/layout-contract':
         specifier: ^0.11.0
-        version: 0.11.1(zod@4.6.7)
+        version: 0.11.2(zod@4.6.7)
       '@mark1russell7/sqlite':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: ^0.7.0
+        version: 0.7.0
       '@mark1russell7/text':
-        specifier: ^0.0.17
-        version: 0.0.17
+        specifier: ^0.0.18
+        version: 0.0.18
       '@pairrank/host':
         specifier: workspace:*
         version: link:../host
@@ -315,8 +315,8 @@ importers:
         specifier: ^0.8.5
         version: 0.8.20(@opentelemetry/api@1.10.0)(ws@8.22.1)(zod@4.6.7)
       '@mark1russell7/text':
-        specifier: ^0.0.17
-        version: 0.0.17
+        specifier: ^0.0.18
+        version: 0.0.18
       '@mark1russell7/vex':
         specifier: ^0.18.0
         version: 0.18.0
@@ -449,7 +449,7 @@ importers:
         version: 2.1.4
       '@mark1russell7/site-pages':
         specifier: ^0.8.2
-        version: 0.8.2
+        version: 0.8.4
       '@types/node':
         specifier: ^26.6.5
         version: 26.6.6
@@ -469,8 +469,8 @@ importers:
   packages/store:
     dependencies:
       '@mark1russell7/sqlite':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: ^0.7.0
+        version: 0.7.0
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -501,10 +501,10 @@ importers:
         version: 0.11.1(zod@4.6.7)
       '@mark1russell7/layout-contract':
         specifier: ^0.11.0
-        version: 0.11.1(zod@4.6.7)
+        version: 0.11.2(zod@4.6.7)
       '@mark1russell7/text':
-        specifier: ^0.0.17
-        version: 0.0.17
+        specifier: ^0.0.18
+        version: 0.0.18
       '@pairrank/input':
         specifier: workspace:*
         version: link:../input
@@ -529,10 +529,10 @@ importers:
     dependencies:
       '@mark1russell7/layout-contract':
         specifier: ^0.11.0
-        version: 0.11.1(zod@4.6.7)
+        version: 0.11.2(zod@4.6.7)
       '@mark1russell7/text':
-        specifier: ^0.0.17
-        version: 0.0.17
+        specifier: ^0.0.18
+        version: 0.0.18
       '@pairrank/core':
         specifier: workspace:*
         version: link:../core
@@ -601,8 +601,8 @@ importers:
   packages/web:
     dependencies:
       '@mark1russell7/text':
-        specifier: ^0.0.17
-        version: 0.0.17
+        specifier: ^0.0.18
+        version: 0.0.18
       '@pairrank/host':
         specifier: workspace:*
         version: link:../host
@@ -1017,12 +1017,12 @@ packages:
     resolution: {integrity: sha512-3oKnBCxZi5ChjRmxP3lMFsWTRZuhHvt8I7ZHIr2UmgPQR5VrY/qJDKF6k9m8IqFq4958m0Z1+8BDa0SqXe/Ymw==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/files@0.0.4':
-    resolution: {integrity: sha512-Pb978ZnvlAxzcdWtRtqTGb7mZFCvlNrdKnpZqhxQ7gafzeNGf1JqYFuB4RWiLbJzRuFUWjEoAVG5f2TndCIlSg==}
+  '@mark1russell7/files@0.0.6':
+    resolution: {integrity: sha512-VLsy9pwIP1LuDEOkzVpUKU/SOTw+/d3F/IYjSp0Fj+Cqfl440Qs/ad5islvClQEKPNmiDp5Zs+VraNO2QQ/MkQ==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/layout-contract@0.11.1':
-    resolution: {integrity: sha512-1ERbIJoHmYNBWg4Wdv1Nxseec/FuKO+YU8yHJ87U4NpbVNBK6ffngMufjTVTZ0NmpwgcSJkv3TdpPHawVWHiiQ==}
+  '@mark1russell7/layout-contract@0.11.2':
+    resolution: {integrity: sha512-ukzAreTMh7QkQIkVQXZtnxC55a+06sS8sHueonvEtO2ws4nmE07OX71EYx5EGlvnSXvbpLDQ0qVGJ4IR0qX4ig==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/optional@1.2.0':
@@ -1171,17 +1171,17 @@ packages:
       zod:
         optional: true
 
-  '@mark1russell7/site-pages@0.8.2':
-    resolution: {integrity: sha512-WMErq1NBREuaBOn28Vg+7LMJSTou8+O27qNRoaRt11h+r3j9muf4jFmuwGazDOSS+Cf32gxDT1/IpXbAz2h/Vg==}
+  '@mark1russell7/site-pages@0.8.4':
+    resolution: {integrity: sha512-pC0qcQqIsfQg5jTg+peUP/DGBXb4d1PQYiu6TCeCE1ALc5X8nyGhj9vMYKBCdhK7uHm8Chtx7INLKPWPmxpK3w==}
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/sqlite@0.6.0':
-    resolution: {integrity: sha512-4QytFosiFp6rvX6H2sUlIwicf/fYDLo9wonEDIFheC0qnDKB8L3QYGrspQJ519b9U0CVo/ZtZkmPMl1vKQt/hQ==}
+  '@mark1russell7/sqlite@0.7.0':
+    resolution: {integrity: sha512-9uYBKNfHpDWrPX0C88vcP3CDS3FmEH9ntfLRvIGayTLMYV99LHGw254iO3gRQxd83jq1ml7ER+l0tKW/CGKKTA==}
     engines: {node: '>=22.13'}
 
-  '@mark1russell7/ste-lint@0.4.0':
-    resolution: {integrity: sha512-V58Mtpt7WOW2wRBreSuuIO4am0WOdrJq8603+NNtqyI5EY0/LpPiQFxEDx+yNOgkN5ddnpPTkjalRTmBF+9GXQ==}
+  '@mark1russell7/ste-lint@0.6.0':
+    resolution: {integrity: sha512-4jt/c/n4hKa3Y32/iqbCrNk4MShb9ECxedm5WG28RYpYm0eCCxkn10wn00hzRKxvFtFe9qKDS0b5XGhfSuvTWQ==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -1196,6 +1196,10 @@ packages:
 
   '@mark1russell7/text@0.0.17':
     resolution: {integrity: sha512-jFqqVfCTQ0N65qvMP/gANAbnqB7ewpA3IeNxPeQTuF3IoSZkTgTl92PE47F5IOOfgz0Q0dF723crrYB8T6pR3g==}
+    engines: {node: '>=22.12'}
+
+  '@mark1russell7/text@0.0.18':
+    resolution: {integrity: sha512-sIOsTkBOhWLSDyE4qKyiokUT84NPJgPuhLPDyh2Y+mjGnNbGhF9Q6dt9NnSBtSW8C1D0rZfx8fPJ53g0gQGWfQ==}
     engines: {node: '>=22.12'}
 
   '@mark1russell7/text@0.0.5':
@@ -3824,9 +3828,9 @@ snapshots:
 
   '@mark1russell7/files@0.0.2': {}
 
-  '@mark1russell7/files@0.0.4': {}
+  '@mark1russell7/files@0.0.6': {}
 
-  '@mark1russell7/layout-contract@0.11.1(zod@4.6.7)':
+  '@mark1russell7/layout-contract@0.11.2(zod@4.6.7)':
     dependencies:
       '@mark1russell7/predicates': 0.1.2
       '@mark1russell7/rigor-generators': 0.2.0
@@ -3921,15 +3925,15 @@ snapshots:
       ws: 8.22.1
       zod: 4.6.7
 
-  '@mark1russell7/site-pages@0.8.2':
+  '@mark1russell7/site-pages@0.8.4':
     dependencies:
       '@mark1russell7/rigor-statistics': 0.2.5
 
-  '@mark1russell7/sqlite@0.6.0': {}
+  '@mark1russell7/sqlite@0.7.0': {}
 
-  '@mark1russell7/ste-lint@0.4.0':
+  '@mark1russell7/ste-lint@0.6.0':
     dependencies:
-      '@mark1russell7/files': 0.0.4
+      '@mark1russell7/files': 0.0.6
       typescript: 6.0.3
 
   '@mark1russell7/strategy-space@0.1.1':
@@ -3942,6 +3946,8 @@ snapshots:
       '@clack/prompts': 1.8.1
 
   '@mark1russell7/text@0.0.17': {}
+
+  '@mark1russell7/text@0.0.18': {}
 
   '@mark1russell7/text@0.0.5': {}
 
