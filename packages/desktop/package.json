@@ -30,7 +30,7 @@
     "@mark1russell7/files": "^0.0.6",
     "@mark1russell7/layout-contract": "^0.11.0",
     "@mark1russell7/sqlite": "^0.7.0",
-    "@mark1russell7/text": "^0.0.18",
+    "@mark1russell7/text": "^0.0.19",
     "@pairrank/host": "workspace:*",
     "@pairrank/input": "workspace:*",
     "@pairrank/store": "workspace:*",
