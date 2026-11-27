@@ -272,8 +272,8 @@ importers:
         specifier: ^6.8.11
         version: 6.8.11(supports-color@7.2.0)
       polite-crawler:
-        specifier: ^0.6.0
-        version: 0.6.3(zod@4.6.7)
+        specifier: ^0.7.0
+        version: 0.7.12(@opentelemetry/api@1.10.0)(ws@8.23.0)(zod@4.6.7)
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.0.0
@@ -631,8 +631,8 @@ importers:
         specifier: ^0.55.2
         version: 0.55.2(@opentelemetry/api@1.10.0)(ws@8.23.0)
       polite-crawler:
-        specifier: ^0.6.0
-        version: 0.6.3(zod@4.6.7)
+        specifier: ^0.7.0
+        version: 0.7.12(@opentelemetry/api@1.10.0)(ws@8.23.0)(zod@4.6.7)
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -1111,9 +1111,9 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/sqlite@0.2.6':
-    resolution: {integrity: sha512-uc1KAI7kDz77g6+ssLta9uytc2UNns2ue+my4/jKYdPjDQj1Ijyi76Pco9jRp+Nwil5hYOzGyw0Q/WN7h7di3A==}
-    engines: {node: '>=22.16'}
+  '@mark1russell7/sqlite@0.3.12':
+    resolution: {integrity: sha512-LANgtuaGCvL1VGbU61F51sgd3ytmqrgMN3pSihPs5EdD1xq93te7rPllmyPV9mH7QetUabHlcVVUZsf+Ju98cA==}
+    engines: {node: '>=22.13'}
 
   '@mark1russell7/sqlite@0.7.2':
     resolution: {integrity: sha512-tUDmEanhoJeL/mVnGvutgKkasTBk5Q4ypchxL81fKToQlE4Pgvfi1DbCTJMHCUmfjt9O63nqJI7g79SbG0QB9Q==}
@@ -2811,8 +2811,8 @@ packages:
     resolution: {integrity: sha512-uysumyrvkUX0rX/dEVqt8gC3sTBzd4zoWfLeS29nb53imdaXVvLINYXTI2GNqzaMuvacNx4uJQ8+b3zXR0pkgQ==}
     engines: {node: '>=10.4.0'}
 
-  polite-crawler@0.6.3:
-    resolution: {integrity: sha512-kHAVid8FeqjpiIqwuhLNyoNe1a9k0Nfpj9wvyGcXAwGhEYxudL+OqFSDVIxMLSEb8xB62xOKIQMC+C5XsGmP/g==}
+  polite-crawler@0.7.12:
+    resolution: {integrity: sha512-vaNtIhb+UL7Er2nc53wHUxJrwSAuiXMmmCcXxt7xPnLpq53sITv6nS/q/pJ1+kAyom4eecLi/XVsa3Gmso47qQ==}
     engines: {node: '>=22.19'}
     hasBin: true
     peerDependencies:
@@ -3834,7 +3834,7 @@ snapshots:
     dependencies:
       '@mark1russell7/rigor-statistics': 0.2.34
 
-  '@mark1russell7/sqlite@0.2.6': {}
+  '@mark1russell7/sqlite@0.3.12': {}
 
   '@mark1russell7/sqlite@0.7.2': {}
 
@@ -5453,17 +5453,24 @@ snapshots:
       base64-js: 1.5.1
       xmlbuilder: 15.1.1
 
-  polite-crawler@0.6.3(zod@4.6.7):
+  polite-crawler@0.7.12(@opentelemetry/api@1.10.0)(ws@8.23.0)(zod@4.6.7):
     dependencies:
-      '@mark1russell7/algebra': 0.8.10(zod@4.6.7)
-      '@mark1russell7/sqlite': 0.2.6
+      '@mark1russell7/service': 0.8.20(@opentelemetry/api@1.10.0)(ws@8.23.0)(zod@4.6.7)
+      '@mark1russell7/sqlite': 0.3.12
       '@mozilla/readability': 0.6.0
       linkedom: 0.18.15
       undici: 8.13.1
       unpdf: 1.9.1
     transitivePeerDependencies:
+      - '@grpc/grpc-js'
       - '@napi-rs/canvas'
+      - '@opentelemetry/api'
+      - amqplib
       - canvas
+      - ioredis
+      - mongodb
+      - pg
+      - ws
       - zod
 
   postcss@8.5.33:
